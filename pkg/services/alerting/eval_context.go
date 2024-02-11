@@ -154,8 +154,8 @@ func (c *EvalContext) GetNewState() alertmodels.AlertStateType {
 		return ns
 	}
 
-	since := time.Since(c.Rule.LastStateChange)
-	if c.PrevAlertState == alertmodels.AlertStatePending && since > c.Rule.For {
+	since := c.StartTime.Sub(c.Rule.LastStateChange)                              // LOGZ.IO GRAFANA CHANGE :: DEV-17927 - change time to StartTime
+	if c.PrevAlertState == alertmodels.AlertStatePending && since >= c.Rule.For { // LOGZ.IO GRAFANA CHANGE :: DEV-18900 - fix For check to be inclusive
 		return alertmodels.AlertStateAlerting
 	}
 

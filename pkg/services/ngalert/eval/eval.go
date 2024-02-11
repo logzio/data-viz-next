@@ -18,6 +18,7 @@ import (
 	"github.com/grafana/grafana/pkg/expr"
 	"github.com/grafana/grafana/pkg/expr/classic"
 	"github.com/grafana/grafana/pkg/infra/log"
+	m "github.com/grafana/grafana/pkg/models" // LOGZ.IO GRAFANA CHANGE :: Upgrade to 8.4.0
 	"github.com/grafana/grafana/pkg/plugins"
 	"github.com/grafana/grafana/pkg/services/datasources"
 	"github.com/grafana/grafana/pkg/services/ngalert/models"
@@ -292,7 +293,7 @@ func ParseStateString(repr string) (State, error) {
 	}
 }
 
-func buildDatasourceHeaders(ctx context.Context) map[string]string {
+func buildDatasourceHeaders(ctx EvaluationContext) map[string]string { // LOGZ.IO GRAFANA CHANGE :: DEV-43744 - change to EvaluationContext
 	headers := map[string]string{
 		// Many data sources check this in query method as sometimes alerting needs special considerations.
 		// Several existing systems also compare against the value of this header. Altering this constitutes a breaking change.
@@ -305,11 +306,24 @@ func buildDatasourceHeaders(ctx context.Context) map[string]string {
 		models.CacheSkipHeaderName: "true",
 	}
 
-	key, ok := models.RuleKeyFromContext(ctx)
+	key, ok := models.RuleKeyFromContext(ctx.Ctx) // LOGZ.IO GRAFANA CHANGE :: DEV-43744 - change to EvaluationContext
 	if ok {
 		headers["X-Rule-Uid"] = key.UID
 		headers["X-Grafana-Org-Id"] = strconv.FormatInt(key.OrgID, 10)
 	}
+
+	// LOGZ.IO GRAFANA CHANGE :: Upgrade to 8.4.0
+	logzioEvalContext := ctx.LogzioEvalContext
+	logzioHeaders := m.LogzIoHeaders{RequestHeaders: logzioEvalContext.LogzioHeaders}
+	requestHeaders := make(map[string][]string, len(headers))
+
+	for k, v := range headers {
+		requestHeaders[k] = []string{v}
+	}
+
+	for k, v := range logzioHeaders.GetDatasourceQueryHeaders(requestHeaders) {
+		headers[k] = v[0]
+	} // LOGZ.IO GRAFANA CHANGE :: Upgrade to 8.4.0
 
 	return headers
 }
@@ -318,7 +332,7 @@ func buildDatasourceHeaders(ctx context.Context) map[string]string {
 func getExprRequest(ctx EvaluationContext, condition models.Condition, dsCacheService datasources.CacheService, reader AlertingResultsReader) (*expr.Request, error) {
 	req := &expr.Request{
 		OrgId:   ctx.User.GetOrgID(),
-		Headers: buildDatasourceHeaders(ctx.Ctx),
+		Headers: buildDatasourceHeaders(ctx), // LOGZ.IO GRAFANA CHANGE :: DEV-43744 - change to EvaluationContext
 		User:    ctx.User,
 	}
 	datasources := make(map[string]*datasources.DataSource, len(condition.Data))

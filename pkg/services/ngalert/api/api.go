@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"github.com/benbjohnson/clock" // LOGZ.IO GRAFANA CHANGE :: DEV-30169,DEV-30170,DEV-30275: add logzio alerting endpoints
 	"net/url"
 	"time"
 
@@ -151,6 +152,18 @@ func (api *API) RegisterAPIEndpoints(m *metrics.API) {
 		logger: logger,
 		hist:   api.Historian,
 	}), m)
+
+	// LOGZ.IO GRAFANA CHANGE :: DEV-30169,DEV-30170,DEV-30275: add logzio alerting endpoints
+	api.RegisterLogzioAlertingApiEndpoints(NewLogzioAlertingApi(
+		NewLogzioAlertingService(proxy,
+			api.Cfg,
+			api.EvaluatorFactory,
+			clock.New(),
+			api.MultiOrgAlertmanager,
+			logger,
+		),
+	), m)
+	// LOGZ.IO GRAFANA CHANGE :: end
 
 	// Inject upgrade endpoints if legacy alerting is enabled and the feature flag is enabled.
 	if !api.Cfg.UnifiedAlerting.IsEnabled() && api.FeatureManager.IsEnabledGlobally(featuremgmt.FlagAlertingPreviewUpgrade) {
