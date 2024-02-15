@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/grafana/grafana/pkg/components/simplejson"
-	pkgmodels "github.com/grafana/grafana/pkg/models" // LOGZ.IO GRAFANA CHANGE :: DEV-17927 - add LogzIoHeaders
 	"github.com/grafana/grafana/pkg/services/alerting/models"
 	"github.com/grafana/grafana/pkg/services/tag"
 )
@@ -56,7 +55,6 @@ type Rule struct {
 	Conditions          []Condition
 	Notifications       []string
 	AlertRuleTags       []*tag.Tag
-	LogzIoHeaders       *pkgmodels.LogzIoHeaders // LOGZ.IO GRAFANA CHANGE :: DEV-17927 - add LogzIoHeaders
 
 	StateChanges int64
 }

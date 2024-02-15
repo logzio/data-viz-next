@@ -1,6 +1,6 @@
 package api
 
-// LOGZ.IO GRAFANA CHANGE :: DEV-30169,DEV-30170: add endpoints to evaluate and process alerts
+// LOGZ.IO GRAFANA CHANGE :: DEV-43744, DEV-43895: add endpoints to evaluate and process alerts
 import (
 	"github.com/grafana/grafana/pkg/api/response"
 	"github.com/grafana/grafana/pkg/api/routing"

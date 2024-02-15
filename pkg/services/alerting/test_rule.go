@@ -5,14 +5,13 @@ import (
 	"fmt"
 
 	"github.com/grafana/grafana/pkg/components/simplejson"
-	"github.com/grafana/grafana/pkg/models" // LOGZ.IO GRAFANA CHANGE :: DEV-17927 - add LogzIoHeaders
 	"github.com/grafana/grafana/pkg/services/annotations/annotationstest"
 	"github.com/grafana/grafana/pkg/services/dashboards"
 	"github.com/grafana/grafana/pkg/services/user"
 )
 
 // AlertTest makes a test alert.
-func (e *AlertEngine) AlertTest(orgID int64, dashboard *simplejson.Json, panelID int64, user *user.SignedInUser, LogzIoHeaders *models.LogzIoHeaders) (*EvalContext, error) { // LOGZ.IO GRAFANA CHANGE :: DEV-17927 - add LogzIoHeaders
+func (e *AlertEngine) AlertTest(orgID int64, dashboard *simplejson.Json, panelID int64, user *user.SignedInUser) (*EvalContext, error) {
 	dash := dashboards.NewDashboardFromJson(dashboard)
 	dashInfo := DashAlertInfo{
 		User:  user,
@@ -32,8 +31,6 @@ func (e *AlertEngine) AlertTest(orgID int64, dashboard *simplejson.Json, panelID
 		if err != nil {
 			return nil, err
 		}
-
-		rule.LogzIoHeaders = LogzIoHeaders // LOGZ.IO GRAFANA CHANGE :: DEV-17927 - add LogzIoHeaders
 
 		handler := NewEvalHandler(e.DataService)
 

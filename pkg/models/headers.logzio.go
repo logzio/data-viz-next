@@ -1,4 +1,4 @@
-// LOGZ.IO GRAFANA CHANGE :: DEV-17927 use LogzIoHeaders obj to pass on headers
+// LOGZ.IO GRAFANA CHANGE :: DEV-43883 use LogzIoHeaders obj to pass on headers
 package models
 
 import (

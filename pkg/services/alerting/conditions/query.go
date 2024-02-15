@@ -11,7 +11,6 @@ import (
 
 	"github.com/grafana/grafana/pkg/components/null"
 	"github.com/grafana/grafana/pkg/components/simplejson"
-	"github.com/grafana/grafana/pkg/infra/log" // LOGZ.IO GRAFANA CHANGE :: (ALERTS) DEV-16492 Support external alert evaluation
 	"github.com/grafana/grafana/pkg/services/alerting"
 	"github.com/grafana/grafana/pkg/services/datasources"
 	ngalertmodels "github.com/grafana/grafana/pkg/services/ngalert/models"
@@ -19,13 +18,6 @@ import (
 	"github.com/grafana/grafana/pkg/tsdb/legacydata/interval"
 	"github.com/grafana/grafana/pkg/tsdb/prometheus"
 )
-
-// LOGZ.IO GRAFANA CHANGE :: (ALERTS) DEV-16492 Support external alert evaluation
-var (
-	queryLog = log.New("alerting.conditions.query")
-)
-
-// LOGZ.IO GRAFANA CHANGE :: end
 
 func init() {
 	alerting.RegisterCondition("query", func(model *simplejson.Json, index int) (alerting.Condition, error) {

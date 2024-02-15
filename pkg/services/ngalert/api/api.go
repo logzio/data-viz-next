@@ -2,7 +2,7 @@ package api
 
 import (
 	"context"
-	"github.com/benbjohnson/clock" // LOGZ.IO GRAFANA CHANGE :: DEV-30169,DEV-30170,DEV-30275: add logzio alerting endpoints
+	"github.com/benbjohnson/clock" // LOGZ.IO GRAFANA CHANGE :: DEV-43744, DEV-43895: add logzio alerting endpoints
 	"net/url"
 	"time"
 
@@ -153,7 +153,7 @@ func (api *API) RegisterAPIEndpoints(m *metrics.API) {
 		hist:   api.Historian,
 	}), m)
 
-	// LOGZ.IO GRAFANA CHANGE :: DEV-30169,DEV-30170,DEV-30275: add logzio alerting endpoints
+	// LOGZ.IO GRAFANA CHANGE :: DEV-43744, DEV-43895: add logzio alerting endpoints
 	api.RegisterLogzioAlertingApiEndpoints(NewLogzioAlertingApi(
 		NewLogzioAlertingService(proxy,
 			api.Cfg,

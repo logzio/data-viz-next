@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	// LOGZ.IO GRAFANA CHANGE :: DEV-30169, DEV-30170: add api models for alert evaluation and alert processing requests/responses
+	// LOGZ.IO GRAFANA CHANGE :: DEV-43744, DEV-43895: add api models for alert evaluation and alert processing requests/responses
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 	"github.com/grafana/grafana/pkg/services/ngalert/eval"
 	"github.com/grafana/grafana/pkg/services/ngalert/models"
@@ -556,7 +556,7 @@ type PostableUserConfig struct {
 	amSimple           map[string]interface{}    `yaml:"-" json:"-"`
 }
 
-// LOGZ.IO GRAFANA CHANGE :: DEV-30169, DEV-30170: add api models for alert evaluation and alert processing requests/responses
+// LOGZ.IO GRAFANA CHANGE :: DEV-43744, DEV-43895: add api models for alert evaluation and alert processing requests/responses
 type AlertEvaluationRequest struct {
 	AlertRule   ApiAlertRule                          `json:"alertRule"`
 	EvalTime    time.Time                             `json:"evalTime"`

@@ -37,7 +37,7 @@ func NewContextWithLogzio(ctx context.Context, user identity.Requester, logzioEv
 // LOGZ.IO GRAFANA CHANGE :: end
 
 func NewContext(ctx context.Context, user identity.Requester) EvaluationContext {
-	// LOGZ.IO GRAFANA CHANGE :: DEV-43744 - Pass context to datasources
+	// LOGZ.IO GRAFANA CHANGE :: DEV-43744 - Pass headers and custom datasource to evaluate alerts
 	logzioEvalContext := &models.LogzioAlertRuleEvalContext{
 		LogzioHeaders:     http.Header{},
 		DsOverrideByDsUid: map[string]models.EvaluationDatasourceOverride{},
@@ -47,12 +47,12 @@ func NewContext(ctx context.Context, user identity.Requester) EvaluationContext 
 	return EvaluationContext{
 		Ctx:               ctx,
 		User:              user,
-		LogzioEvalContext: logzioEvalContext, // LOGZ.IO GRAFANA CHANGE :: DEV-43744 - Pass context to datasources
+		LogzioEvalContext: logzioEvalContext, // LOGZ.IO GRAFANA CHANGE :: DEV-43744 - Pass headers and custom datasource to evaluate alerts
 	}
 }
 
 func NewContextWithPreviousResults(ctx context.Context, user identity.Requester, reader AlertingResultsReader) EvaluationContext {
-	// LOGZ.IO GRAFANA CHANGE :: DEV-43744 - Pass context to datasources
+	// LOGZ.IO GRAFANA CHANGE :: DEV-43744 - Pass headers and custom datasource to evaluate alerts
 	logzioEvalContext := &models.LogzioAlertRuleEvalContext{
 		LogzioHeaders:     http.Header{},
 		DsOverrideByDsUid: map[string]models.EvaluationDatasourceOverride{},
@@ -63,6 +63,6 @@ func NewContextWithPreviousResults(ctx context.Context, user identity.Requester,
 		Ctx:                   ctx,
 		User:                  user,
 		AlertingResultsReader: reader,
-		LogzioEvalContext:     logzioEvalContext, // LOGZ.IO GRAFANA CHANGE :: DEV-43744 - Pass context to datasources
+		LogzioEvalContext:     logzioEvalContext, // LOGZ.IO GRAFANA CHANGE :: DEV-43744 - Pass headers and custom datasource to evaluate alerts
 	}
 }

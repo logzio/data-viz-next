@@ -10,7 +10,6 @@ import (
 
 	"github.com/grafana/grafana/pkg/components/null"
 	"github.com/grafana/grafana/pkg/components/simplejson"
-	"github.com/grafana/grafana/pkg/models" // LOGZ.IO GRAFANA CHANGE :: (ALERTS) DEV-16492 Support external alert evaluation
 	"github.com/grafana/grafana/pkg/services/datasources"
 	"github.com/grafana/grafana/pkg/services/user"
 )
@@ -34,12 +33,11 @@ type DataSubQuery struct {
 
 // DataQuery contains all information about a data query request.  New work should use the plugin SDK.
 type DataQuery struct {
-	TimeRange     *DataTimeRange
-	Queries       []DataSubQuery
-	Headers       map[string]string
-	Debug         bool
-	User          *user.SignedInUser
-	LogzIoHeaders *models.LogzIoHeaders // LOGZ.IO GRAFANA CHANGE :: (ALERTS) DEV-16492 Support external alert evaluation
+	TimeRange *DataTimeRange
+	Queries   []DataSubQuery
+	Headers   map[string]string
+	Debug     bool
+	User      *user.SignedInUser
 }
 
 type DataTable struct {

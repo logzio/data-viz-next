@@ -18,7 +18,7 @@ import (
 	"github.com/grafana/grafana/pkg/expr"
 	"github.com/grafana/grafana/pkg/expr/classic"
 	"github.com/grafana/grafana/pkg/infra/log"
-	m "github.com/grafana/grafana/pkg/models" // LOGZ.IO GRAFANA CHANGE :: Upgrade to 8.4.0
+	m "github.com/grafana/grafana/pkg/models" // LOGZ.IO GRAFANA CHANGE :: DEV-43744 - change to EvaluationContext
 	"github.com/grafana/grafana/pkg/plugins"
 	"github.com/grafana/grafana/pkg/services/datasources"
 	"github.com/grafana/grafana/pkg/services/ngalert/models"
@@ -312,7 +312,7 @@ func buildDatasourceHeaders(ctx EvaluationContext) map[string]string { // LOGZ.I
 		headers["X-Grafana-Org-Id"] = strconv.FormatInt(key.OrgID, 10)
 	}
 
-	// LOGZ.IO GRAFANA CHANGE :: Upgrade to 8.4.0
+	// LOGZ.IO GRAFANA CHANGE :: DEV-43744 - Pass headers and custom datasource to evaluate alerts
 	logzioEvalContext := ctx.LogzioEvalContext
 	logzioHeaders := m.LogzIoHeaders{RequestHeaders: logzioEvalContext.LogzioHeaders}
 	requestHeaders := make(map[string][]string, len(headers))
@@ -323,7 +323,7 @@ func buildDatasourceHeaders(ctx EvaluationContext) map[string]string { // LOGZ.I
 
 	for k, v := range logzioHeaders.GetDatasourceQueryHeaders(requestHeaders) {
 		headers[k] = v[0]
-	} // LOGZ.IO GRAFANA CHANGE :: Upgrade to 8.4.0
+	} // LOGZ.IO GRAFANA CHANGE :: End
 
 	return headers
 }

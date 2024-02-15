@@ -9,7 +9,6 @@ import (
 
 	"github.com/grafana/grafana/pkg/api/dtos"
 	"github.com/grafana/grafana/pkg/api/response"
-	"github.com/grafana/grafana/pkg/models" // LOGZ.IO GRAFANA CHANGE :: DEV-17927 - add LogzIoHeaders
 	"github.com/grafana/grafana/pkg/services/alerting"
 	alertmodels "github.com/grafana/grafana/pkg/services/alerting/models"
 	contextmodel "github.com/grafana/grafana/pkg/services/contexthandler/model"
@@ -180,8 +179,7 @@ func (hs *HTTPServer) AlertTest(c *contextmodel.ReqContext) response.Response {
 		return response.Error(400, "The dashboard needs to be saved at least once before you can test an alert rule", nil)
 	}
 
-	// LOGZ.IO GRAFANA CHANGE :: DEV-17927 - add LogzIoHeaders
-	res, err := hs.AlertEngine.AlertTest(c.SignedInUser.GetOrgID(), dto.Dashboard, dto.PanelId, c.SignedInUser, &models.LogzIoHeaders{RequestHeaders: c.Req.Header})
+	res, err := hs.AlertEngine.AlertTest(c.SignedInUser.GetOrgID(), dto.Dashboard, dto.PanelId, c.SignedInUser)
 	if err != nil {
 		var validationErr alerting.ValidationError
 		if errors.As(err, &validationErr) {

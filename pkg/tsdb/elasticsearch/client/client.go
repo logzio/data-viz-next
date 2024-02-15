@@ -20,7 +20,7 @@ import (
 
 	"github.com/grafana/grafana/pkg/infra/log"
 	"github.com/grafana/grafana/pkg/infra/tracing"
-	"github.com/grafana/grafana/pkg/models" // LOGZ.IO GRAFANA CHANGE :: Upgrade to 8.4.0
+	"github.com/grafana/grafana/pkg/models" // LOGZ.IO GRAFANA CHANGE :: DEV-43883 - add LogzIoHeaders
 )
 
 // Used in logging to mark a stage
@@ -71,7 +71,7 @@ var NewClient = func(ctx context.Context, ds *DatasourceInfo, timeRange backend.
 	}
 	logger.Debug("Creating new client", "configuredFields", fmt.Sprintf("%#v", ds.ConfiguredFields), "indices", strings.Join(indices, ", "), "interval", ds.Interval, "index", ds.Database)
 
-	// LOGZ.IO GRAFANA CHANGE :: Upgrade to 8.4.0 start
+	// LOGZ.IO GRAFANA CHANGE :: DEV-43883 - add LogzIoHeaders
 	logzIoHeaders := &models.LogzIoHeaders{}
 	headers := ctx.Value("logzioHeaders")
 	if headers != nil {
@@ -80,7 +80,7 @@ var NewClient = func(ctx context.Context, ds *DatasourceInfo, timeRange backend.
 			logzIoHeaders.RequestHeaders.Set(key, value)
 		}
 	}
-	// LOGZ.IO GRAFANA CHANGE :: Upgrade to 8.4.0 end
+	// LOGZ.IO GRAFANA CHANGE :: End
 
 	return &baseClientImpl{
 		logger:           logger,
@@ -90,7 +90,7 @@ var NewClient = func(ctx context.Context, ds *DatasourceInfo, timeRange backend.
 		indices:          indices,
 		timeRange:        timeRange,
 		tracer:           tracer,
-		logzIoHeaders:    logzIoHeaders, // LOGZ.IO GRAFANA CHANGE :: (ALERTS) DEV-16492 Support external alert evaluation
+		logzIoHeaders:    logzIoHeaders, // LOGZ.IO GRAFANA CHANGE :: DEV-43883 Support external alert evaluation
 	}, nil
 }
 
@@ -102,7 +102,7 @@ type baseClientImpl struct {
 	timeRange        backend.TimeRange
 	logger           log.Logger
 	tracer           tracing.Tracer
-	logzIoHeaders    *models.LogzIoHeaders // LOGZ.IO GRAFANA CHANGE :: DEV-17927 - add LogzIoHeaders
+	logzIoHeaders    *models.LogzIoHeaders // LOGZ.IO GRAFANA CHANGE :: DEV-43883 - add LogzIoHeaders
 }
 
 func (c *baseClientImpl) GetConfiguredFields() ConfiguredFields {
@@ -171,11 +171,9 @@ func (c *baseClientImpl) executeRequest(method, uriPath, uriQuery string, body [
 		return nil, err
 	}
 
-	req.Header = c.logzIoHeaders.GetDatasourceQueryHeaders(req.Header) // LOGZ.IO GRAFANA CHANGE :: (ALERTS) DEV-16492 Support external alert evaluation
+	req.Header = c.logzIoHeaders.GetDatasourceQueryHeaders(req.Header) // LOGZ.IO GRAFANA CHANGE :: DEV-43883 Support external alert evaluation
 
-	// LOGZ.IO GRAFANA CHANGE :: use application/json to interact with query-service
-	// req.Header.Set("Content-Type", "application/x-ndjson")
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", "application/json") // LOGZ.IO GRAFANA CHANGE :: DEV-43744 use application/json to interact with query-service
 
 	//nolint:bodyclose
 	resp, err := c.ds.HTTPClient.Do(req)
@@ -183,7 +181,7 @@ func (c *baseClientImpl) executeRequest(method, uriPath, uriQuery string, body [
 		return nil, err
 	}
 
-	// LOGZ.IO GRAFANA CHANGE :: DEV-17927 - Add error msg
+	// LOGZ.IO GRAFANA CHANGE :: DEV-43744 - Add error msg
 	if resp != nil && (resp.StatusCode < 200 || resp.StatusCode >= 300) {
 		errorResponse, err := c.DecodeErrorResponse(resp)
 		if err != nil {
