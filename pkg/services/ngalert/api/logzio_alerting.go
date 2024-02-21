@@ -4,11 +4,12 @@ package api
 import (
 	"errors"
 	"github.com/benbjohnson/clock"
+	"github.com/grafana/grafana/pkg/services/ngalert/schedule"
 	"github.com/grafana/grafana/pkg/util/errutil"
+	"net/http"
 
 	//"github.com/grafana/grafana-plugin-sdk-go/data"
 	"github.com/grafana/grafana/pkg/api/response"
-	"github.com/grafana/grafana/pkg/cmd/grafana-cli/logger"
 	"github.com/grafana/grafana/pkg/expr"
 	"github.com/grafana/grafana/pkg/infra/log"
 	contextmodel "github.com/grafana/grafana/pkg/services/contexthandler/model"
@@ -16,8 +17,7 @@ import (
 	apimodels "github.com/grafana/grafana/pkg/services/ngalert/api/tooling/definitions"
 	"github.com/grafana/grafana/pkg/services/ngalert/eval"
 	ngmodels "github.com/grafana/grafana/pkg/services/ngalert/models"
-	"github.com/grafana/grafana/pkg/services/ngalert/notifier"
-	"github.com/grafana/grafana/pkg/services/ngalert/state"
+
 	//"github.com/grafana/grafana/pkg/services/ngalert/store"
 	"github.com/grafana/grafana/pkg/services/org"
 	//"github.com/grafana/grafana/pkg/services/sqlstore/migrations/ualert"
@@ -25,9 +25,6 @@ import (
 	"github.com/grafana/grafana/pkg/services/user"
 	"github.com/grafana/grafana/pkg/setting"
 	"math"
-	"net/http"
-	//"net/url"
-	"time"
 )
 
 const (
@@ -37,180 +34,63 @@ const (
 )
 
 type LogzioAlertingService struct {
-	AlertingProxy *AlertingProxy
-	Cfg           *setting.Cfg
+	Cfg              *setting.Cfg
+	EvaluatorFactory eval.EvaluatorFactory
+	Clock            clock.Clock
+	Log              log.Logger
+	Schedule         schedule.ScheduleService
+	//AlertingProxy 	  *AlertingProxy
+	//ExpressionService *expr.Service
+	//StateManager      *state.Manager
 	//AppUrl               *url.URL
-	EvaluatorFactory     eval.EvaluatorFactory
-	Clock                clock.Clock
-	ExpressionService    *expr.Service
-	StateManager         *state.Manager
-	MultiOrgAlertmanager *notifier.MultiOrgAlertmanager
+	//MultiOrgAlertmanager *notifier.MultiOrgAlertmanager
 	//InstanceStore        store.InstanceStore
-	Log log.Logger
 	//Migrator             *migrator.Migrator
 }
 
 func NewLogzioAlertingService(
-	Proxy *AlertingProxy,
 	Cfg *setting.Cfg,
 	EvaluatorFactory eval.EvaluatorFactory,
 	Clock clock.Clock,
-	//ExpressionService *expr.Service,
-	//StateManager *state.Manager,
-	MultiOrgAlertmanager *notifier.MultiOrgAlertmanager,
-	//InstanceStore store.InstanceStore,
 	log log.Logger,
+	Schedule schedule.ScheduleService,
+	Proxy *AlertingProxy,
+	// MultiOrgAlertmanager *notifier.MultiOrgAlertmanager,
+	// ExpressionService *expr.Service,
+	// StateManager *state.Manager,
+	// InstanceStore store.InstanceStore,
 	// SQLStore *sqlstore.SQLStore,
 ) *LogzioAlertingService {
 	return &LogzioAlertingService{
-		AlertingProxy: Proxy,
-		Cfg:           Cfg,
-		//AppUrl:               Cfg.ParsedAppURL,
+		Cfg:              Cfg,
 		Clock:            Clock,
 		EvaluatorFactory: EvaluatorFactory,
+		Log:              log,
+		Schedule:         Schedule,
+		//AlertingProxy: Proxy,
+		//MultiOrgAlertmanager: MultiOrgAlertmanager,
+		//AppUrl:               Cfg.ParsedAppURL,
 		//ExpressionService:    ExpressionService,
 		//StateManager:         StateManager,
-		MultiOrgAlertmanager: MultiOrgAlertmanager,
 		//InstanceStore:        InstanceStore,
-		Log: log,
 		//Migrator:             SQLStore.BuildMigrator(),
 	}
 }
 
 func (srv *LogzioAlertingService) RouteEvaluateAlert(c *contextmodel.ReqContext, evalRequest apimodels.AlertEvaluationRequest) response.Response {
-	alertRuleToEvaluate := apiRuleToDbAlertRule(evalRequest.AlertRule)
-	//condition := ngmodels.Condition{
-	//	Condition: alertRuleToEvaluate.Condition,
-	//	OrgID:     alertRuleToEvaluate.OrgID,
-	//	Data:      alertRuleToEvaluate.Data,
-	//}
+	c.Logger.Info("Evaluate Alert API", "evalTime", evalRequest.EvalTime, "ruleTitle", evalRequest.AlertRule.Title, "ruleUID", evalRequest.AlertRule.UID)
+	results, err := srv.Schedule.RunRuleEvaluation(c.Req.Context(), evalRequest)
+	c.Logger.Info("Evaluate Alert API - Done", "evalTime", evalRequest.EvalTime, "ruleTitle", evalRequest.AlertRule.Title, "ruleUID", evalRequest.AlertRule.UID)
 
-	var dsOverrideByDsUid = map[string]ngmodels.EvaluationDatasourceOverride{}
-	if evalRequest.DsOverrides != nil {
-		for _, dsOverride := range evalRequest.DsOverrides {
-			dsOverrideByDsUid[dsOverride.DsUid] = dsOverride
-		}
-	}
-
-	start := srv.Clock.Now()
-
-	logzioEvalContext := &ngmodels.LogzioAlertRuleEvalContext{
-		LogzioHeaders:     c.Req.Header,
-		DsOverrideByDsUid: dsOverrideByDsUid,
-	}
-
-	//ConditionEval(&condition, evalRequest.EvalTime, srv.ExpressionService, `&ngmodels.LogzioAlertRuleEvalContext{
-	// 	LogzioHeaders:     httpReq.Header,`
-	// 	DsOverrideByDsUid: dsOverrideByDsUid,
-	// })
-	//dur := srv.Clock.Now().Sub(start)
-	//
-	//if err != nil {
-	//	srv.Log.Error("failed to evaluate alert rule", "duration", dur, "err", err, "ruleId", alertRuleToEvaluate.ID)
-	//	return response.Error(http.StatusInternalServerError, "Failed to evaluate conditions", err)
-	//}
-	//
-
-	// TODO: check if we want to use NewContextWithPreviousResults
-	ctx := c.Req.Context()
-	evalCtx := eval.NewContextWithLogzio(ctx, InternalUserFor(alertRuleToEvaluate.OrgID), logzioEvalContext)
-	if srv.EvaluatorFactory == nil {
-		panic("evalfactory nil")
-	}
-	ruleEval, err := srv.EvaluatorFactory.Create(evalCtx, alertRuleToEvaluate.GetEvalCondition())
-	var results eval.Results
-	var dur time.Duration
 	if err != nil {
-		dur = srv.Clock.Now().Sub(start)
-		logger.Error("Failed to build rule evaluator", "error", err)
-	} else {
-		results, err = ruleEval.Evaluate(ctx, evalRequest.EvalTime)
-		dur = srv.Clock.Now().Sub(start)
-		if err != nil {
-			logger.Error("Failed to evaluate rule", "error", err, "duration", dur)
-		}
+		srv.Log.Error("failed to run rule evaluation", "err", err)
+		response.Error(http.StatusInternalServerError, "Failed to evaluate conditions", err)
 	}
-	//
-	//evalTotal.Inc()
-	//evalDuration.Observe(dur.Seconds())
-
-	//TODO: check if we want to add tracing ??
-	if ctx.Err() != nil { // check if the context is not cancelled. The evaluation can be a long-running task.
-		//span.SetStatus(codes.Error, "rule evaluation cancelled")
-		logger.Debug("Skip updating the state because the context has been cancelled")
-		return nil
-	}
-
-	if err != nil || results.HasErrors() {
-		//evalTotalFailures.Inc()
-
-		// TODO: make sure we don't want retry
-		//// Only retry (return errors) if this isn't the last attempt, otherwise skip these return operations.
-		//if retry {
-		//	// The only thing that can return non-nil `err` from ruleEval.Evaluate is the server side expression pipeline.
-		//	// This includes transport errors such as transient network errors.
-		//	if err != nil {
-		//		span.SetStatus(codes.Error, "rule evaluation failed")
-		//		span.RecordError(err)
-		//		return fmt.Errorf("server side expressions pipeline returned an error: %w", err)
-		//	}
-		//
-		//	// If the pipeline executed successfully but have other types of errors that can be retryable, we should do so.
-		//	if !results.HasNonRetryableErrors() {
-		//		span.SetStatus(codes.Error, "rule evaluation failed")
-		//		span.RecordError(err)
-		//		return fmt.Errorf("the result-set has errors that can be retried: %w", results.Error())
-		//	}
-		//}
-
-		// If results is nil, we assume that the error must be from the SSE pipeline (ruleEval.Evaluate) which is the only code that can actually return an `err`.
-		if results == nil {
-			results = append(results, eval.NewResultFromError(err, evalRequest.EvalTime, dur))
-		}
-
-		// If err is nil, we assume that the SSS pipeline succeeded and that the error must be embedded in the results.
-		if err == nil {
-			err = results.Error()
-		}
-
-		//span.SetStatus(codes.Error, "rule evaluation failed")
-		//span.RecordError(err)
-	} else {
-		logger.Debug("Alert rule evaluated", "results", results, "duration", dur)
-		//span.AddEvent("rule evaluated", trace.WithAttributes(
-		//	attribute.Int64("results", int64(len(results))),
-		//))
-	}
-
 	var apiEvalResults []apimodels.ApiEvalResult
 	for _, result := range results {
 		apiEvalResults = append(apiEvalResults, evaluationResultsToApi(result))
 	}
 	return response.JSON(http.StatusOK, apiEvalResults)
-
-	///////////////////////// PROCESSING
-	//start = sch.clock.Now()
-	//processedStates := sch.stateManager.ProcessEvalResults(
-	//	ctx,
-	//	e.scheduledAt,
-	//	e.rule,
-	//	results,
-	//	state.GetRuleExtraLabels(e.rule, e.folderTitle, !sch.disableGrafanaFolder),
-	//)
-	//processDuration.Observe(sch.clock.Now().Sub(start).Seconds())
-	//
-	//start = sch.clock.Now()
-	//alerts := state.FromStateTransitionToPostableAlerts(processedStates, sch.stateManager, sch.appURL)
-	//span.AddEvent("results processed", trace.WithAttributes(
-	//	attribute.Int64("state_transitions", int64(len(processedStates))),
-	//	attribute.Int64("alerts_to_send", int64(len(alerts.PostableAlerts))),
-	//))
-	//if len(alerts.PostableAlerts) > 0 {
-	//	sch.alertsSender.Send(ctx, key, alerts)
-	//}
-	//sendDuration.Observe(sch.clock.Now().Sub(start).Seconds())
-	//
-	//return nil
 }
 
 //func (srv *LogzioAlertingService) RouteProcessAlert(httpReq http.Request, request apimodels.AlertProcessRequest) response.Response {

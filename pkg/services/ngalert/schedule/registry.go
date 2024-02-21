@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/grafana/grafana/pkg/services/ngalert/eval"
 	"hash/fnv"
 	"math"
 	"sort"
@@ -74,15 +75,16 @@ type ruleVersionAndPauseStatus struct {
 }
 
 type alertRuleInfo struct {
-	evalCh   chan *evaluation
-	updateCh chan ruleVersionAndPauseStatus
-	ctx      context.Context
-	stop     func(reason error)
+	evalCh    chan *evaluation
+	updateCh  chan ruleVersionAndPauseStatus
+	resultsCh chan eval.Results
+	ctx       context.Context
+	stop      func(reason error)
 }
 
 func newAlertRuleInfo(parent context.Context) *alertRuleInfo {
 	ctx, stop := util.WithCancelCause(parent)
-	return &alertRuleInfo{evalCh: make(chan *evaluation), updateCh: make(chan ruleVersionAndPauseStatus), ctx: ctx, stop: stop}
+	return &alertRuleInfo{evalCh: make(chan *evaluation), updateCh: make(chan ruleVersionAndPauseStatus), resultsCh: make(chan eval.Results), ctx: ctx, stop: stop}
 }
 
 // eval signals the rule evaluation routine to perform the evaluation of the rule. Does nothing if the loop is stopped.

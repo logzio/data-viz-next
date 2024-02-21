@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"github.com/benbjohnson/clock" // LOGZ.IO GRAFANA CHANGE :: DEV-43744, DEV-43895: add logzio alerting endpoints
+	"github.com/grafana/grafana/pkg/services/ngalert/schedule"
 	"net/url"
 	"time"
 
@@ -76,6 +77,7 @@ type API struct {
 	Tracer               tracing.Tracer
 	AppUrl               *url.URL
 	UpgradeService       migration.UpgradeService
+	Schedule             schedule.ScheduleService
 
 	// Hooks can be used to replace API handlers for specific paths.
 	Hooks *Hooks
@@ -155,12 +157,13 @@ func (api *API) RegisterAPIEndpoints(m *metrics.API) {
 
 	// LOGZ.IO GRAFANA CHANGE :: DEV-43744, DEV-43895: add logzio alerting endpoints
 	api.RegisterLogzioAlertingApiEndpoints(NewLogzioAlertingApi(
-		NewLogzioAlertingService(proxy,
+		NewLogzioAlertingService(
 			api.Cfg,
 			api.EvaluatorFactory,
 			clock.New(),
-			api.MultiOrgAlertmanager,
 			logger,
+			api.Schedule,
+			proxy,
 		),
 	), m)
 	// LOGZ.IO GRAFANA CHANGE :: end

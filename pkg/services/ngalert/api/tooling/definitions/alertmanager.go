@@ -560,6 +560,7 @@ type PostableUserConfig struct {
 type AlertEvaluationRequest struct {
 	AlertRule   ApiAlertRule                          `json:"alertRule"`
 	EvalTime    time.Time                             `json:"evalTime"`
+	FolderTitle string                                `json:"folderTitle"`
 	DsOverrides []models.EvaluationDatasourceOverride `json:"dsOverrides"`
 }
 
@@ -584,11 +585,13 @@ type ApiAlertRule struct {
 	DashboardUID    *string                    `json:"dashboardUid"`
 	PanelID         *int64                     `json:"panelId"`
 	RuleGroup       string                     `json:"ruleGroup"`
+	RuleGroupIndex  int                        `json:"ruleGroupIndex"`
 	NoDataState     models.NoDataState         `json:"noDataState"`
 	ExecErrState    models.ExecutionErrorState `json:"execErrState"`
 	For             time.Duration              `json:"for"`
 	Annotations     map[string]string          `json:"annotations"`
 	Labels          map[string]string          `json:"labels"`
+	IsPaused        bool                       `json:"isPaused"`
 }
 
 type ApiEvalResult struct {

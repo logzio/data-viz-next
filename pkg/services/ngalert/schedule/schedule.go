@@ -32,6 +32,7 @@ type ScheduleService interface {
 	// Run the scheduler until the context is canceled or the scheduler returns
 	// an error. The scheduler is terminated when this function returns.
 	Run(context.Context) error
+	RunRuleEvaluation(ctx context.Context, evalReq definitions.AlertEvaluationRequest) (eval.Results, error)
 }
 
 // retryDelay represents how long to wait between each failed rule evaluation.
@@ -281,7 +282,7 @@ func (sch *schedule) processTick(ctx context.Context, dispatcherGroup *errgroup.
 
 		if newRoutine && !invalidInterval {
 			dispatcherGroup.Go(func() error {
-				return sch.ruleRoutine(ruleInfo.ctx, key, ruleInfo.evalCh, ruleInfo.updateCh)
+				return sch.ruleRoutine(ruleInfo.ctx, key, ruleInfo.evalCh, ruleInfo.updateCh, ruleInfo.resultsCh)
 			})
 		}
 
@@ -367,8 +368,114 @@ func (sch *schedule) processTick(ctx context.Context, dispatcherGroup *errgroup.
 	return readyToRun, registeredDefinitions, updatedRules
 }
 
+func (sch *schedule) RunRuleEvaluation(ctx context.Context, evalReq definitions.AlertEvaluationRequest) (eval.Results, error) {
+	// TODO: add the dsOverrides into the RunRuleEvaluation somehow
+	//var dsOverrideByDsUid = map[string]ngmodels.EvaluationDatasourceOverride{}
+	//if evalRequest.DsOverrides != nil {
+	//	for _, dsOverride := range evalRequest.DsOverrides {
+	//		dsOverrideByDsUid[dsOverride.DsUid] = dsOverride
+	//	}
+	//}
+	//
+	//logzioEvalContext := &ngmodels.LogzioAlertRuleEvalContext{
+	//	LogzioHeaders:     c.Req.Header,
+	//	DsOverrideByDsUid: dsOverrideByDsUid,
+	//}
+	logger := sch.log.FromContext(ctx)
+	logger.Debug("RunRuleEvaluation: Building request")
+	alertKey := ngmodels.AlertRuleKey{
+		OrgID: evalReq.AlertRule.OrgID,
+		UID:   evalReq.AlertRule.UID,
+	}
+	alertRule := apiRuleToDbAlertRule(evalReq.AlertRule)
+	ev := evaluation{
+		evalReq.EvalTime,
+		&alertRule,
+		evalReq.FolderTitle,
+	}
+
+	logger.Debug("RunRuleEvaluation: get rule info")
+	ruleInfo, newRoutine := sch.registry.getOrCreateInfo(ctx, alertKey)
+	if !newRoutine {
+		logger.Debug("RunRuleEvaluation: sending ruleInfo.eval")
+		stopped, dropped := ruleInfo.eval(&ev)
+		if !stopped {
+			return nil, fmt.Errorf("evaluation was stopped")
+		}
+		if dropped != nil {
+			logger.Debug("RunRuleEvaluation: got dropped eval", "dropped", dropped)
+		}
+	}
+
+	//resultsCh := make(chan eval.Results)
+	//logger.Debug("Going to run ruleRoutine")
+	//var err error
+
+	//logger.Debug("RunRuleEvaluation: After init evaluation")
+	//evalCh := make(chan *evaluation)
+	//logger.Debug("RunRuleEvaluation: After init evalCh")
+	//updateCh := make(chan ruleVersionAndPauseStatus) // this is used as part of original routine but not on our case
+	//logger.Debug("RunRuleEvaluation: After updateCh")
+
+	//go func() {
+	//	err = sch.ruleRoutine(ctx, alertKey, evalCh, updateCh, resultsCh)
+	//	logger.Debug("RunRuleEvaluation: rule routine finished")
+	//}()
+	//evalCh <- &ev
+	//logger.Debug("RunRuleEvaluation: sent ev channel")
+
+	select {
+	case results := <-ruleInfo.resultsCh:
+		logger.Debug("RunRuleEvaluation: got results")
+		return results, nil
+	case <-ruleInfo.ctx.Done():
+		err := ruleInfo.ctx.Err()
+		if err != nil {
+			logger.Error("Error from ruleRoutine on alert evaluation", "err", err)
+			return nil, err
+		} else {
+			logger.Error("Rule routine finished with no errors or results")
+			return nil, fmt.Errorf("rule routine finished with no errors or results")
+		}
+	}
+	//logger.Debug("RunRuleEvaluation: got results channel")
+
+	//if err != nil {
+	//	logger.Error("Error from ruleRoutine on alert evaluation", "err", err)
+	//	return nil, err
+	//}
+	//
+	//logger.Debug("RunRuleEvaluation: finished")
+	//return results, nil
+}
+
+func apiRuleToDbAlertRule(apiRule definitions.ApiAlertRule) ngmodels.AlertRule {
+	return ngmodels.AlertRule{
+		ID:              apiRule.ID,
+		OrgID:           apiRule.OrgID,
+		Title:           apiRule.Title,
+		Condition:       apiRule.Condition,
+		Data:            apiRule.Data,
+		Updated:         apiRule.Updated,
+		IntervalSeconds: apiRule.IntervalSeconds,
+		Version:         apiRule.Version,
+		UID:             apiRule.UID,
+		NamespaceUID:    apiRule.NamespaceUID,
+		DashboardUID:    apiRule.DashboardUID,
+		PanelID:         apiRule.PanelID,
+		RuleGroup:       apiRule.RuleGroup,
+		RuleGroupIndex:  apiRule.RuleGroupIndex,
+		NoDataState:     apiRule.NoDataState,
+		ExecErrState:    apiRule.ExecErrState,
+		For:             apiRule.For,
+		Annotations:     apiRule.Annotations,
+		Labels:          apiRule.Labels,
+		IsPaused:        apiRule.IsPaused,
+	}
+}
+
 //nolint:gocyclo
-func (sch *schedule) ruleRoutine(grafanaCtx context.Context, key ngmodels.AlertRuleKey, evalCh <-chan *evaluation, updateCh <-chan ruleVersionAndPauseStatus) error {
+func (sch *schedule) ruleRoutine(grafanaCtx context.Context, key ngmodels.AlertRuleKey, evalCh <-chan *evaluation, updateCh <-chan ruleVersionAndPauseStatus, resultsCh chan eval.Results) error {
 	grafanaCtx = ngmodels.WithRuleKey(grafanaCtx, key)
 	logger := sch.log.FromContext(grafanaCtx)
 	logger.Debug("Alert rule routine started")
@@ -467,6 +574,10 @@ func (sch *schedule) ruleRoutine(grafanaCtx context.Context, key ngmodels.AlertR
 				attribute.Int64("results", int64(len(results))),
 			))
 		}
+		if resultsCh != nil {
+			resultsCh <- results
+		}
+
 		start = sch.clock.Now()
 		processedStates := sch.stateManager.ProcessEvalResults(
 			ctx,
@@ -520,6 +631,7 @@ func (sch *schedule) ruleRoutine(grafanaCtx context.Context, key ngmodels.AlertR
 			func() {
 				evalRunning = true
 				defer func() {
+					logger.Debug("RuleRoutine: finished eval")
 					evalRunning = false
 					sch.evalApplied(key, ctx.scheduledAt)
 				}()
