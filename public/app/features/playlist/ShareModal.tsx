@@ -32,7 +32,7 @@ export const ShareModal = ({ playlistUid, onDismiss }: Props) => {
 
   // LOGZ.IO GRAFANA CHANGE :: DEV-42761 fix playlist sharing url
   const shareUrl = urlUtil.renderUrl(
-    `${buildBaseUrl().replace('playlist', 'grafana-app/playlist')}/play/${playlistId}`,
+    `${buildBaseUrl().replace('playlist', 'grafana-app/playlist')}/play/${playlistUid}`,
     params
   );
 

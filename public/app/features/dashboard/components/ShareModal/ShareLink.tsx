@@ -105,7 +105,8 @@ export class ShareLink extends PureComponent<Props, State> {
       `Transforms the current relative time range to an absolute time range`
     );
 
-    const shortenURLTranslation = t('share-modal.link.shorten-url', `Shorten URL`);
+    // LOGZ.IO GRAFANA CHANGE :: DEV-23431 Remove short url switcher
+    // const shortenURLTranslation = t('share-modal.link.shorten-url', `Shorten URL`);
 
     const linkURLTranslation = t('share-modal.link.link-url', `Link URL`);
 
