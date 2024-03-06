@@ -32,7 +32,7 @@ type ScheduleService interface {
 	// Run the scheduler until the context is canceled or the scheduler returns
 	// an error. The scheduler is terminated when this function returns.
 	Run(context.Context) error
-	RunRuleEvaluation(ctx context.Context, evalReq definitions.AlertEvaluationRequest) (eval.Results, error)
+	RunRuleEvaluation(ctx context.Context, evalReq definitions.AlertEvaluationRequest) error // LOGZ.IO GRAFANA CHANGE :: DEV-43744 Add logzio external evaluation
 }
 
 // retryDelay represents how long to wait between each failed rule evaluation.
@@ -95,6 +95,8 @@ type schedule struct {
 	schedulableAlertRules alertRulesRegistry
 
 	tracer tracing.Tracer
+
+	scheduledEvalEnabled bool // LOGZ.IO GRAFANA CHANGE :: DEV-43744 Add scheduled evaluation enabled config
 }
 
 // SchedulerCfg is the scheduler configuration.
@@ -111,6 +113,7 @@ type SchedulerCfg struct {
 	AlertSender          AlertsSender
 	Tracer               tracing.Tracer
 	Log                  log.Logger
+	ScheduledEvalEnabled bool // LOGZ.IO GRAFANA CHANGE :: DEV-43744 Add scheduled evaluation enabled config
 }
 
 // NewScheduler returns a new schedule.
@@ -137,6 +140,7 @@ func NewScheduler(cfg SchedulerCfg, stateManager *state.Manager) *schedule {
 		schedulableAlertRules: alertRulesRegistry{rules: make(map[ngmodels.AlertRuleKey]*ngmodels.AlertRule)},
 		alertsSender:          cfg.AlertSender,
 		tracer:                cfg.Tracer,
+		scheduledEvalEnabled:  cfg.ScheduledEvalEnabled, // LOGZ.IO GRAFANA CHANGE :: DEV-43744 Add scheduled evaluation enabled config
 	}
 
 	return &sch
@@ -282,7 +286,7 @@ func (sch *schedule) processTick(ctx context.Context, dispatcherGroup *errgroup.
 
 		if newRoutine && !invalidInterval {
 			dispatcherGroup.Go(func() error {
-				return sch.ruleRoutine(ruleInfo.ctx, key, ruleInfo.evalCh, ruleInfo.updateCh, ruleInfo.resultsCh)
+				return sch.ruleRoutine(ruleInfo.ctx, key, ruleInfo.evalCh, ruleInfo.updateCh)
 			})
 		}
 
@@ -306,13 +310,19 @@ func (sch *schedule) processTick(ctx context.Context, dispatcherGroup *errgroup.
 			}
 		}
 
-		if isReadyToRun {
-			readyToRun = append(readyToRun, readyToRunItem{ruleInfo: ruleInfo, evaluation: evaluation{
-				scheduledAt: tick,
-				rule:        item,
-				folderTitle: folderTitle,
-			}})
+		// LOGZ.IO GRAFANA CHANGE :: DEV-43744 Add scheduled evaluation enabled config
+		if sch.scheduledEvalEnabled {
+			if isReadyToRun {
+				readyToRun = append(readyToRun, readyToRunItem{ruleInfo: ruleInfo, evaluation: evaluation{
+					scheduledAt: tick,
+					rule:        item,
+					folderTitle: folderTitle,
+				}})
+			}
+		} else {
+			sch.log.Debug("Scheduled evaluation disabled, not adding alerts to run")
 		}
+
 		if _, isUpdated := updated[key]; isUpdated && !isReadyToRun {
 			// if we do not need to eval the rule, check the whether rule was just updated and if it was, notify evaluation routine about that
 			sch.log.Debug("Rule has been updated. Notifying evaluation routine", key.LogContext()...)
@@ -368,7 +378,8 @@ func (sch *schedule) processTick(ctx context.Context, dispatcherGroup *errgroup.
 	return readyToRun, registeredDefinitions, updatedRules
 }
 
-func (sch *schedule) RunRuleEvaluation(ctx context.Context, evalReq definitions.AlertEvaluationRequest) (eval.Results, error) {
+// LOGZ.IO GRAFANA CHANGE :: DEV-43744 Add logzio external evaluation
+func (sch *schedule) RunRuleEvaluation(ctx context.Context, evalReq definitions.AlertEvaluationRequest) error {
 	// TODO: add the dsOverrides into the RunRuleEvaluation somehow
 	//var dsOverrideByDsUid = map[string]ngmodels.EvaluationDatasourceOverride{}
 	//if evalRequest.DsOverrides != nil {
@@ -389,65 +400,31 @@ func (sch *schedule) RunRuleEvaluation(ctx context.Context, evalReq definitions.
 	}
 	alertRule := apiRuleToDbAlertRule(evalReq.AlertRule)
 	ev := evaluation{
-		evalReq.EvalTime,
-		&alertRule,
-		evalReq.FolderTitle,
+		scheduledAt: evalReq.EvalTime,
+		rule:        &alertRule,
+		folderTitle: evalReq.FolderTitle,
 	}
 
 	logger.Debug("RunRuleEvaluation: get rule info")
+	// TODO: decide if we want to create the new routine if needed, or return error and rely on scheduler creating it + retrying on the sending side ??
 	ruleInfo, newRoutine := sch.registry.getOrCreateInfo(ctx, alertKey)
 	if !newRoutine {
 		logger.Debug("RunRuleEvaluation: sending ruleInfo.eval")
 		stopped, dropped := ruleInfo.eval(&ev)
 		if !stopped {
-			return nil, fmt.Errorf("evaluation was stopped")
+			return fmt.Errorf("evaluation was stopped")
 		}
 		if dropped != nil {
-			logger.Debug("RunRuleEvaluation: got dropped eval", "dropped", dropped)
+			logger.Warn("RunRuleEvaluation: got dropped eval", "dropped", dropped)
 		}
+	} else {
+		return fmt.Errorf("no rule routine for alert key %s", alertKey)
 	}
 
-	//resultsCh := make(chan eval.Results)
-	//logger.Debug("Going to run ruleRoutine")
-	//var err error
-
-	//logger.Debug("RunRuleEvaluation: After init evaluation")
-	//evalCh := make(chan *evaluation)
-	//logger.Debug("RunRuleEvaluation: After init evalCh")
-	//updateCh := make(chan ruleVersionAndPauseStatus) // this is used as part of original routine but not on our case
-	//logger.Debug("RunRuleEvaluation: After updateCh")
-
-	//go func() {
-	//	err = sch.ruleRoutine(ctx, alertKey, evalCh, updateCh, resultsCh)
-	//	logger.Debug("RunRuleEvaluation: rule routine finished")
-	//}()
-	//evalCh <- &ev
-	//logger.Debug("RunRuleEvaluation: sent ev channel")
-
-	select {
-	case results := <-ruleInfo.resultsCh:
-		logger.Debug("RunRuleEvaluation: got results")
-		return results, nil
-	case <-ruleInfo.ctx.Done():
-		err := ruleInfo.ctx.Err()
-		if err != nil {
-			logger.Error("Error from ruleRoutine on alert evaluation", "err", err)
-			return nil, err
-		} else {
-			logger.Error("Rule routine finished with no errors or results")
-			return nil, fmt.Errorf("rule routine finished with no errors or results")
-		}
-	}
-	//logger.Debug("RunRuleEvaluation: got results channel")
-
-	//if err != nil {
-	//	logger.Error("Error from ruleRoutine on alert evaluation", "err", err)
-	//	return nil, err
-	//}
-	//
-	//logger.Debug("RunRuleEvaluation: finished")
-	//return results, nil
+	return nil
 }
+
+// LOGZ.IO GRAFANA CHANGE :: End
 
 func apiRuleToDbAlertRule(apiRule definitions.ApiAlertRule) ngmodels.AlertRule {
 	return ngmodels.AlertRule{
@@ -475,7 +452,7 @@ func apiRuleToDbAlertRule(apiRule definitions.ApiAlertRule) ngmodels.AlertRule {
 }
 
 //nolint:gocyclo
-func (sch *schedule) ruleRoutine(grafanaCtx context.Context, key ngmodels.AlertRuleKey, evalCh <-chan *evaluation, updateCh <-chan ruleVersionAndPauseStatus, resultsCh chan eval.Results) error {
+func (sch *schedule) ruleRoutine(grafanaCtx context.Context, key ngmodels.AlertRuleKey, evalCh <-chan *evaluation, updateCh <-chan ruleVersionAndPauseStatus) error {
 	grafanaCtx = ngmodels.WithRuleKey(grafanaCtx, key)
 	logger := sch.log.FromContext(grafanaCtx)
 	logger.Debug("Alert rule routine started")
@@ -574,10 +551,8 @@ func (sch *schedule) ruleRoutine(grafanaCtx context.Context, key ngmodels.AlertR
 				attribute.Int64("results", int64(len(results))),
 			))
 		}
-		if resultsCh != nil {
-			resultsCh <- results
-		}
 
+		logger.Debug("RuleRoutine evaluation: processing evaluation results")
 		start = sch.clock.Now()
 		processedStates := sch.stateManager.ProcessEvalResults(
 			ctx,
@@ -589,7 +564,10 @@ func (sch *schedule) ruleRoutine(grafanaCtx context.Context, key ngmodels.AlertR
 		processDuration.Observe(sch.clock.Now().Sub(start).Seconds())
 
 		start = sch.clock.Now()
+
+		logger.Debug("RuleRoutine evaluation: starting notification processing")
 		alerts := state.FromStateTransitionToPostableAlerts(processedStates, sch.stateManager, sch.appURL)
+		logger.Debug("RuleRoutine evaluation results proccessed", "state_transitions", len(processedStates), "alerts_to_send", len(alerts.PostableAlerts))
 		span.AddEvent("results processed", trace.WithAttributes(
 			attribute.Int64("state_transitions", int64(len(processedStates))),
 			attribute.Int64("alerts_to_send", int64(len(alerts.PostableAlerts))),
@@ -637,6 +615,7 @@ func (sch *schedule) ruleRoutine(grafanaCtx context.Context, key ngmodels.AlertR
 				}()
 
 				for attempt := int64(1); attempt <= sch.maxAttempts; attempt++ {
+					logger.Debug(fmt.Sprintf("RuleRoutine: eval attempt %d", attempt))
 					isPaused := ctx.rule.IsPaused
 					f := ruleWithFolder{ctx.rule, ctx.folderTitle}.Fingerprint()
 					// Do not clean up state if the eval loop has just started.

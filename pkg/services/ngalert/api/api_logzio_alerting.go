@@ -37,7 +37,7 @@ func NewLogzioAlertingApi(service *LogzioAlertingService) *LogzioAlertingApi {
 }
 
 func (api *LogzioAlertingApi) RouteEvaluateAlert(ctx *contextmodel.ReqContext) response.Response {
-	body := apimodels.AlertEvaluationRequest{}
+	var body []apimodels.AlertEvaluationRequest
 	if err := web.Bind(ctx.Req, &body); err != nil {
 		return response.Error(http.StatusBadRequest, "bad request data", err)
 	}
