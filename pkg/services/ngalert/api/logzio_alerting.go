@@ -3,11 +3,9 @@ package api
 // LOGZ.IO GRAFANA CHANGE :: 43744, DEV-43895: add endpoints to evaluate and process alerts
 import (
 	"fmt"
-	"github.com/benbjohnson/clock"
 	"github.com/grafana/grafana/pkg/services/ngalert/schedule"
 	"net/http"
 
-	//"github.com/grafana/grafana-plugin-sdk-go/data"
 	"github.com/grafana/grafana/pkg/api/response"
 	"github.com/grafana/grafana/pkg/infra/log"
 	contextmodel "github.com/grafana/grafana/pkg/services/contexthandler/model"
@@ -20,7 +18,6 @@ import (
 type LogzioAlertingService struct {
 	Cfg              *setting.Cfg
 	EvaluatorFactory eval.EvaluatorFactory
-	Clock            clock.Clock
 	Log              log.Logger
 	Schedule         schedule.ScheduleService
 }

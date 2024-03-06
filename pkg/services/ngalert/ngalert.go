@@ -357,7 +357,7 @@ func (ng *AlertNG) init() error {
 		Hooks:                api.NewHooks(ng.Log),
 		Tracer:               ng.tracer,
 		UpgradeService:       ng.upgradeService,
-		Schedule:             ng.schedule,
+		Schedule:             ng.schedule, // LOGZ.IO GRAFANA CHANGE :: DEV-43744 Add alert evaluation API
 	}
 	ng.api.RegisterAPIEndpoints(ng.Metrics.GetAPIMetrics())
 
