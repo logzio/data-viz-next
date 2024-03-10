@@ -50,6 +50,14 @@ export class AppWrapper extends React.Component<AppWrapperProps, AppWrapperState
   async componentDidMount() {
     await loadAndInitAngularIfEnabled();
     this.setState({ ready: true });
+    // LOGZ.IO GRAFANA CHANGE :: Let app know that grafana loaded successfully
+    setTimeout(() => {
+      const {productLoaded} = (global as any).window.logzio;
+      if (productLoaded.resolve) {
+        productLoaded.resolve();
+      }
+    }, 10)
+    // LOGZ.IO GRAFANA CHANGE :: end
     $('.preloader').remove();
   }
 

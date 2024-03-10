@@ -172,6 +172,15 @@ COPY --from=go-src /tmp/grafana/bin/grafana* /tmp/grafana/bin/*/grafana* ./bin/
 COPY --from=js-src /tmp/grafana/public ./public
 COPY --from=go-src /tmp/grafana/LICENSE ./
 
+# LOGZ.IO GRAFANA CHANGE :: Copy custom.ini
+COPY custom.ini conf/custom.ini
+RUN cp "$GF_PATHS_HOME/conf/custom.ini" "$GF_PATHS_CONFIG"
+# LOGZ.IO GRAFANA CHANGE :: Preinstall plugins
+COPY grafana/data/plugins "$GF_PATHS_PLUGINS"
+# LOGZ.IO GRAFANA CHANGE :: Remove news panel
+RUN rm -rf ./public/app/plugins/panel/news
+# LOGZ.IO GRAFANA CHANGE :: Remove pluginlist panel - but it does not exist in v10
+# RUN rm -rf ./public/app/plugins/panel/pluginlist
 EXPOSE 3000
 
 ARG RUN_SH=./packaging/docker/run.sh
