@@ -12,7 +12,7 @@ FROM ${JS_IMAGE} as js-builder
 
 ENV NODE_OPTIONS=--max_old_space_size=8000
 
-WORKDIR /tmp/grafana
+WORKDIR /grafana
 
 COPY package.json yarn.lock .yarnrc.yml ./
 COPY .yarn .yarn
@@ -43,7 +43,7 @@ RUN if grep -i -q alpine /etc/issue; then \
       apk add --no-cache gcc g++ make git; \
     fi
 
-WORKDIR /tmp/grafana
+WORKDIR /grafana
 
 COPY go.* ./
 COPY .bingo .bingo
@@ -77,7 +77,7 @@ RUN make build-go GO_BUILD_TAGS=${GO_BUILD_TAGS} WIRE_TAGS=${WIRE_TAGS}
 
 FROM ${BASE_IMAGE} as tgz-builder
 
-WORKDIR /tmp/grafana
+WORKDIR /grafana
 
 ARG GRAFANA_TGZ="grafana-latest.linux-x64-musl.tar.gz"
 
