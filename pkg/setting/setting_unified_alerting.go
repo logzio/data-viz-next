@@ -44,16 +44,17 @@ const (
 	}
 }
 `
-	evaluatorDefaultEvaluationTimeout       = 30 * time.Second
-	schedulerDefaultAdminConfigPollInterval = time.Minute
-	schedulereDefaultExecuteAlerts          = true
-	schedulerDefaultMaxAttempts             = 1
-	schedulerDefaultLegacyMinInterval       = 1
-	screenshotsDefaultCapture               = false
-	screenshotsDefaultCaptureTimeout        = 10 * time.Second
-	screenshotsMaxCaptureTimeout            = 30 * time.Second
-	screenshotsDefaultMaxConcurrent         = 5
-	screenshotsDefaultUploadImageStorage    = false
+	evaluatorDefaultEvaluationTimeout          = 30 * time.Second
+	schedulerDefaultAdminConfigPollInterval    = time.Minute
+	schedulereDefaultExecuteAlerts             = true
+	schedulerDefaultScheduledEvaluationEnabled = true // LOGZ.IO GRAFANA CHANGE :: DEV-43744 Add scheduled evaluation enabled config
+	schedulerDefaultMaxAttempts                = 1
+	schedulerDefaultLegacyMinInterval          = 1
+	screenshotsDefaultCapture                  = false
+	screenshotsDefaultCaptureTimeout           = 10 * time.Second
+	screenshotsMaxCaptureTimeout               = 30 * time.Second
+	screenshotsDefaultMaxConcurrent            = 5
+	screenshotsDefaultUploadImageStorage       = false
 	// SchedulerBaseInterval base interval of the scheduler. Controls how often the scheduler fetches database for new changes as well as schedules evaluation of a rule
 	// changing this value is discouraged because this could cause existing alert definition
 	// with intervals that are not exactly divided by this number not to be evaluated
@@ -61,6 +62,7 @@ const (
 	// DefaultRuleEvaluationInterval indicates a default interval of for how long a rule should be evaluated to change state from Pending to Alerting
 	DefaultRuleEvaluationInterval = SchedulerBaseInterval * 6 // == 60 seconds
 	stateHistoryDefaultEnabled    = true
+	logzioDefaultAlertsRouterUrl  = "http://localhost:3000/alertmanager" // LOGZ.IO GRAFANA CHANGE :: DEV-43744 Add logzio notification route
 )
 
 type UnifiedAlertingSettings struct {
@@ -84,6 +86,7 @@ type UnifiedAlertingSettings struct {
 	MinInterval                    time.Duration
 	EvaluationTimeout              time.Duration
 	ExecuteAlerts                  bool
+	ScheduledEvalEnabled           bool // LOGZ.IO GRAFANA CHANGE :: DEV-43744 Add scheduled evaluation enabled config
 	DefaultConfiguration           string
 	Enabled                        *bool // determines whether unified alerting is enabled. If it is nil then user did not define it and therefore its value will be determined during migration. Services should not use it directly.
 	DisabledOrgs                   map[int64]struct{}
@@ -99,6 +102,7 @@ type UnifiedAlertingSettings struct {
 	Upgrade                       UnifiedAlertingUpgradeSettings
 	// MaxStateSaveConcurrency controls the number of goroutines (per rule) that can save alert state in parallel.
 	MaxStateSaveConcurrency int
+	LogzioAlertsRouterUrl   string // LOGZ.IO GRAFANA CHANGE :: DEV-43744 Add logzio notification route
 }
 
 // RemoteAlertmanagerSettings contains the configuration needed
@@ -283,6 +287,10 @@ func (cfg *Cfg) ReadUnifiedAlertingSettings(iniFile *ini.File) error {
 		uaExecuteAlerts = legacyExecuteAlerts
 	}
 	uaCfg.ExecuteAlerts = uaExecuteAlerts
+
+	uaCfg.ScheduledEvalEnabled = ua.Key("scheduled_evaluation_enabled").MustBool(schedulerDefaultScheduledEvaluationEnabled) // LOGZ.IO GRAFANA CHANGE :: DEV-43744 Add scheduled evaluation enabled config
+
+	uaCfg.LogzioAlertsRouterUrl = ua.Key("logzio_alerts_route_url").MustString(logzioDefaultAlertsRouterUrl) // LOGZ.IO GRAFANA CHANGE :: DEV-43744 Add logzio notification route
 
 	// if the unified alerting options equal the defaults, apply the respective legacy one
 	uaEvaluationTimeout, err := gtime.ParseDuration(valueAsString(ua, "evaluation_timeout", evaluatorDefaultEvaluationTimeout.String()))

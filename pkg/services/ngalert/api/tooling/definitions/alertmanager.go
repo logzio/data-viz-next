@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	// LOGZ.IO GRAFANA CHANGE :: DEV-43744, DEV-43895: add api models for alert evaluation and alert processing requests/responses
-	"github.com/grafana/grafana-plugin-sdk-go/data"
-	"github.com/grafana/grafana/pkg/services/ngalert/eval"
 	"github.com/grafana/grafana/pkg/services/ngalert/models"
 	// LOGZ.IO GRAFANA CHANGE :: End
 	"reflect"
@@ -568,6 +566,11 @@ type AlertSendNotificationsRequest struct {
 	AlertRuleKey models.AlertRuleKey `json:"alertRuleKey"`
 	Alerts       PostableAlerts      `json:"alerts"`
 }
+type AlertEvalRunResult struct {
+	UID       string    `json:"uid"`
+	EvalTime  time.Time `json:"evalTime"`
+	RunResult string    `json:"runResult"`
+}
 
 type ApiAlertRule struct {
 	ID              int64                      `json:"id"`
@@ -592,32 +595,8 @@ type ApiAlertRule struct {
 	IsPaused        bool                       `json:"isPaused"`
 }
 
-type ApiEvalResult struct {
-	Instance           data.Labels                      `json:"instance"`
-	State              eval.State                       `json:"state"`
-	StateName          string                           `json:"stateName"`
-	Error              *ApiEvalError                    `json:"error"`
-	EvaluatedAt        time.Time                        `json:"evaluatedAt"`
-	EvaluationDuration time.Duration                    `json:"evaluationDuration"`
-	EvaluationString   string                           `json:"evaluationString"`
-	Values             map[string]ApiNumberValueCapture `json:"values"`
-}
-
-type ApiNumberValueCapture struct {
-	Var    string      `json:"var"`
-	Labels data.Labels `json:"labels"`
-	Value  *float64    `json:"value"`
-	IsNan  bool        `json:"isNan"`
-}
-
-type ApiEvalError struct {
-	Type     string            `json:"type"`
-	Message  string            `json:"message"`
-	Metadata map[string]string `json:"metadata"`
-}
-
-type EvalResultResponse struct {
-	Results []ApiEvalResult `json:"results"`
+type EvalRunsResponse struct {
+	RunResults []AlertEvalRunResult `json:"runResults"`
 }
 
 // LOGZ.IO GRAFANA CHANGE :: end

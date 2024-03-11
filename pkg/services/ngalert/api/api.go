@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"github.com/benbjohnson/clock" // LOGZ.IO GRAFANA CHANGE :: DEV-43744, DEV-43895: add logzio alerting endpoints
 	"github.com/grafana/grafana/pkg/services/ngalert/schedule"
 	"net/url"
 	"time"
@@ -160,7 +159,6 @@ func (api *API) RegisterAPIEndpoints(m *metrics.API) {
 		NewLogzioAlertingService(
 			api.Cfg,
 			api.EvaluatorFactory,
-			clock.New(),
 			logger,
 			api.Schedule,
 			proxy,
