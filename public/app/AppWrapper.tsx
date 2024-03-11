@@ -4,6 +4,7 @@ import { Provider } from 'react-redux';
 import { Router, Redirect, Switch, RouteComponentProps } from 'react-router-dom';
 import { CompatRouter, CompatRoute } from 'react-router-dom-v5-compat';
 
+// import { productLoaded  } from '@grafana/data';
 import { config, locationService, navigationLogger, reportInteraction } from '@grafana/runtime';
 import { ErrorBoundaryAlert, GlobalStyles, ModalRoot, ModalsProvider, PortalContainer } from '@grafana/ui';
 import { getAppRoutes } from 'app/routes/routes';
@@ -50,14 +51,16 @@ export class AppWrapper extends React.Component<AppWrapperProps, AppWrapperState
   async componentDidMount() {
     await loadAndInitAngularIfEnabled();
     this.setState({ ready: true });
+
     // LOGZ.IO GRAFANA CHANGE :: Let app know that grafana loaded successfully
     setTimeout(() => {
-      const {productLoaded} = (global as any).window.logzio;
-      if (productLoaded.resolve) {
-        productLoaded.resolve();
+      const { resolve } = (window as any).logzio.productLoaded;
+      if (resolve) {
+        resolve();
       }
     }, 10)
     // LOGZ.IO GRAFANA CHANGE :: end
+
     $('.preloader').remove();
   }
 
