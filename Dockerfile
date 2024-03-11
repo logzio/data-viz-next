@@ -14,18 +14,18 @@ ENV NODE_OPTIONS=--max_old_space_size=8000
 
 WORKDIR /tmp/grafana
 
-COPY package.json yarn.lock .yarnrc.yml ./
-COPY .yarn .yarn
-COPY packages packages
-COPY plugins-bundled plugins-bundled
-COPY public public
+COPY grafana/package.json grafana/yarn.lock grafana/.yarnrc.yml ./
+COPY grafana/.yarn .yarn
+COPY grafana/packages packages
+COPY grafana/plugins-bundled plugins-bundled
+COPY grafana/public public
 
 RUN yarn install --immutable
 
-COPY tsconfig.json .eslintrc .editorconfig .browserslistrc .prettierrc.js ./
-COPY public public
-COPY scripts scripts
-COPY emails emails
+COPY grafana/tsconfig.json grafana/.eslintrc grafana/.editorconfig grafana/.browserslistrc grafana/.prettierrc.js ./
+COPY grafana/public public
+COPY grafana/scripts scripts
+COPY grafana/emails emails
 
 ENV NODE_ENV production
 RUN yarn build
@@ -46,7 +46,7 @@ RUN if grep -i -q alpine /etc/issue; then \
 WORKDIR /tmp/grafana
 
 COPY go.* ./
-COPY .bingo .bingo
+COPY grafana/.bingo .bingo
 
 # Include vendored dependencies
 COPY pkg/util/xorm/go.* pkg/util/xorm/
@@ -57,18 +57,18 @@ RUN if [[ "$BINGO" = "true" ]]; then \
       bingo get -v; \
     fi
 
-COPY embed.go Makefile build.go package.json ./
-COPY cue.mod cue.mod
-COPY kinds kinds
-COPY local local
-COPY packages/grafana-schema packages/grafana-schema
-COPY public/app/plugins public/app/plugins
-COPY public/api-merged.json public/api-merged.json
-COPY pkg pkg
-COPY scripts scripts
-COPY conf conf
-COPY .github .github
-COPY LICENSE ./
+COPY grafana/embed.go grafana/Makefile grafana/build.go grafana/package.json ./
+COPY grafana/cue.mod cue.mod
+COPY grafana/kinds kinds
+COPY grafana/local local
+COPY grafana/packages/grafana-schema packages/grafana-schema
+COPY grafana/public/app/plugins public/app/plugins
+COPY grafana/public/api-merged.json public/api-merged.json
+COPY grafana/pkg pkg
+COPY grafana/scripts scripts
+COPY grafana/conf conf
+COPY grafana/.github .github
+COPY grafana/LICENSE ./
 
 ENV COMMIT_SHA=${COMMIT_SHA}
 ENV BUILD_BRANCH=${BUILD_BRANCH}
@@ -183,7 +183,7 @@ RUN rm -rf ./public/app/plugins/panel/news
 # RUN rm -rf ./public/app/plugins/panel/pluginlist
 EXPOSE 3000
 
-ARG RUN_SH=./packaging/docker/run.sh
+ARG RUN_SH=grafana/packaging/docker/run.sh
 
 COPY ${RUN_SH} /run.sh
 
