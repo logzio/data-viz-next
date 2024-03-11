@@ -49,7 +49,7 @@ COPY go.* ./
 COPY grafana/.bingo .bingo
 
 # Include vendored dependencies
-COPY pkg/util/xorm/go.* pkg/util/xorm/
+COPY grafana/pkg/util/xorm/go.* pkg/util/xorm/
 
 RUN go mod download
 RUN if [[ "$BINGO" = "true" ]]; then \
