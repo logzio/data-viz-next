@@ -45,7 +45,7 @@ RUN if grep -i -q alpine /etc/issue; then \
 
 WORKDIR /tmp/grafana
 
-COPY go.* ./
+COPY grafana/go.* ./
 COPY grafana/.bingo .bingo
 
 # Include vendored dependencies
