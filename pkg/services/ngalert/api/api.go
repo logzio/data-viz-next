@@ -161,7 +161,6 @@ func (api *API) RegisterAPIEndpoints(m *metrics.API) {
 			api.EvaluatorFactory,
 			logger,
 			api.Schedule,
-			proxy,
 			api.MultiOrgAlertmanager,
 		),
 	), m)

@@ -2,6 +2,7 @@ package api
 
 // LOGZ.IO GRAFANA CHANGE :: 43744, DEV-43895: add endpoints to evaluate and process alerts
 import (
+	"errors"
 	"fmt"
 	"github.com/grafana/grafana/pkg/services/ngalert/notifier"
 	"github.com/grafana/grafana/pkg/services/ngalert/schedule"
@@ -17,10 +18,10 @@ import (
 )
 
 type LogzioAlertingService struct {
-	Cfg              *setting.Cfg
-	EvaluatorFactory eval.EvaluatorFactory
-	Log              log.Logger
-	Schedule         schedule.ScheduleService
+	Cfg                  *setting.Cfg
+	EvaluatorFactory     eval.EvaluatorFactory
+	Log                  log.Logger
+	Schedule             schedule.ScheduleService
 	MultiOrgAlertmanager *notifier.MultiOrgAlertmanager
 }
 
@@ -29,13 +30,13 @@ func NewLogzioAlertingService(
 	EvaluatorFactory eval.EvaluatorFactory,
 	log log.Logger,
 	Schedule schedule.ScheduleService,
-	MultiOrgAlertmanager *notifier.MultiOrgAlertmanager
+	MultiOrgAlertmanager *notifier.MultiOrgAlertmanager,
 ) *LogzioAlertingService {
 	return &LogzioAlertingService{
-		Cfg:              Cfg,
-		EvaluatorFactory: EvaluatorFactory,
-		Log:              log,
-		Schedule:         Schedule,
+		Cfg:                  Cfg,
+		EvaluatorFactory:     EvaluatorFactory,
+		Log:                  log,
+		Schedule:             Schedule,
 		MultiOrgAlertmanager: MultiOrgAlertmanager,
 	}
 }
