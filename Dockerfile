@@ -12,7 +12,7 @@ FROM ${JS_IMAGE} as js-builder
 
 ENV NODE_OPTIONS=--max_old_space_size=8000
 
-WORKDIR /grafana
+WORKDIR /tmp/grafana
 
 COPY package.json yarn.lock .yarnrc.yml ./
 COPY .yarn .yarn
@@ -43,7 +43,7 @@ RUN if grep -i -q alpine /etc/issue; then \
       apk add --no-cache gcc g++ make git; \
     fi
 
-WORKDIR /grafana
+WORKDIR /tmp/grafana
 
 COPY go.* ./
 COPY .bingo .bingo
@@ -77,7 +77,7 @@ RUN make build-go GO_BUILD_TAGS=${GO_BUILD_TAGS} WIRE_TAGS=${WIRE_TAGS}
 
 FROM ${BASE_IMAGE} as tgz-builder
 
-WORKDIR /grafana
+WORKDIR /tmp/grafana
 
 ARG GRAFANA_TGZ="grafana-latest.linux-x64-musl.tar.gz"
 
@@ -176,7 +176,7 @@ COPY --from=go-src /tmp/grafana/LICENSE ./
 COPY custom.ini conf/custom.ini
 RUN cp "$GF_PATHS_HOME/conf/custom.ini" "$GF_PATHS_CONFIG"
 # LOGZ.IO GRAFANA CHANGE :: Preinstall plugins
-COPY grafana/data/plugins "$GF_PATHS_PLUGINS"
+# COPY grafana/data/plugins "$GF_PATHS_PLUGINS"
 # LOGZ.IO GRAFANA CHANGE :: Remove news panel
 RUN rm -rf ./public/app/plugins/panel/news
 # LOGZ.IO GRAFANA CHANGE :: Remove pluginlist panel - but it does not exist in v10
