@@ -164,6 +164,7 @@ func (api *API) RegisterAPIEndpoints(m *metrics.API) {
 			logger,
 			api.Schedule,
 			proxy,
+			api.MultiOrgAlertmanager,
 		),
 	), m)
 	// LOGZ.IO GRAFANA CHANGE :: end

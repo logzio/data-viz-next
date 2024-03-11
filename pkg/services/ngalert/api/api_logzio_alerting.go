@@ -45,14 +45,14 @@ func (api *LogzioAlertingApi) RouteEvaluateAlert(ctx *contextmodel.ReqContext) r
 	return api.service.RouteEvaluateAlert(ctx, body)
 }
 
-//func (api *LogzioAlertingApi) RouteProcessAlert(ctx *contextmodel.ReqContext) response.Response {
-//	body := apimodels.AlertProcessRequest{}
-//	if err := web.Bind(ctx.Req, &body); err != nil {
-//		return response.Error(http.StatusBadRequest, "bad request data", err)
-//	}
-//
-//	return api.service.RouteProcessAlert(*ctx.Req, body)
-//}
+func (api *LogzioAlertingApi) RouteSendAlertNotifications(ctx *contextmodel.ReqContext) response.Response {
+	body := apimodels.AlertSendNotificationsRequest{}
+	if err := web.Bind(ctx.Req, &body); err != nil {
+		return response.Error(http.StatusBadRequest, "bad request data", err)
+	}
+
+	return api.service.RouteSendAlertNotifications(ctx, body)
+}
 
 func (api *API) RegisterLogzioAlertingApiEndpoints(srv *LogzioAlertingApi, m *metrics.API) {
 	api.RouteRegister.Group("", func(group routing.RouteRegister) {
@@ -65,15 +65,15 @@ func (api *API) RegisterLogzioAlertingApiEndpoints(srv *LogzioAlertingApi, m *me
 				m,
 			),
 		)
-		//group.Post(
-		//	toMacaronPath("/internal/alert/api/v1/process"),
-		//	metrics.Instrument(
-		//		http.MethodPost,
-		//		"/internal/alert/api/v1/process",
-		//		srv.RouteProcessAlert,
-		//		m,
-		//	),
-		//)
+		group.Post(
+			toMacaronPath("/internal/alert/api/v1/sendNotifications"),
+			metrics.Instrument(
+				http.MethodPost,
+				"/internal/alert/api/v1/sendNotifications",
+				srv.RouteSendAlertNotifications,
+				m,
+			),
+		)
 	})
 }
 

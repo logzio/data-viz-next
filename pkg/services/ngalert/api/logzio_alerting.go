@@ -4,6 +4,7 @@ package api
 import (
 	"errors"
 	"github.com/benbjohnson/clock"
+	"github.com/grafana/grafana/pkg/services/ngalert/notifier"
 	"github.com/grafana/grafana/pkg/services/ngalert/schedule"
 	"github.com/grafana/grafana/pkg/util/errutil"
 	"net/http"
@@ -43,7 +44,7 @@ type LogzioAlertingService struct {
 	//ExpressionService *expr.Service
 	//StateManager      *state.Manager
 	//AppUrl               *url.URL
-	//MultiOrgAlertmanager *notifier.MultiOrgAlertmanager
+	MultiOrgAlertmanager *notifier.MultiOrgAlertmanager
 	//InstanceStore        store.InstanceStore
 	//Migrator             *migrator.Migrator
 }
@@ -55,7 +56,7 @@ func NewLogzioAlertingService(
 	log log.Logger,
 	Schedule schedule.ScheduleService,
 	Proxy *AlertingProxy,
-	// MultiOrgAlertmanager *notifier.MultiOrgAlertmanager,
+	MultiOrgAlertmanager *notifier.MultiOrgAlertmanager,
 	// ExpressionService *expr.Service,
 	// StateManager *state.Manager,
 	// InstanceStore store.InstanceStore,
@@ -68,7 +69,7 @@ func NewLogzioAlertingService(
 		Log:              log,
 		Schedule:         Schedule,
 		//AlertingProxy: Proxy,
-		//MultiOrgAlertmanager: MultiOrgAlertmanager,
+		MultiOrgAlertmanager: MultiOrgAlertmanager,
 		//AppUrl:               Cfg.ParsedAppURL,
 		//ExpressionService:    ExpressionService,
 		//StateManager:         StateManager,
@@ -93,56 +94,25 @@ func (srv *LogzioAlertingService) RouteEvaluateAlert(c *contextmodel.ReqContext,
 	return response.JSON(http.StatusOK, apiEvalResults)
 }
 
-//func (srv *LogzioAlertingService) RouteProcessAlert(httpReq http.Request, request apimodels.AlertProcessRequest) response.Response {
-//	alertRule := apiRuleToDbAlertRule(request.AlertRule)
-//
-//	var shouldCreateAnnotationsAndAlertInstances bool
-//	if request.ShouldManageAnnotationsAndInstances == nil {
-//		shouldCreateAnnotationsAndAlertInstances = true
-//	} else {
-//		shouldCreateAnnotationsAndAlertInstances = *request.ShouldManageAnnotationsAndInstances
-//	}
-//
-//	var evalResults eval.Results
-//	for _, apiEvalResult := range request.EvaluationResults {
-//		evalResults = append(evalResults, apiToEvaluationResult(apiEvalResult))
-//	}
-//
-//	ctx := context.WithValue(httpReq.Context(), state.ShouldManageAnnotationsAndInstancesContextKey, shouldCreateAnnotationsAndAlertInstances)
-//
-//	processedStates := srv.StateManager.ProcessEvalResults(ctx, &alertRule, evalResults)
-//	if shouldCreateAnnotationsAndAlertInstances {
-//		srv.saveAlertStates(processedStates)
-//	}
-//
-//	alerts := schedule.FromAlertStateToPostableAlerts(processedStates, srv.StateManager, srv.AppUrl)
-//	for _, alert := range alerts.PostableAlerts {
-//		alert.Annotations[ngmodels.LogzioAccountIdAnnotation] = request.AccountId
-//	}
-//
-//	if len(alerts.PostableAlerts) > 0 {
-//		n, err := srv.MultiOrgAlertmanager.AlertmanagerFor(alertRule.OrgID)
-//		if err == nil {
-//			srv.Log.Info("Pushing alerts to alert manager")
-//			if err := n.PutAlerts(alerts); err != nil {
-//				srv.Log.Error("failed to put alerts in the local notifier", "count", len(alerts.PostableAlerts), "err", err, "ruleId", alertRule.ID)
-//				return response.Error(http.StatusInternalServerError, "Failed to process alert", err)
-//			}
-//		} else {
-//			if errors.Is(err, notifier.ErrNoAlertmanagerForOrg) {
-//				srv.Log.Info("local notifier was not found", "orgId", alertRule.OrgID)
-//				return response.Error(http.StatusBadRequest, "Alert manager for organization not found", err)
-//			} else {
-//				srv.Log.Error("local notifier is not available", "err", err, "orgId", alertRule.OrgID)
-//				return response.Error(http.StatusInternalServerError, "Failed to process alert", err)
-//			}
-//		}
-//	} else {
-//		srv.Log.Debug("no alerts to put in the notifier or to send to external Alertmanager(s)")
-//	}
-//
-//	return response.JSONStreaming(http.StatusOK, alerts)
-//}
+func (srv *LogzioAlertingService) RouteSendAlertNotifications(c *contextmodel.ReqContext, sendNotificationsRequest apimodels.AlertSendNotificationsRequest) response.Response {
+	c.Logger.Info("Sending alerts to local notifier", "count", len(sendNotificationsRequest.Alerts.PostableAlerts))
+	n, err := srv.MultiOrgAlertmanager.AlertmanagerFor(sendNotificationsRequest.AlertRuleKey.OrgID)
+	if err == nil {
+		if err := n.PutAlerts(c.Req.Context(), sendNotificationsRequest.Alerts); err != nil {
+			c.Logger.Error("Failed to put alerts in the local notifier", "count", len(sendNotificationsRequest.Alerts.PostableAlerts), "error", err)
+		} else {
+			return response.Success("Put alerts was successful")
+		}
+	} else {
+		if errors.Is(err, notifier.ErrNoAlertmanagerForOrg) {
+			c.Logger.Debug("Local notifier was not found")
+		} else {
+			c.Logger.Error("Local notifier is not available", "error", err)
+		}
+	}
+
+	return response.Error(http.StatusInternalServerError, "Failed to put alerts", err)
+}
 
 func evaluationResultsToApi(evalResult eval.Result) apimodels.ApiEvalResult {
 	apiEvalResult := apimodels.ApiEvalResult{

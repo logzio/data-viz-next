@@ -564,12 +564,10 @@ type AlertEvaluationRequest struct {
 	DsOverrides []models.EvaluationDatasourceOverride `json:"dsOverrides"`
 }
 
-//type AlertProcessRequest struct {
-//	AccountId                           string          `json:"accountId"`
-//	ShouldManageAnnotationsAndInstances *bool           `json:"shouldManageAnnotationsAndInstances"`
-//	AlertRule                           ApiAlertRule    `json:"alertRule"`
-//	EvaluationResults                   []ApiEvalResult `json:"evaluationResults"`
-//}
+type AlertSendNotificationsRequest struct {
+	AlertRuleKey models.AlertRuleKey `json:"alertRuleKey"`
+	Alerts       PostableAlerts      `json:"alerts"`
+}
 
 type ApiAlertRule struct {
 	ID              int64                      `json:"id"`
