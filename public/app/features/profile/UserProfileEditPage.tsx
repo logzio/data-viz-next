@@ -112,7 +112,7 @@ export function UserProfileEditPage({
     })),
   ];
 
-  // LOGZIO CHANGES - show limited data in user profile 
+  // LOGZ.IO GRAFANA CHANGE :: show limited data in user profile 
   const UserProfile = () => (
     <VerticalGroup spacing="md">
       <UserProfileEditForm updateProfile={updateUserProfile} isSavingUser={isUpdating} user={user} />

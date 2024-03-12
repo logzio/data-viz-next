@@ -181,7 +181,7 @@ RUN cp "$GF_PATHS_HOME/conf/custom.ini" "$GF_PATHS_CONFIG"
 RUN rm -rf ./public/app/plugins/panel/news
 # LOGZ.IO GRAFANA CHANGE :: Remove pluginlist panel - but it does not exist in v10
 # RUN rm -rf ./public/app/plugins/panel/pluginlist
-EXPOSE 3000
+EXPOSE 3333
 
 ARG RUN_SH=grafana/packaging/docker/run.sh
 

@@ -2,9 +2,9 @@ import { Action, KBarProvider } from 'kbar';
 import React, { ComponentType } from 'react';
 import { Provider } from 'react-redux';
 import { Router, Redirect, Switch, RouteComponentProps } from 'react-router-dom';
+import { waitFor } from 'poll-until-promise';
 import { CompatRouter, CompatRoute } from 'react-router-dom-v5-compat';
 
-// import { productLoaded  } from '@grafana/data';
 import { config, locationService, navigationLogger, reportInteraction } from '@grafana/runtime';
 import { ErrorBoundaryAlert, GlobalStyles, ModalRoot, ModalsProvider, PortalContainer } from '@grafana/ui';
 import { getAppRoutes } from 'app/routes/routes';
@@ -53,13 +53,15 @@ export class AppWrapper extends React.Component<AppWrapperProps, AppWrapperState
     this.setState({ ready: true });
 
     // LOGZ.IO GRAFANA CHANGE :: Let app know that grafana loaded successfully
-    // DEV-44232 - GrafanaX remove the usage of settimeout
-    setTimeout(() => {
-      const { resolve } = (window as any).logzio.productLoaded;
-      if (resolve) {
-        resolve();
+    try {
+      await waitFor(() => (window as any).logzio.productLoaded.resolve(), {
+        timeout: 5000
+      })
+    } catch (error) {
+      if (!(window as any).logzio) {
+        (window as any).logzio = { productLoadedFlag: true };
       }
-    }, 10)
+    }
     // LOGZ.IO GRAFANA CHANGE :: end
 
     $('.preloader').remove();
