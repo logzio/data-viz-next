@@ -53,6 +53,7 @@ export class AppWrapper extends React.Component<AppWrapperProps, AppWrapperState
     this.setState({ ready: true });
 
     // LOGZ.IO GRAFANA CHANGE :: Let app know that grafana loaded successfully
+    // DEV-44232 - GrafanaX remove the usage of settimeout
     setTimeout(() => {
       const { resolve } = (window as any).logzio.productLoaded;
       if (resolve) {
