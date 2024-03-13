@@ -367,6 +367,7 @@
 
       if (window.parent && window.parent.__logzio__) {
         window.parent.__logzio__.services.overrideFetch(window);
+        // DEV-44251 - tech debt
         // window.parent.__logzio__.services.overrideGrafanaFetch(window);
       }
     </script>
