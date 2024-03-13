@@ -1,8 +1,8 @@
 import { Action, KBarProvider } from 'kbar';
+import { waitFor } from 'poll-until-promise';
 import React, { ComponentType } from 'react';
 import { Provider } from 'react-redux';
 import { Router, Redirect, Switch, RouteComponentProps } from 'react-router-dom';
-import { waitFor } from 'poll-until-promise';
 import { CompatRouter, CompatRoute } from 'react-router-dom-v5-compat';
 
 import { config, locationService, navigationLogger, reportInteraction } from '@grafana/runtime';
