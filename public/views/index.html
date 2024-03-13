@@ -366,8 +366,8 @@
       window.logzio = window.frameElement.logzioPresets;
 
       if (window.parent && window.parent.__logzio__) {
-        // window.parent.__logzio__.services.overrideFetch(window);
-        window.parent.__logzio__.services.overrideGrafanaFetch(window);
+        window.parent.__logzio__.services.overrideFetch(window);
+        // window.parent.__logzio__.services.overrideGrafanaFetch(window);
       }
     </script>
 
