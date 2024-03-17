@@ -4,8 +4,7 @@
 //     public/app/plugins/gen.go
 // Using jennies:
 //     TSTypesJenny
-//     LatestMajorsOrXJenny
-//     PluginEachMajorJenny
+//     PluginTsTypesJenny
 //
 // Run 'make gen-cue' from repository root to regenerate.
 
@@ -44,9 +43,9 @@ export interface TempoQuery extends common.DataQuery {
    */
   serviceMapIncludeNamespace?: boolean;
   /**
-   * Filters to be included in a PromQL query to select data for the service graph. Example: {client="app",service="app"}
+   * Filters to be included in a PromQL query to select data for the service graph. Example: {client="app",service="app"}. Providing multiple values will produce union of results for each filter, using PromQL OR operator internally.
    */
-  serviceMapQuery?: string;
+  serviceMapQuery?: (string | Array<string>);
   /**
    * @deprecated Query traces by service name
    */
@@ -71,9 +70,9 @@ export const defaultTempoQuery: Partial<TempoQuery> = {
 };
 
 /**
- * search = Loki search, nativeSearch = Tempo search for backwards compatibility
+ * nativeSearch = Tempo search for backwards compatibility
  */
-export type TempoQueryType = ('traceql' | 'traceqlSearch' | 'search' | 'serviceMap' | 'upload' | 'nativeSearch' | 'traceId' | 'clear');
+export type TempoQueryType = ('traceql' | 'traceqlSearch' | 'serviceMap' | 'upload' | 'nativeSearch' | 'traceId' | 'clear');
 
 /**
  * The state of the TraceQL streaming search query

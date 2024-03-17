@@ -25,6 +25,13 @@ var (
 					Action: accesscontrol.ActionAlertingRuleExternalRead,
 					Scope:  datasources.ScopeAll,
 				},
+				// Following are needed for simplified notification policies
+				{
+					Action: accesscontrol.ActionAlertingNotificationsTimeIntervalsRead,
+				},
+				{
+					Action: accesscontrol.ActionAlertingReceiversList,
+				},
 			},
 		},
 	}
@@ -109,6 +116,12 @@ var (
 					Action: accesscontrol.ActionAlertingNotificationsExternalRead,
 					Scope:  datasources.ScopeAll,
 				},
+				{
+					Action: accesscontrol.ActionAlertingNotificationsTimeIntervalsRead,
+				},
+				{
+					Action: accesscontrol.ActionAlertingReceiversRead,
+				},
 			},
 		},
 	}
@@ -165,6 +178,10 @@ var (
 				},
 				{
 					Action: accesscontrol.ActionAlertingProvisioningWrite, // organization scope
+				},
+				{
+					Action: dashboards.ActionFoldersRead,
+					Scope:  dashboards.ScopeFoldersAll,
 				},
 			},
 		},
