@@ -20,6 +20,8 @@ COPY grafana/packages packages
 COPY grafana/plugins-bundled plugins-bundled
 COPY grafana/public public
 
+RUN apk add --no-cache make build-base python3
+
 RUN yarn install --immutable
 
 COPY grafana/tsconfig.json grafana/.eslintrc grafana/.editorconfig grafana/.browserslistrc grafana/.prettierrc.js ./
@@ -38,6 +40,9 @@ ARG GO_BUILD_TAGS="oss"
 ARG WIRE_TAGS="oss"
 ARG BINGO="true"
 
+# This is required to allow building on arm64 due to https://github.com/golang/go/issues/22040
+RUN apk add --no-cache binutils-gold
+
 # Install build dependencies
 RUN if grep -i -q alpine /etc/issue; then \
       apk add --no-cache gcc g++ make git; \
@@ -50,6 +55,8 @@ COPY grafana/.bingo .bingo
 
 # Include vendored dependencies
 COPY grafana/pkg/util/xorm/go.* pkg/util/xorm/
+COPY grafana/pkg/apiserver/go.* pkg/apiserver/
+COPY grafana/pkg/apimachinery/go.* pkg/apimachinery/
 
 RUN go mod download
 RUN if [[ "$BINGO" = "true" ]]; then \

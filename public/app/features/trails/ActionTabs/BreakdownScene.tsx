@@ -17,14 +17,17 @@ import {
   SceneObjectBase,
   SceneObjectState,
   SceneQueryRunner,
+  VariableDependencyConfig,
 } from '@grafana/scenes';
-import { Button, Field, RadioButtonGroup, useStyles2 } from '@grafana/ui';
+import { Button, Field, useStyles2 } from '@grafana/ui';
 import { ALL_VARIABLE_VALUE } from 'app/features/variables/constants';
 
 import { getAutoQueriesForMetric } from '../AutomaticMetricQueries/AutoQueryEngine';
 import { AutoQueryDef } from '../AutomaticMetricQueries/types';
+import { BreakdownLabelSelector } from '../BreakdownLabelSelector';
 import { MetricScene } from '../MetricScene';
-import { trailDS, VAR_GROUP_BY, VAR_GROUP_BY_EXP } from '../shared';
+import { StatusWrapper } from '../StatusWrapper';
+import { trailDS, VAR_FILTERS, VAR_GROUP_BY, VAR_GROUP_BY_EXP } from '../shared';
 import { getColorByIndex } from '../utils';
 
 import { AddToFiltersGraphAction } from './AddToFiltersGraphAction';
@@ -37,9 +40,16 @@ export interface BreakdownSceneState extends SceneObjectState {
   labels: Array<SelectableValue<string>>;
   value?: string;
   loading?: boolean;
+  error?: string;
+  blockingMessage?: string;
 }
 
 export class BreakdownScene extends SceneObjectBase<BreakdownSceneState> {
+  protected _variableDependency = new VariableDependencyConfig(this, {
+    variableNames: [VAR_FILTERS],
+    onReferencedVariableValueChanged: this.onReferencedVariableValueChanged.bind(this),
+  });
+
   constructor(state: Partial<BreakdownSceneState>) {
     super({
       labels: state.labels ?? [],
@@ -79,6 +89,12 @@ export class BreakdownScene extends SceneObjectBase<BreakdownSceneState> {
     return variable;
   }
 
+  private onReferencedVariableValueChanged() {
+    const variable = this.getVariable();
+    variable.changeValueTo(ALL_VARIABLE_VALUE);
+    this.updateBody(variable);
+  }
+
   private updateBody(variable: QueryVariable) {
     const options = getLabelOptions(this, variable);
 
@@ -86,47 +102,55 @@ export class BreakdownScene extends SceneObjectBase<BreakdownSceneState> {
       loading: variable.state.loading,
       value: String(variable.state.value),
       labels: options,
+      error: variable.state.error,
+      blockingMessage: undefined,
     };
 
-    if (!this.state.body && !variable.state.loading) {
+    if (!variable.state.loading && variable.state.options.length) {
       stateUpdate.body = variable.hasAllValue()
         ? buildAllLayout(options, this._query!)
         : buildNormalLayout(this._query!);
+    } else if (!variable.state.loading) {
+      stateUpdate.body = undefined;
+      stateUpdate.blockingMessage = 'Unable to retrieve label options for currently selected metric.';
     }
 
     this.setState(stateUpdate);
   }
 
-  public onChange = (value: string) => {
-    const variable = this.getVariable();
-
-    if (value === ALL_VARIABLE_VALUE) {
-      this.setState({ body: buildAllLayout(getLabelOptions(this, variable), this._query!) });
-    } else if (variable.hasAllValue()) {
-      this.setState({ body: buildNormalLayout(this._query!) });
+  public onChange = (value?: string) => {
+    if (!value) {
+      return;
     }
+
+    const variable = this.getVariable();
 
     variable.changeValueTo(value);
   };
 
   public static Component = ({ model }: SceneComponentProps<BreakdownScene>) => {
-    const { labels, body, loading, value } = model.useState();
+    const { labels, body, loading, value, blockingMessage } = model.useState();
     const styles = useStyles2(getStyles);
 
     return (
       <div className={styles.container}>
-        {loading && <div>Loading...</div>}
-        <div className={styles.controls}>
-          <Field label="By label">
-            <RadioButtonGroup options={labels} value={value} onChange={model.onChange} />
-          </Field>
-          {body instanceof LayoutSwitcher && (
-            <div className={styles.controlsRight}>
-              <body.Selector model={body} />
-            </div>
-          )}
-        </div>
-        <div className={styles.content}>{body && <body.Component model={body} />}</div>
+        <StatusWrapper {...{ isLoading: loading, blockingMessage }}>
+          <div className={styles.controls}>
+            {!loading && labels.length && (
+              <div className={styles.controlsLeft}>
+                <Field label="By label">
+                  <BreakdownLabelSelector options={labels} value={value} onChange={model.onChange} />
+                </Field>
+              </div>
+            )}
+            {body instanceof LayoutSwitcher && (
+              <div className={styles.controlsRight}>
+                <body.Selector model={body} />
+              </div>
+            )}
+          </div>
+          <div className={styles.content}>{body && <body.Component model={body} />}</div>
+        </StatusWrapper>
       </div>
     );
   };
@@ -145,10 +169,6 @@ function getStyles(theme: GrafanaTheme2) {
       display: 'flex',
       paddingTop: theme.spacing(0),
     }),
-    tabHeading: css({
-      paddingRight: theme.spacing(2),
-      fontWeight: theme.typography.fontWeightMedium,
-    }),
     controls: css({
       flexGrow: 0,
       display: 'flex',
@@ -156,9 +176,16 @@ function getStyles(theme: GrafanaTheme2) {
       gap: theme.spacing(2),
     }),
     controlsRight: css({
-      flexGrow: 1,
+      flexGrow: 0,
       display: 'flex',
       justifyContent: 'flex-end',
+    }),
+    controlsLeft: css({
+      display: 'flex',
+      justifyContent: 'flex-left',
+      justifyItems: 'left',
+      width: '100%',
+      flexDirection: 'column',
     }),
   };
 }
@@ -171,7 +198,8 @@ export function buildAllLayout(options: Array<SelectableValue<string>>, queryDef
       continue;
     }
 
-    const expr = queryDef.queries[0].expr.replace(VAR_GROUP_BY_EXP, String(option.value));
+    const expr = queryDef.queries[0].expr.replaceAll(VAR_GROUP_BY_EXP, String(option.value));
+    const unit = queryDef.unit;
 
     children.push(
       new SceneCSSGridItem({
@@ -191,6 +219,7 @@ export function buildAllLayout(options: Array<SelectableValue<string>>, queryDef
             })
           )
           .setHeaderActions(new SelectLabelAction({ labelName: String(option.value) }))
+          .setUnit(unit)
           .build(),
       })
     );
@@ -283,15 +312,11 @@ function buildNormalLayout(queryDef: AutoQueryDef) {
 }
 
 function getLabelValue(frame: DataFrame) {
-  const labels = frame.fields[1]?.labels;
-
-  if (!labels) {
-    return 'No labels';
-  }
+  const labels = frame.fields[1]?.labels || {};
 
   const keys = Object.keys(labels);
   if (keys.length === 0) {
-    return 'No labels';
+    return '<unspecified>';
   }
 
   return labels[keys[0]];
@@ -313,7 +338,7 @@ export class SelectLabelAction extends SceneObjectBase<SelectLabelActionState> {
 
   public static Component = ({ model }: SceneComponentProps<AddToFiltersGraphAction>) => {
     return (
-      <Button variant="primary" size="sm" fill="text" onClick={model.onClick}>
+      <Button variant="secondary" size="sm" fill="solid" onClick={model.onClick}>
         Select
       </Button>
     );
