@@ -107,7 +107,7 @@ export class ShareSnapshot extends PureComponent<Props, State> {
     };
 
     try {
-      const results: { deleteUrl: string; url: string } = await getBackendSrv().post(snapshotApiUrl, cmdData);
+      const results = await getDashboardSnapshotSrv().create(cmdData);
 
       // LOGZ.IO GRAFANA CHANGE :: DEV-20896 Change snapshot url to logzio
       const logzioUrl = await logzioServices.shareUrlService.getLogzioGrafanaUrl({
