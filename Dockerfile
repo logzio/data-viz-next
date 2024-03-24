@@ -1,9 +1,9 @@
 # syntax=docker/dockerfile:1
 
 ARG BASE_IMAGE=406095609952.dkr.ecr.us-east-1.amazonaws.com/alpine:3.12.1
-ARG JS_IMAGE=406095609952.dkr.ecr.us-east-1.amazonaws.com/node:20.8.1-slim
+ARG JS_IMAGE=406095609952.dkr.ecr.us-east-1.amazonaws.com/node:20.8.1-alpine
 ARG JS_PLATFORM=linux/amd64
-ARG GO_IMAGE=406095609952.dkr.ecr.us-east-1.amazonaws.com/golang:1.21.5-alpine3.18
+ARG GO_IMAGE=406095609952.dkr.ecr.us-east-1.amazonaws.com/golang:1.21.8-alpine3.18
 
 ARG GO_SRC=go-builder
 ARG JS_SRC=js-builder
