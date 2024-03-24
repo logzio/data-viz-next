@@ -13,11 +13,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 
+	exp "github.com/grafana/grafana-plugin-sdk-go/experimental/errorsource"
 	"github.com/grafana/grafana/pkg/infra/log"
 	"github.com/grafana/grafana/pkg/infra/tracing"
 	"github.com/grafana/grafana/pkg/models" // LOGZ.IO GRAFANA CHANGE :: DEV-43883 - add LogzIoHeaders
@@ -39,7 +39,6 @@ type DatasourceInfo struct {
 	Interval                   string
 	MaxConcurrentShardRequests int64
 	IncludeFrozen              bool
-	XPack                      bool
 }
 
 type ConfiguredFields struct {
@@ -56,7 +55,7 @@ type Client interface {
 }
 
 // NewClient creates a new elasticsearch client
-var NewClient = func(ctx context.Context, ds *DatasourceInfo, timeRange backend.TimeRange, logger log.Logger, tracer tracing.Tracer) (Client, error) {
+var NewClient = func(ctx context.Context, ds *DatasourceInfo, logger log.Logger, tracer tracing.Tracer) (Client, error) {
 	logger = logger.New("entity", "client")
 
 	ip, err := newIndexPattern(ds.Interval, ds.Database)
@@ -65,11 +64,7 @@ var NewClient = func(ctx context.Context, ds *DatasourceInfo, timeRange backend.
 		return nil, err
 	}
 
-	indices, err := ip.GetIndices(timeRange)
-	if err != nil {
-		return nil, err
-	}
-	logger.Debug("Creating new client", "configuredFields", fmt.Sprintf("%#v", ds.ConfiguredFields), "indices", strings.Join(indices, ", "), "interval", ds.Interval, "index", ds.Database)
+	logger.Debug("Creating new client", "configuredFields", fmt.Sprintf("%#v", ds.ConfiguredFields), "interval", ds.Interval, "index", ds.Database)
 
 	// LOGZ.IO GRAFANA CHANGE :: DEV-43883 - add LogzIoHeaders
 	logzIoHeaders := &models.LogzIoHeaders{}
@@ -87,8 +82,7 @@ var NewClient = func(ctx context.Context, ds *DatasourceInfo, timeRange backend.
 		ctx:              ctx,
 		ds:               ds,
 		configuredFields: ds.ConfiguredFields,
-		indices:          indices,
-		timeRange:        timeRange,
+		indexPattern:     ip,
 		tracer:           tracer,
 		logzIoHeaders:    logzIoHeaders, // LOGZ.IO GRAFANA CHANGE :: DEV-43883 Support external alert evaluation
 	}, nil
@@ -98,8 +92,7 @@ type baseClientImpl struct {
 	ctx              context.Context
 	ds               *DatasourceInfo
 	configuredFields ConfiguredFields
-	indices          []string
-	timeRange        backend.TimeRange
+	indexPattern     IndexPattern
 	logger           log.Logger
 	tracer           tracing.Tracer
 	logzIoHeaders    *models.LogzIoHeaders // LOGZ.IO GRAFANA CHANGE :: DEV-43883 - add LogzIoHeaders
@@ -221,6 +214,10 @@ func (c *baseClientImpl) ExecuteMultisearch(r *MultiSearchRequest) (*MultiSearch
 			status = "cancelled"
 		}
 		lp := []any{"error", err, "status", status, "duration", time.Since(start), "stage", StageDatabaseRequest}
+		sourceErr := exp.Error{}
+		if errors.As(err, &sourceErr) {
+			lp = append(lp, "statusSource", sourceErr.Source())
+		}
 		if clientRes != nil {
 			lp = append(lp, "statusCode", clientRes.StatusCode)
 		}
@@ -264,11 +261,16 @@ func (c *baseClientImpl) createMultiSearchRequests(searchRequests []*SearchReque
 	multiRequests := []*multiRequest{}
 
 	for _, searchReq := range searchRequests {
+		indices, err := c.indexPattern.GetIndices(searchReq.TimeRange)
+		if err != nil {
+			c.logger.Error("Failed to get indices from index pattern", "error", err)
+			continue
+		}
 		mr := multiRequest{
 			header: map[string]any{
 				"search_type":        "query_then_fetch",
 				"ignore_unavailable": true,
-				"index":              strings.Join(c.indices, ","),
+				"index":              strings.Join(indices, ","),
 			},
 			body:     searchReq,
 			interval: searchReq.Interval,
@@ -289,7 +291,7 @@ func (c *baseClientImpl) getMultiSearchQueryParameters() string {
 	}
 	qs = append(qs, fmt.Sprintf("max_concurrent_shard_requests=%d", maxConcurrentShardRequests))
 
-	if c.ds.IncludeFrozen && c.ds.XPack {
+	if c.ds.IncludeFrozen {
 		qs = append(qs, "ignore_throttled=false")
 	}
 

@@ -2,27 +2,20 @@ package schedule
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/url"
 	"time"
 
 	"github.com/benbjohnson/clock"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/grafana/grafana/pkg/infra/log"
 	"github.com/grafana/grafana/pkg/infra/tracing"
-	"github.com/grafana/grafana/pkg/services/datasources"
 	"github.com/grafana/grafana/pkg/services/ngalert/api/tooling/definitions"
 	"github.com/grafana/grafana/pkg/services/ngalert/eval"
 	"github.com/grafana/grafana/pkg/services/ngalert/metrics"
 	ngmodels "github.com/grafana/grafana/pkg/services/ngalert/models"
 	"github.com/grafana/grafana/pkg/services/ngalert/state"
-	"github.com/grafana/grafana/pkg/services/org"
-	"github.com/grafana/grafana/pkg/services/user"
 	"github.com/grafana/grafana/pkg/util/ticker"
 )
 
@@ -55,8 +48,8 @@ type schedule struct {
 	// base tick rate (fastest possible configured check)
 	baseInterval time.Duration
 
-	// each alert rule gets its own channel and routine
-	registry alertRuleInfoRegistry
+	// each rule gets its own channel and routine
+	registry ruleRegistry
 
 	maxAttempts int64
 
@@ -82,6 +75,7 @@ type schedule struct {
 
 	appURL               *url.URL
 	disableGrafanaFolder bool
+	jitterEvaluations    JitterStrategy
 
 	metrics *metrics.Scheduler
 
@@ -107,6 +101,7 @@ type SchedulerCfg struct {
 	MinRuleInterval      time.Duration
 	DisableGrafanaFolder bool
 	AppURL               *url.URL
+	JitterEvaluations    JitterStrategy
 	EvaluatorFactory     eval.EvaluatorFactory
 	RuleStore            RulesStore
 	Metrics              *metrics.Scheduler
@@ -116,7 +111,7 @@ type SchedulerCfg struct {
 	ScheduledEvalEnabled bool // LOGZ.IO GRAFANA CHANGE :: DEV-43744 Add scheduled evaluation enabled config
 }
 
-// NewScheduler returns a new schedule.
+// NewScheduler returns a new scheduler.
 func NewScheduler(cfg SchedulerCfg, stateManager *state.Manager) *schedule {
 	const minMaxAttempts = int64(1)
 	if cfg.MaxAttempts < minMaxAttempts {
@@ -125,7 +120,7 @@ func NewScheduler(cfg SchedulerCfg, stateManager *state.Manager) *schedule {
 	}
 
 	sch := schedule{
-		registry:              alertRuleInfoRegistry{alertRuleInfo: make(map[ngmodels.AlertRuleKey]*alertRuleInfo)},
+		registry:              newRuleRegistry(),
 		maxAttempts:           cfg.MaxAttempts,
 		clock:                 cfg.C,
 		baseInterval:          cfg.BaseInterval,
@@ -135,6 +130,7 @@ func NewScheduler(cfg SchedulerCfg, stateManager *state.Manager) *schedule {
 		metrics:               cfg.Metrics,
 		appURL:                cfg.AppURL,
 		disableGrafanaFolder:  cfg.DisableGrafanaFolder,
+		jitterEvaluations:     cfg.JitterEvaluations,
 		stateManager:          stateManager,
 		minRuleInterval:       cfg.MinRuleInterval,
 		schedulableAlertRules: alertRulesRegistry{rules: make(map[ngmodels.AlertRuleKey]*ngmodels.AlertRule)},
@@ -157,6 +153,13 @@ func (sch *schedule) Run(ctx context.Context) error {
 	return nil
 }
 
+// Rules fetches the entire set of rules considered for evaluation by the scheduler on the next tick.
+// Such rules are not guaranteed to have been evaluated by the scheduler.
+// Rules returns all supplementary metadata for the rules that is stored by the scheduler - namely, the set of folder titles.
+func (sch *schedule) Rules() ([]*ngmodels.AlertRule, map[ngmodels.FolderKey]string) {
+	return sch.schedulableAlertRules.all()
+}
+
 // deleteAlertRule stops evaluation of the rule, deletes it from active rules, and cleans up state cache.
 func (sch *schedule) deleteAlertRule(keys ...ngmodels.AlertRuleKey) {
 	for _, key := range keys {
@@ -167,13 +170,13 @@ func (sch *schedule) deleteAlertRule(keys ...ngmodels.AlertRuleKey) {
 			sch.log.Info("Alert rule cannot be removed from the scheduler as it is not scheduled", key.LogContext()...)
 		}
 		// Delete the rule routine
-		ruleInfo, ok := sch.registry.del(key)
+		ruleRoutine, ok := sch.registry.del(key)
 		if !ok {
 			sch.log.Info("Alert rule cannot be stopped as it is not running", key.LogContext()...)
 			continue
 		}
 		// stop rule evaluation
-		ruleInfo.stop(errRuleDeleted)
+		ruleRoutine.Stop(errRuleDeleted)
 	}
 	// Our best bet at this point is that we update the metrics with what we hope to schedule in the next tick.
 	alertRules, _ := sch.schedulableAlertRules.all()
@@ -204,43 +207,8 @@ func (sch *schedule) schedulePeriodic(ctx context.Context, t *ticker.T) error {
 }
 
 type readyToRunItem struct {
-	ruleInfo *alertRuleInfo
-	evaluation
-}
-
-func (sch *schedule) updateRulesMetrics(alertRules []*ngmodels.AlertRule) {
-	rulesPerOrg := make(map[int64]int64)                // orgID -> count
-	orgsPaused := make(map[int64]int64)                 // orgID -> count
-	groupsPerOrg := make(map[int64]map[string]struct{}) // orgID -> set of groups
-	for _, rule := range alertRules {
-		rulesPerOrg[rule.OrgID]++
-
-		if rule.IsPaused {
-			orgsPaused[rule.OrgID]++
-		}
-
-		orgGroups, ok := groupsPerOrg[rule.OrgID]
-		if !ok {
-			orgGroups = make(map[string]struct{})
-			groupsPerOrg[rule.OrgID] = orgGroups
-		}
-		orgGroups[rule.RuleGroup] = struct{}{}
-	}
-
-	for orgID, numRules := range rulesPerOrg {
-		numRulesPaused := orgsPaused[orgID]
-		sch.metrics.GroupRules.WithLabelValues(fmt.Sprint(orgID), metrics.AlertRuleActiveLabelValue).Set(float64(numRules - numRulesPaused))
-		sch.metrics.GroupRules.WithLabelValues(fmt.Sprint(orgID), metrics.AlertRulePausedLabelValue).Set(float64(numRulesPaused))
-	}
-
-	for orgID, groups := range groupsPerOrg {
-		sch.metrics.Groups.WithLabelValues(fmt.Sprint(orgID)).Set(float64(len(groups)))
-	}
-
-	// While these are the rules that we iterate over, at the moment there's no 100% guarantee that they'll be
-	// scheduled as rules could be removed before we get a chance to evaluate them.
-	sch.metrics.SchedulableAlertRules.Set(float64(len(alertRules)))
-	sch.metrics.SchedulableAlertRulesHash.Set(float64(hashUIDs(alertRules)))
+	ruleRoutine Rule
+	Evaluation
 }
 
 // TODO refactor to accept a callback for tests that will be called with things that are returned currently, and return nothing.
@@ -272,9 +240,24 @@ func (sch *schedule) processTick(ctx context.Context, dispatcherGroup *errgroup.
 	readyToRun := make([]readyToRunItem, 0)
 	updatedRules := make([]ngmodels.AlertRuleKeyWithVersion, 0, len(updated)) // this is needed for tests only
 	missingFolder := make(map[string][]string)
+	ruleFactory := newRuleFactory(
+		sch.appURL,
+		sch.disableGrafanaFolder,
+		sch.maxAttempts,
+		sch.alertsSender,
+		sch.stateManager,
+		sch.evaluatorFactory,
+		&sch.schedulableAlertRules,
+		sch.clock,
+		sch.metrics,
+		sch.log,
+		sch.tracer,
+		sch.evalAppliedFunc,
+		sch.stopAppliedFunc,
+	)
 	for _, item := range alertRules {
 		key := item.GetKey()
-		ruleInfo, newRoutine := sch.registry.getOrCreateInfo(ctx, key)
+		ruleRoutine, newRoutine := sch.registry.getOrCreate(ctx, key, ruleFactory)
 
 		// enforce minimum evaluation interval
 		if item.IntervalSeconds < int64(sch.minRuleInterval.Seconds()) {
@@ -286,7 +269,7 @@ func (sch *schedule) processTick(ctx context.Context, dispatcherGroup *errgroup.
 
 		if newRoutine && !invalidInterval {
 			dispatcherGroup.Go(func() error {
-				return sch.ruleRoutine(ruleInfo.ctx, key, ruleInfo.evalCh, ruleInfo.updateCh)
+				return ruleRoutine.Run(key)
 			})
 		}
 
@@ -298,11 +281,12 @@ func (sch *schedule) processTick(ctx context.Context, dispatcherGroup *errgroup.
 		}
 
 		itemFrequency := item.IntervalSeconds / int64(sch.baseInterval.Seconds())
-		isReadyToRun := item.IntervalSeconds != 0 && tickNum%itemFrequency == 0
+		offset := jitterOffsetInTicks(item, sch.baseInterval, sch.jitterEvaluations)
+		isReadyToRun := item.IntervalSeconds != 0 && (tickNum%itemFrequency)-offset == 0
 
 		var folderTitle string
 		if !sch.disableGrafanaFolder {
-			title, ok := folderTitles[item.NamespaceUID]
+			title, ok := folderTitles[item.GetFolderKey()]
 			if ok {
 				folderTitle = title
 			} else {
@@ -313,25 +297,26 @@ func (sch *schedule) processTick(ctx context.Context, dispatcherGroup *errgroup.
 		// LOGZ.IO GRAFANA CHANGE :: DEV-43744 Add scheduled evaluation enabled config
 		if sch.scheduledEvalEnabled {
 			if isReadyToRun {
-				readyToRun = append(readyToRun, readyToRunItem{ruleInfo: ruleInfo, evaluation: evaluation{
+				sch.log.Debug("Rule is ready to run on the current tick", "uid", item.UID, "tick", tickNum, "frequency", itemFrequency, "offset", offset)
+				readyToRun = append(readyToRun, readyToRunItem{ruleRoutine: ruleRoutine, Evaluation: Evaluation{
 					scheduledAt: tick,
 					rule:        item,
 					folderTitle: folderTitle,
 				}})
-			}
 		} else {
 			sch.log.Debug("Scheduled evaluation disabled, not adding alerts to run")
 		}
+		// LOGZ.IO GRAFANA CHANGE :: End
 
 		if _, isUpdated := updated[key]; isUpdated && !isReadyToRun {
 			// if we do not need to eval the rule, check the whether rule was just updated and if it was, notify evaluation routine about that
 			sch.log.Debug("Rule has been updated. Notifying evaluation routine", key.LogContext()...)
-			go func(ri *alertRuleInfo, rule *ngmodels.AlertRule) {
-				ri.update(ruleVersionAndPauseStatus{
+			go func(routine Rule, rule *ngmodels.AlertRule) {
+				routine.Update(RuleVersionAndPauseStatus{
 					Fingerprint: ruleWithFolder{rule: rule, folderTitle: folderTitle}.Fingerprint(),
 					IsPaused:    rule.IsPaused,
 				})
-			}(ruleInfo, item)
+			}(ruleRoutine, item)
 			updatedRules = append(updatedRules, ngmodels.AlertRuleKeyWithVersion{
 				Version:      item.Version,
 				AlertRuleKey: item.GetKey(),
@@ -356,7 +341,7 @@ func (sch *schedule) processTick(ctx context.Context, dispatcherGroup *errgroup.
 
 		time.AfterFunc(time.Duration(int64(i)*step), func() {
 			key := item.rule.GetKey()
-			success, dropped := item.ruleInfo.eval(&item.evaluation)
+			success, dropped := item.ruleRoutine.Eval(&item.Evaluation)
 			if !success {
 				sch.log.Debug("Scheduled evaluation was canceled because evaluation routine was stopped", append(key.LogContext(), "time", tick)...)
 				return

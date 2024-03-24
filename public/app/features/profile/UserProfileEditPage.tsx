@@ -79,7 +79,6 @@ export function UserProfileEditPage({
   const extensionComponents = useMemo(() => {
     const { extensions } = getPluginComponentExtensions({
       extensionPointId: PluginExtensionPoints.UserProfileTab,
-      context: {},
     });
 
     return extensions;
@@ -112,15 +111,18 @@ export function UserProfileEditPage({
     })),
   ];
 
+  // LOGZ.IO GRAFANA CHANGE :: show limited data in user profile 
   const UserProfile = () => (
     <VerticalGroup spacing="md">
       <UserProfileEditForm updateProfile={updateUserProfile} isSavingUser={isUpdating} user={user} />
-      <SharedPreferences resourceUri="user" preferenceType="user" />
-      <Stack direction="column" gap={6}>
-        <UserTeams isLoading={teamsAreLoading} teams={teams} />
-        <UserOrganizations isLoading={orgsAreLoading} setUserOrg={changeUserOrg} orgs={orgs} user={user} />
-        <UserSessions isLoading={sessionsAreLoading} revokeUserSession={revokeUserSession} sessions={sessions} />
-      </Stack>
+      { false && <SharedPreferences resourceUri="user" preferenceType="user" /> }
+      { false && (
+        <Stack direction="column" gap={6}>
+          <UserTeams isLoading={teamsAreLoading} teams={teams} />
+          <UserOrganizations isLoading={orgsAreLoading} setUserOrg={changeUserOrg} orgs={orgs} user={user} />
+          <UserSessions isLoading={sessionsAreLoading} revokeUserSession={revokeUserSession} sessions={sessions} />
+        </Stack>
+      )}
     </VerticalGroup>
   );
 
