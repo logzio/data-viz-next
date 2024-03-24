@@ -26,14 +26,21 @@ describe('Datasource sandbox', () => {
       });
 
       it('Loads the app page without the sandbox div wrapper', () => {
-        cy.visit(`/a/${APP_ID}`);
+        e2e.pages.Home.visit();
+        e2e.components.NavBar.Toggle.button().click();
+        e2e.components.NavToolbar.container().get('[aria-label="Expand section Apps"]').click();
+        e2e.components.NavMenu.item().contains('Sandbox app test plugin').click();
         cy.wait(200); // wait to prevent false positives because cypress checks too fast
         cy.get('div[data-plugin-sandbox="sandbox-app-test"]').should('not.exist');
         cy.get('div[data-testid="sandbox-app-test-page-one"]').should('exist');
       });
 
       it('Loads the app configuration without the sandbox div wrapper', () => {
-        cy.visit(`/plugins/${APP_ID}`);
+        e2e.pages.Home.visit();
+        e2e.components.NavBar.Toggle.button().click();
+        e2e.components.NavToolbar.container().get('[aria-label="Expand section Apps"]').click();
+        e2e.components.NavMenu.item().contains('Apps').click();
+        cy.get('a[aria-label="Tab Sandbox App Page"]').click();
         cy.wait(200); // wait to prevent false positives because cypress checks too fast
         cy.get('div[data-plugin-sandbox="sandbox-app-test"]').should('not.exist');
         cy.get('div[data-testid="sandbox-app-test-config-page"]').should('exist');
@@ -48,13 +55,20 @@ describe('Datasource sandbox', () => {
       });
 
       it('Loads the app page with the sandbox div wrapper', () => {
-        cy.visit(`/a/${APP_ID}`);
+        e2e.pages.Home.visit();
+        e2e.components.NavBar.Toggle.button().click();
+        e2e.components.NavToolbar.container().get('[aria-label="Expand section Apps"]').click();
+        e2e.components.NavMenu.item().contains('Sandbox app test plugin').click();
         cy.get('div[data-plugin-sandbox="sandbox-app-test"]').should('exist');
         cy.get('div[data-testid="sandbox-app-test-page-one"]').should('exist');
       });
 
       it('Loads the app configuration with the sandbox div wrapper', () => {
-        cy.visit(`/plugins/${APP_ID}`);
+        e2e.pages.Home.visit();
+        e2e.components.NavBar.Toggle.button().click();
+        e2e.components.NavToolbar.container().get('[aria-label="Expand section Apps"]').click();
+        e2e.components.NavMenu.item().contains('Apps').click();
+        cy.get('a[aria-label="Tab Sandbox App Page"]').click();
         cy.get('div[data-plugin-sandbox="sandbox-app-test"]').should('exist');
         cy.get('div[data-testid="sandbox-app-test-config-page"]').should('exist');
       });

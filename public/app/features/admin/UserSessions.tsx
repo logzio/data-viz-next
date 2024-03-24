@@ -78,6 +78,7 @@ class BaseUserSessions extends PureComponent<Props, State> {
                               confirmText="Confirm logout"
                               confirmVariant="destructive"
                               onConfirm={this.onSessionRevoke(session.id)}
+                              autoFocus
                             >
                               Force logout
                             </ConfirmButton>

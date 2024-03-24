@@ -19,6 +19,7 @@ import (
 	"github.com/grafana/grafana/pkg/components/simplejson"
 	"github.com/grafana/grafana/pkg/infra/metrics"
 	"github.com/grafana/grafana/pkg/services/accesscontrol"
+	"github.com/grafana/grafana/pkg/services/alerting"
 	"github.com/grafana/grafana/pkg/services/auth/identity"
 	contextmodel "github.com/grafana/grafana/pkg/services/contexthandler/model"
 	"github.com/grafana/grafana/pkg/services/dashboards"
@@ -97,7 +98,7 @@ func (hs *HTTPServer) GetDashboard(c *contextmodel.ReqContext) response.Response
 			return response.Error(http.StatusInternalServerError, "Error while retrieving public dashboards", err)
 		}
 
-		if publicDashboard != nil && (hs.License.FeatureEnabled(publicdashboardModels.FeaturePublicDashboardsEmailSharing) || publicDashboard.Share != publicdashboardModels.EmailShareType) {
+		if publicDashboard != nil {
 			publicDashboardEnabled = publicDashboard.IsEnabled
 		}
 	}
@@ -171,13 +172,12 @@ func (hs *HTTPServer) GetDashboard(c *contextmodel.ReqContext) response.Response
 		AnnotationsPermissions: annotationPermissions,
 		PublicDashboardEnabled: publicDashboardEnabled,
 	}
-	metrics.MFolderIDsAPICount.WithLabelValues(metrics.GetDashboard).Inc()
+
 	// lookup folder title
 	// nolint:staticcheck
 	if dash.FolderID > 0 {
 		// nolint:staticcheck
 		query := dashboards.GetDashboardQuery{ID: dash.FolderID, OrgID: c.SignedInUser.GetOrgID()}
-		metrics.MFolderIDsAPICount.WithLabelValues(metrics.GetDashboard).Inc()
 		queryResult, err := hs.DashboardService.GetDashboard(c.Req.Context(), &query)
 		if err != nil {
 			if errors.Is(err, dashboards.ErrFolderNotFound) {
@@ -302,10 +302,6 @@ func (hs *HTTPServer) deleteDashboard(c *contextmodel.ReqContext) response.Respo
 		return dashboardGuardianResponse(err)
 	}
 
-	if dash.IsFolder {
-		return response.Error(http.StatusBadRequest, "Use folders endpoint for deleting folders.", nil)
-	}
-
 	namespaceID, userIDStr := c.SignedInUser.GetNamespacedID()
 
 	// disconnect all library elements for this dashboard
@@ -359,7 +355,6 @@ func (hs *HTTPServer) deleteDashboard(c *contextmodel.ReqContext) response.Respo
 // Create / Update dashboard
 //
 // Creates a new dashboard or updates an existing dashboard.
-// Note: This endpoint is not intended for creating folders, use `POST /api/folders` for that.
 //
 // Responses:
 // 200: postDashboardResponse
@@ -379,10 +374,6 @@ func (hs *HTTPServer) PostDashboard(c *contextmodel.ReqContext) response.Respons
 }
 
 func (hs *HTTPServer) postDashboard(c *contextmodel.ReqContext, cmd dashboards.SaveDashboardCommand) response.Response {
-	if cmd.IsFolder {
-		return response.Error(http.StatusBadRequest, "Use folders endpoint for saving folders.", nil)
-	}
-
 	ctx := c.Req.Context()
 	var err error
 
@@ -440,7 +431,7 @@ func (hs *HTTPServer) postDashboard(c *contextmodel.ReqContext, cmd dashboards.S
 		Overwrite: cmd.Overwrite,
 	}
 
-	dashboard, err := hs.DashboardService.SaveDashboard(ctx, dashItem, allowUiUpdate)
+	dashboard, err := hs.DashboardService.SaveDashboard(alerting.WithUAEnabled(ctx, hs.Cfg.UnifiedAlerting.IsEnabled()), dashItem, allowUiUpdate)
 
 	if hs.Live != nil {
 		// Tell everyone listening that the dashboard changed
@@ -983,7 +974,6 @@ func (hs *HTTPServer) RestoreDashboardVersion(c *contextmodel.ReqContext) respon
 	saveCmd.Message = fmt.Sprintf("Restored from version %d", version.Version)
 	// nolint:staticcheck
 	saveCmd.FolderID = dash.FolderID
-	metrics.MFolderIDsAPICount.WithLabelValues(metrics.RestoreDashboardVersion).Inc()
 	saveCmd.FolderUID = dash.FolderUID
 
 	return hs.postDashboard(c, saveCmd)
@@ -1027,6 +1017,12 @@ func (hs *HTTPServer) GetDashboardUIDs(c *contextmodel.ReqContext) {
 		uids = append(uids, qResult.UID)
 	}
 	c.JSON(http.StatusOK, uids)
+}
+
+// swagger:parameters renderReportPDF
+type RenderReportPDFParams struct {
+	// in:path
+	DashboardID int64
 }
 
 // swagger:parameters restoreDashboardVersionByID

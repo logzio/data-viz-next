@@ -4,7 +4,6 @@ import { CartesianCoords2D, DashboardCursorSync, DataFrame, FieldType, PanelProp
 import { getLastStreamingDataFramePacket } from '@grafana/data/src/dataframe/StreamingDataFrame';
 import { config } from '@grafana/runtime';
 import {
-  EventBusPlugin,
   Portal,
   TooltipDisplayMode,
   TooltipPlugin2,
@@ -53,19 +52,6 @@ export const StateTimelinePanel = ({
 }: TimelinePanelProps) => {
   const theme = useTheme2();
 
-  // TODO: we should just re-init when this changes, and have this be a static setting
-  const syncTooltip = useCallback(
-    () => sync?.() === DashboardCursorSync.Tooltip,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
-  );
-
-  const syncAny = useCallback(
-    () => sync?.() !== DashboardCursorSync.Off,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
-  );
-
   const oldConfig = useRef<UPlotConfigBuilder | undefined>(undefined);
   const isToolTipOpen = useRef<boolean>(false);
 
@@ -77,7 +63,7 @@ export const StateTimelinePanel = ({
   const [shouldDisplayCloseButton, setShouldDisplayCloseButton] = useState<boolean>(false);
   // temp range set for adding new annotation set by TooltipPlugin2, consumed by AnnotationPlugin2
   const [newAnnotationRange, setNewAnnotationRange] = useState<TimeRange2 | null>(null);
-  const { sync, canAddAnnotations, dataLinkPostProcessor, eventBus } = usePanelContext();
+  const { sync, canAddAnnotations } = usePanelContext();
 
   const onCloseToolTip = () => {
     isToolTipOpen.current = false;
@@ -123,7 +109,10 @@ export const StateTimelinePanel = ({
        * Render nothing in this case to prevent error.
        * See https://github.com/grafana/support-escalations/issues/932
        */
-      if (alignedData.fields.length - 1 !== valueFieldsCount || !alignedData.fields[seriesIdx]) {
+      if (
+        (!alignedData.meta?.transformations?.length && alignedData.fields.length - 1 !== valueFieldsCount) ||
+        !alignedData.fields[seriesIdx]
+      ) {
         return null;
       }
 
@@ -177,7 +166,8 @@ export const StateTimelinePanel = ({
     }
   }
   const enableAnnotationCreation = Boolean(canAddAnnotations && canAddAnnotations());
-  const showNewVizTooltips = Boolean(config.featureToggles.newVizTooltips);
+  const showNewVizTooltips =
+    config.featureToggles.newVizTooltips && (sync == null || sync() === DashboardCursorSync.Off);
 
   return (
     <TimelineChart
@@ -191,8 +181,6 @@ export const StateTimelinePanel = ({
       legendItems={legendItems}
       {...options}
       mode={TimelineMode.Changes}
-      replaceVariables={replaceVariables}
-      dataLinkPostProcessor={dataLinkPostProcessor}
     >
       {(builder, alignedFrame) => {
         if (oldConfig.current !== builder && !showNewVizTooltips) {
@@ -212,19 +200,15 @@ export const StateTimelinePanel = ({
 
         return (
           <>
-            <EventBusPlugin config={builder} sync={syncAny} eventBus={eventBus} frame={alignedFrame} />
             {showNewVizTooltips ? (
               <>
                 {options.tooltip.mode !== TooltipDisplayMode.None && (
                   <TooltipPlugin2
                     config={builder}
-                    hoverMode={
-                      options.tooltip.mode === TooltipDisplayMode.Multi ? TooltipHoverMode.xAll : TooltipHoverMode.xOne
-                    }
+                    hoverMode={TooltipHoverMode.xOne}
                     queryZoom={onChangeTimeRange}
-                    syncTooltip={syncTooltip}
-                    render={(u, dataIdxs, seriesIdx, isPinned, dismiss, timeRange2, viaSync) => {
-                      if (enableAnnotationCreation && timeRange2 != null) {
+                    render={(u, dataIdxs, seriesIdx, isPinned, dismiss, timeRange2) => {
+                      if (timeRange2 != null) {
                         setNewAnnotationRange(timeRange2);
                         dismiss();
                         return;
@@ -239,16 +223,16 @@ export const StateTimelinePanel = ({
 
                       return (
                         <StateTimelineTooltip2
-                          frames={frames ?? []}
-                          seriesFrame={alignedFrame}
+                          data={frames ?? []}
                           dataIdxs={dataIdxs}
+                          alignedData={alignedFrame}
                           seriesIdx={seriesIdx}
-                          mode={viaSync ? TooltipDisplayMode.Multi : options.tooltip.mode}
+                          timeZone={timeZone}
+                          mode={options.tooltip.mode}
                           sortOrder={options.tooltip.sort}
                           isPinned={isPinned}
                           timeRange={timeRange}
                           annotate={enableAnnotationCreation ? annotate : undefined}
-                          withDuration={true}
                         />
                       );
                     }}

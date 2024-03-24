@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 	"github.com/stretchr/testify/mock"
@@ -16,17 +15,14 @@ import (
 	ac "github.com/grafana/grafana/pkg/services/accesscontrol"
 	acMock "github.com/grafana/grafana/pkg/services/accesscontrol/mock"
 	contextmodel "github.com/grafana/grafana/pkg/services/contexthandler/model"
-	"github.com/grafana/grafana/pkg/services/dashboards"
 	"github.com/grafana/grafana/pkg/services/datasources"
 	fakes "github.com/grafana/grafana/pkg/services/datasources/fakes"
 	"github.com/grafana/grafana/pkg/services/featuremgmt"
-	"github.com/grafana/grafana/pkg/services/folder"
 	"github.com/grafana/grafana/pkg/services/ngalert/accesscontrol"
 	"github.com/grafana/grafana/pkg/services/ngalert/api/tooling/definitions"
 	"github.com/grafana/grafana/pkg/services/ngalert/eval"
 	"github.com/grafana/grafana/pkg/services/ngalert/eval/eval_mocks"
 	"github.com/grafana/grafana/pkg/services/ngalert/models"
-	fakes2 "github.com/grafana/grafana/pkg/services/ngalert/tests/fakes"
 	"github.com/grafana/grafana/pkg/services/user"
 	"github.com/grafana/grafana/pkg/web"
 )
@@ -143,36 +139,6 @@ func TestRouteTestGrafanaRuleConfig(t *testing.T) {
 			},
 		}
 
-		t.Run("should return Forbidden if user cannot access folder", func(t *testing.T) {
-			ac := acMock.New().WithPermissions([]ac.Permission{
-				{Action: datasources.ActionQuery, Scope: datasources.ScopeProvider.GetResourceAllScope()},
-			})
-
-			ruleStore := fakes2.NewRuleStore(t)
-			ruleStore.Hook = func(cmd any) error {
-				q, ok := cmd.(fakes2.GenericRecordedQuery)
-				if !ok {
-					return nil
-				}
-				if q.Name == "GetNamespaceByUID" {
-					return dashboards.ErrFolderAccessDenied
-				}
-				return nil
-			}
-
-			srv := createTestingApiSrv(t, nil, ac, eval_mocks.NewEvaluatorFactory(&eval_mocks.ConditionEvaluatorMock{}), &featuremgmt.FeatureManager{}, ruleStore)
-
-			rule := validRule()
-
-			response := srv.RouteTestGrafanaRuleConfig(rc, definitions.PostableExtendedRuleNodeExtended{
-				Rule:           rule,
-				NamespaceUID:   uuid.NewString(),
-				NamespaceTitle: "test-folder",
-			})
-
-			require.Equal(t, http.StatusForbidden, response.Status())
-		})
-
 		t.Run("should return Forbidden if user cannot query a data source", func(t *testing.T) {
 			data1 := models.GenerateAlertQuery()
 			data2 := models.GenerateAlertQuery()
@@ -181,18 +147,15 @@ func TestRouteTestGrafanaRuleConfig(t *testing.T) {
 				{Action: datasources.ActionQuery, Scope: datasources.ScopeProvider.GetResourceScopeUID(data1.DatasourceUID)},
 			})
 
-			f := randFolder()
-			ruleStore := fakes2.NewRuleStore(t)
-			ruleStore.Folders[rc.OrgID] = []*folder.Folder{f}
-			srv := createTestingApiSrv(t, nil, ac, eval_mocks.NewEvaluatorFactory(&eval_mocks.ConditionEvaluatorMock{}), &featuremgmt.FeatureManager{}, ruleStore)
+			srv := createTestingApiSrv(t, nil, ac, eval_mocks.NewEvaluatorFactory(&eval_mocks.ConditionEvaluatorMock{}), &featuremgmt.FeatureManager{})
 
 			rule := validRule()
 			rule.GrafanaManagedAlert.Data = ApiAlertQueriesFromAlertQueries([]models.AlertQuery{data1, data2})
 			rule.GrafanaManagedAlert.Condition = data2.RefID
 			response := srv.RouteTestGrafanaRuleConfig(rc, definitions.PostableExtendedRuleNodeExtended{
 				Rule:           rule,
-				NamespaceUID:   f.UID,
-				NamespaceTitle: f.Title,
+				NamespaceUID:   "test-folder",
+				NamespaceTitle: "test-folder",
 			})
 
 			require.Equal(t, http.StatusForbidden, response.Status())
@@ -218,19 +181,15 @@ func TestRouteTestGrafanaRuleConfig(t *testing.T) {
 
 			evalFactory := eval_mocks.NewEvaluatorFactory(evaluator)
 
-			f := randFolder()
-			ruleStore := fakes2.NewRuleStore(t)
-			ruleStore.Folders[rc.OrgID] = []*folder.Folder{f}
-
-			srv := createTestingApiSrv(t, ds, ac, evalFactory, &featuremgmt.FeatureManager{}, ruleStore)
+			srv := createTestingApiSrv(t, ds, ac, evalFactory, &featuremgmt.FeatureManager{})
 
 			rule := validRule()
 			rule.GrafanaManagedAlert.Data = ApiAlertQueriesFromAlertQueries([]models.AlertQuery{data1, data2})
 			rule.GrafanaManagedAlert.Condition = data2.RefID
 			response := srv.RouteTestGrafanaRuleConfig(rc, definitions.PostableExtendedRuleNodeExtended{
 				Rule:           rule,
-				NamespaceUID:   f.UID,
-				NamespaceTitle: f.Title,
+				NamespaceUID:   "test-folder",
+				NamespaceTitle: "test-folder",
 			})
 
 			require.Equal(t, http.StatusOK, response.Status())
@@ -297,9 +256,7 @@ func TestRouteEvalQueries(t *testing.T) {
 			}
 			evaluator.EXPECT().EvaluateRaw(mock.Anything, mock.Anything).Return(result, nil)
 
-			ruleStore := fakes2.NewRuleStore(t)
-
-			srv := createTestingApiSrv(t, ds, ac, eval_mocks.NewEvaluatorFactory(evaluator), &featuremgmt.FeatureManager{}, ruleStore)
+			srv := createTestingApiSrv(t, ds, ac, eval_mocks.NewEvaluatorFactory(evaluator), &featuremgmt.FeatureManager{})
 
 			response := srv.RouteEvalQueries(rc, definitions.EvalQueriesPayload{
 				Data: ApiAlertQueriesFromAlertQueries([]models.AlertQuery{data1, data2}),
@@ -359,9 +316,7 @@ func TestRouteEvalQueries(t *testing.T) {
 			}
 			evaluator.EXPECT().EvaluateRaw(mock.Anything, mock.Anything).Return(result, nil)
 
-			ruleStore := fakes2.NewRuleStore(t)
-
-			srv := createTestingApiSrv(t, ds, ac, eval_mocks.NewEvaluatorFactory(evaluator), featuremgmt.WithManager(featuremgmt.FlagAlertingQueryOptimization), ruleStore)
+			srv := createTestingApiSrv(t, ds, ac, eval_mocks.NewEvaluatorFactory(evaluator), featuremgmt.WithManager(featuremgmt.FlagAlertingQueryOptimization))
 
 			response := srv.RouteEvalQueries(rc, definitions.EvalQueriesPayload{
 				Data: ApiAlertQueriesFromAlertQueries(queries),
@@ -387,7 +342,7 @@ func TestRouteEvalQueries(t *testing.T) {
 	})
 }
 
-func createTestingApiSrv(t *testing.T, ds *fakes.FakeCacheService, ac *acMock.Mock, evaluator eval.EvaluatorFactory, featureManager *featuremgmt.FeatureManager, ruleStore RuleStore) *TestingApiSrv {
+func createTestingApiSrv(t *testing.T, ds *fakes.FakeCacheService, ac *acMock.Mock, evaluator eval.EvaluatorFactory, featureManager *featuremgmt.FeatureManager) *TestingApiSrv {
 	if ac == nil {
 		ac = acMock.New()
 	}
@@ -399,6 +354,5 @@ func createTestingApiSrv(t *testing.T, ds *fakes.FakeCacheService, ac *acMock.Mo
 		cfg:             config(t),
 		tracer:          tracing.InitializeTracerForTest(),
 		featureManager:  featureManager,
-		folderService:   ruleStore,
 	}
 }

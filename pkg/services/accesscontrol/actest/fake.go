@@ -27,10 +27,6 @@ func (f FakeService) GetUserPermissions(ctx context.Context, user identity.Reque
 	return f.ExpectedPermissions, f.ExpectedErr
 }
 
-func (f FakeService) GetUserPermissionsInOrg(ctx context.Context, user identity.Requester, orgID int64) ([]accesscontrol.Permission, error) {
-	return f.ExpectedPermissions, f.ExpectedErr
-}
-
 func (f FakeService) SearchUsersPermissions(ctx context.Context, user identity.Requester, options accesscontrol.SearchOptions) (map[int64][]accesscontrol.Permission, error) {
 	return f.ExpectedUsersPermissions, f.ExpectedErr
 }
@@ -42,10 +38,6 @@ func (f FakeService) SearchUserPermissions(ctx context.Context, orgID int64, sea
 func (f FakeService) ClearUserPermissionCache(user identity.Requester) {}
 
 func (f FakeService) DeleteUserPermissions(ctx context.Context, orgID, userID int64) error {
-	return f.ExpectedErr
-}
-
-func (f FakeService) DeleteTeamPermissions(ctx context.Context, orgID, teamID int64) error {
 	return f.ExpectedErr
 }
 
@@ -99,10 +91,6 @@ func (f FakeStore) GetUsersBasicRoles(ctx context.Context, userFilter []int64, o
 }
 
 func (f FakeStore) DeleteUserPermissions(ctx context.Context, orgID, userID int64) error {
-	return f.ExpectedErr
-}
-
-func (f FakeStore) DeleteTeamPermissions(ctx context.Context, orgID, teamID int64) error {
 	return f.ExpectedErr
 }
 

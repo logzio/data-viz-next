@@ -1,8 +1,8 @@
-import 'whatwg-fetch';
 import { render, screen, waitForElementToBeRemoved, within } from '@testing-library/react';
-import { http, HttpResponse } from 'msw';
+import { rest } from 'msw';
 import { setupServer } from 'msw/node';
 import React from 'react';
+import 'whatwg-fetch';
 import { BrowserRouter } from 'react-router-dom';
 import { TestProvider } from 'test/helpers/TestProvider';
 import { getGrafanaContextMock } from 'test/mocks/getGrafanaContextMock';
@@ -60,13 +60,10 @@ const paginationResponse: Omit<PublicDashboardListWithPaginationResponse, 'publi
 };
 
 const server = setupServer(
-  http.get('/api/dashboards/public-dashboards', () =>
-    HttpResponse.json({
-      ...paginationResponse,
-      publicDashboards: publicDashboardListResponse,
-    })
+  rest.get('/api/dashboards/public-dashboards', (_, res, ctx) =>
+    res(ctx.status(200), ctx.json({ ...paginationResponse, publicDashboards: publicDashboardListResponse }))
   ),
-  http.delete('/api/dashboards/uid/:dashboardUid/public-dashboards/:uid', () => HttpResponse.json({}))
+  rest.delete('/api/dashboards/uid/:dashboardUid/public-dashboards/:uid', (_, res, ctx) => res(ctx.status(200)))
 );
 
 jest.mock('@grafana/runtime', () => ({
@@ -125,8 +122,8 @@ describe('Show table', () => {
     };
 
     server.use(
-      http.get('/api/dashboards/public-dashboards', () => {
-        return HttpResponse.json(emptyListRS);
+      rest.get('/api/dashboards/public-dashboards', (req, res, ctx) => {
+        return res(ctx.status(200), ctx.json(emptyListRS));
       })
     );
 
@@ -174,8 +171,8 @@ describe('Orphaned public dashboard', () => {
       publicDashboards: [...publicDashboardListResponse, ...orphanedDashboardListResponse],
     };
     server.use(
-      http.get('/api/dashboards/public-dashboards', () => {
-        return HttpResponse.json(response);
+      rest.get('/api/dashboards/public-dashboards', (req, res, ctx) => {
+        return res(ctx.status(200), ctx.json(response));
       })
     );
     jest.spyOn(contextSrv, 'hasPermission').mockReturnValue(true);

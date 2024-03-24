@@ -20,11 +20,10 @@ import { Icon, useStyles2 } from '@grafana/ui';
 
 import { autoColor } from '../../Theme';
 import { TraceSpanReference } from '../../types/trace';
+import { uAlignIcon, ubMb1 } from '../../uberUtilityStyles';
 import ReferenceLink from '../../url/ReferenceLink';
 
 import AccordianKeyValues from './AccordianKeyValues';
-
-import { alignIcon } from '.';
 
 const getStyles = (theme: GrafanaTheme2) => {
   return {
@@ -60,9 +59,6 @@ const getStyles = (theme: GrafanaTheme2) => {
       label: AccordianReferencesFooter;
       color: ${autoColor(theme, '#999')};
     `,
-    AccordianKeyValuesItem: css({
-      marginBottom: theme.spacing(0.5),
-    }),
     ReferencesList: css`
       background: #fff;
       border: 1px solid #ddd;
@@ -170,7 +166,7 @@ export function References(props: ReferenceItemProps) {
           {!!reference.tags?.length && (
             <div className={styles.AccordianKeyValues}>
               <AccordianKeyValues
-                className={i < data.length - 1 ? styles.AccordianKeyValuesItem : null}
+                className={i < data.length - 1 ? ubMb1 : null}
                 data={reference.tags || []}
                 highContrast
                 interactive={interactive}
@@ -202,9 +198,9 @@ const AccordianReferences = ({
   let headerProps: {} | null = null;
   if (interactive) {
     arrow = isOpen ? (
-      <Icon name={'angle-down'} className={alignIcon} />
+      <Icon name={'angle-down'} className={uAlignIcon} />
     ) : (
-      <Icon name={'angle-right'} className={alignIcon} />
+      <Icon name={'angle-right'} className={uAlignIcon} />
     );
     HeaderComponent = 'a';
     headerProps = {

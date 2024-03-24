@@ -10,6 +10,7 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana/pkg/plugins"
 	"github.com/grafana/grafana/pkg/plugins/backendplugin"
+	"github.com/grafana/grafana/pkg/plugins/config"
 	"github.com/grafana/grafana/pkg/plugins/manager/fakes"
 	"github.com/stretchr/testify/require"
 )
@@ -17,7 +18,7 @@ import (
 func TestQueryData(t *testing.T) {
 	t.Run("Empty registry should return not registered error", func(t *testing.T) {
 		registry := fakes.NewFakePluginRegistry()
-		client := ProvideService(registry)
+		client := ProvideService(registry, &config.Cfg{})
 		_, err := client.QueryData(context.Background(), &backend.QueryDataRequest{})
 		require.Error(t, err)
 		require.ErrorIs(t, err, plugins.ErrPluginNotRegistered)
@@ -62,7 +63,7 @@ func TestQueryData(t *testing.T) {
 				err := registry.Add(context.Background(), p)
 				require.NoError(t, err)
 
-				client := ProvideService(registry)
+				client := ProvideService(registry, &config.Cfg{})
 				_, err = client.QueryData(context.Background(), &backend.QueryDataRequest{
 					PluginContext: backend.PluginContext{
 						PluginID: "grafana",
@@ -78,7 +79,7 @@ func TestQueryData(t *testing.T) {
 func TestCheckHealth(t *testing.T) {
 	t.Run("empty plugin registry should return plugin not registered error", func(t *testing.T) {
 		registry := fakes.NewFakePluginRegistry()
-		client := ProvideService(registry)
+		client := ProvideService(registry, &config.Cfg{})
 		_, err := client.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
 		require.Error(t, err)
 		require.ErrorIs(t, err, plugins.ErrPluginNotRegistered)
@@ -124,7 +125,7 @@ func TestCheckHealth(t *testing.T) {
 				err := registry.Add(context.Background(), p)
 				require.NoError(t, err)
 
-				client := ProvideService(registry)
+				client := ProvideService(registry, &config.Cfg{})
 				_, err = client.CheckHealth(context.Background(), &backend.CheckHealthRequest{
 					PluginContext: backend.PluginContext{
 						PluginID: "grafana",
@@ -188,7 +189,7 @@ func TestCallResource(t *testing.T) {
 		err := registry.Add(context.Background(), p)
 		require.NoError(t, err)
 
-		client := ProvideService(registry)
+		client := ProvideService(registry, &config.Cfg{})
 
 		err = client.CallResource(context.Background(), req, sender)
 		require.NoError(t, err)
@@ -251,7 +252,7 @@ func TestCallResource(t *testing.T) {
 		err := registry.Add(context.Background(), p)
 		require.NoError(t, err)
 
-		client := ProvideService(registry)
+		client := ProvideService(registry, &config.Cfg{})
 
 		err = client.CallResource(context.Background(), req, sender)
 		require.NoError(t, err)
@@ -297,7 +298,7 @@ func TestCallResource(t *testing.T) {
 		err := registry.Add(context.Background(), p)
 		require.NoError(t, err)
 
-		client := ProvideService(registry)
+		client := ProvideService(registry, &config.Cfg{})
 
 		err = client.CallResource(context.Background(), req, sender)
 		require.NoError(t, err)
@@ -365,7 +366,7 @@ func TestCallResource(t *testing.T) {
 				err := registry.Add(context.Background(), p)
 				require.NoError(t, err)
 
-				client := ProvideService(registry)
+				client := ProvideService(registry, &config.Cfg{})
 
 				err = client.CallResource(context.Background(), req, sender)
 				require.NoError(t, err)

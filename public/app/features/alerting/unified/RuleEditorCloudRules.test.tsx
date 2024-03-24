@@ -4,7 +4,6 @@ import React from 'react';
 import { renderRuleEditor, ui } from 'test/helpers/alertingRuleEditor';
 import { clickSelectOption } from 'test/helpers/selectOptionInTest';
 
-import { selectors } from '@grafana/e2e-selectors';
 import { contextSrv } from 'app/core/services/context_srv';
 import { AccessControlAction } from 'app/types';
 
@@ -139,11 +138,11 @@ describe('RuleEditor cloud', () => {
     //expressions are removed after switching to data-source managed
     expect(screen.queryAllByLabelText('Remove expression')).toHaveLength(0);
 
-    expect(screen.getByTestId(selectors.components.DataSourcePicker.inputV2)).toBeInTheDocument();
+    expect(screen.getByTestId('datasource-picker')).toBeInTheDocument();
 
     const dataSourceSelect = await ui.inputs.dataSource.find();
     await user.click(dataSourceSelect);
-    await user.click(screen.getByText('Prom'));
+    await clickSelectOption(dataSourceSelect, 'Prom (default)');
     await waitFor(() => expect(mocks.api.fetchRulerRules).toHaveBeenCalled());
 
     await user.type(await ui.inputs.expr.find(), 'up == 1');

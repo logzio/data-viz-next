@@ -3,18 +3,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { DataSourceInstanceSettings, GrafanaTheme2, SelectableValue } from '@grafana/data';
-import { Button, Field, Icon, Input, Label, RadioButtonGroup, Stack, Tooltip, useStyles2 } from '@grafana/ui';
-import { DashboardPicker } from 'app/core/components/Select/DashboardPicker';
+import { Button, Field, Icon, Input, Label, RadioButtonGroup, Tooltip, useStyles2, Stack } from '@grafana/ui';
 import { useQueryParams } from 'app/core/hooks/useQueryParams';
 import { PromAlertingRuleState, PromRuleType } from 'app/types/unified-alerting-dto';
 
-import {
-  logInfo,
-  LogMessages,
-  trackRulesListViewChange,
-  trackRulesSearchComponentInteraction,
-  trackRulesSearchInputInteraction,
-} from '../../Analytics';
+import { logInfo, LogMessages } from '../../Analytics';
 import { useRulesFilter } from '../../hooks/useFilteredRules';
 import { RuleHealth } from '../../search/rulesSearchParser';
 import { alertStateToReadable } from '../../utils/rules';
@@ -96,12 +89,6 @@ const RulesFilter = ({ onFilterCleared = () => undefined }: RulesFilerProps) => 
     });
 
     setFilterKey((key) => key + 1);
-    trackRulesSearchComponentInteraction('dataSourceNames');
-  };
-
-  const handleDashboardChange = (dashboardUid: string | undefined) => {
-    updateFilters({ ...filterState, dashboardUid });
-    trackRulesSearchComponentInteraction('dashboardUid');
   };
 
   const clearDataSource = () => {
@@ -112,17 +99,21 @@ const RulesFilter = ({ onFilterCleared = () => undefined }: RulesFilerProps) => 
   const handleAlertStateChange = (value: PromAlertingRuleState) => {
     logInfo(LogMessages.clickingAlertStateFilters);
     updateFilters({ ...filterState, ruleState: value });
-    trackRulesSearchComponentInteraction('ruleState');
+    setFilterKey((key) => key + 1);
+  };
+
+  const handleViewChange = (view: string) => {
+    setQueryParams({ view });
   };
 
   const handleRuleTypeChange = (ruleType: PromRuleType) => {
     updateFilters({ ...filterState, ruleType });
-    trackRulesSearchComponentInteraction('ruleType');
+    setFilterKey((key) => key + 1);
   };
 
   const handleRuleHealthChange = (ruleHealth: RuleHealth) => {
     updateFilters({ ...filterState, ruleHealth });
-    trackRulesSearchComponentInteraction('ruleHealth');
+    setFilterKey((key) => key + 1);
   };
 
   const handleClearFiltersClick = () => {
@@ -132,16 +123,11 @@ const RulesFilter = ({ onFilterCleared = () => undefined }: RulesFilerProps) => 
     setTimeout(() => setFilterKey(filterKey + 1), 100);
   };
 
-  const handleViewChange = (view: string) => {
-    setQueryParams({ view });
-    trackRulesListViewChange({ view });
-  };
-
   const searchIcon = <Icon name={'search'} />;
   return (
     <div className={styles.container}>
       <Stack direction="column" gap={1}>
-        <Stack direction="row" gap={1} wrap="wrap">
+        <Stack direction="row" gap={1}>
           <Field
             className={styles.dsPickerContainer}
             label={
@@ -162,7 +148,7 @@ const RulesFilter = ({ onFilterCleared = () => undefined }: RulesFilerProps) => 
                       </div>
                     }
                   >
-                    <Icon id="data-source-picker-inline-help" name="info-circle" size="sm" />
+                    <Icon name="info-circle" size="sm" />
                   </Tooltip>
                 </Stack>
               </Label>
@@ -176,22 +162,6 @@ const RulesFilter = ({ onFilterCleared = () => undefined }: RulesFilerProps) => 
               current={filterState.dataSourceNames}
               onChange={handleDataSourceChange}
               onClear={clearDataSource}
-            />
-          </Field>
-
-          <Field
-            className={styles.dashboardPickerContainer}
-            label={<Label htmlFor="filters-dashboard-picker">Dashboard</Label>}
-          >
-            {/* The key prop is to clear the picker value */}
-            {/* DashboardPicker doesn't do that itself when value is undefined */}
-            <DashboardPicker
-              inputId="filters-dashboard-picker"
-              key={filterState.dashboardUid ? 'dashboard-defined' : 'dashboard-not-defined'}
-              value={filterState.dashboardUid}
-              onChange={(value) => handleDashboardChange(value?.uid)}
-              isClearable
-              cacheOptions
             />
           </Field>
 
@@ -223,7 +193,6 @@ const RulesFilter = ({ onFilterCleared = () => undefined }: RulesFilerProps) => 
               onSubmit={handleSubmit((data) => {
                 setSearchQuery(data.searchQuery);
                 searchQueryRef.current?.blur();
-                trackRulesSearchInputInteraction({ oldQuery: searchQuery, newQuery: data.searchQuery });
               })}
             >
               <Field
@@ -277,21 +246,18 @@ const RulesFilter = ({ onFilterCleared = () => undefined }: RulesFilerProps) => 
 
 const getStyles = (theme: GrafanaTheme2) => {
   return {
-    container: css({
-      marginBottom: theme.spacing(1),
-    }),
-    dsPickerContainer: css({
-      width: theme.spacing(60),
-      flexGrow: 0,
-      margin: 0,
-    }),
-    dashboardPickerContainer: css({
-      minWidth: theme.spacing(50),
-    }),
-    searchInput: css({
-      flex: 1,
-      margin: 0,
-    }),
+    container: css`
+      margin-bottom: ${theme.spacing(1)};
+    `,
+    dsPickerContainer: css`
+      width: 550px;
+      flex-grow: 0;
+      margin: 0;
+    `,
+    searchInput: css`
+      flex: 1;
+      margin: 0;
+    `,
   };
 };
 
@@ -313,7 +279,6 @@ function SearchQueryHelp() {
         <HelpRow title="State" expr="state:firing|normal|pending" />
         <HelpRow title="Type" expr="type:alerting|recording" />
         <HelpRow title="Health" expr="health:ok|nodata|error" />
-        <HelpRow title="Dashboard UID" expr="dashboard:eadde4c7-54e6-4964-85c0-484ab852fd04" />
       </div>
     </div>
   );
@@ -331,16 +296,16 @@ function HelpRow({ title, expr }: { title: string; expr: string }) {
 }
 
 const helpStyles = (theme: GrafanaTheme2) => ({
-  grid: css({
-    display: 'grid',
-    gridTemplateColumns: 'max-content auto',
-    gap: theme.spacing(1),
-    alignItems: 'center',
-  }),
-  code: css({
-    display: 'block',
-    textAlign: 'center',
-  }),
+  grid: css`
+    display: grid;
+    grid-template-columns: max-content auto;
+    gap: ${theme.spacing(1)};
+    align-items: center;
+  `,
+  code: css`
+    display: block;
+    text-align: center;
+  `,
 });
 
 export default RulesFilter;

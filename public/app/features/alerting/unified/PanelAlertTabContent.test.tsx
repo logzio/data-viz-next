@@ -153,7 +153,7 @@ const dashboard = {
   },
   meta: {
     canSave: true,
-    folderUid: 'abc',
+    folderId: 1,
     folderTitle: 'super folder',
   },
 } as DashboardModel;

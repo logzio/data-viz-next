@@ -107,7 +107,7 @@ func (a *AvatarCacheServer) Handler(ctx *contextmodel.ReqContext) {
 		return
 	}
 
-	avatar := a.GetAvatarForHash(a.cfg, hash)
+	avatar := a.GetAvatarForHash(hash)
 
 	ctx.Resp.Header().Set("Content-Type", "image/jpeg")
 
@@ -123,8 +123,8 @@ func (a *AvatarCacheServer) Handler(ctx *contextmodel.ReqContext) {
 	}
 }
 
-func (a *AvatarCacheServer) GetAvatarForHash(cfg *setting.Cfg, hash string) *Avatar {
-	if cfg.DisableGravatar {
+func (a *AvatarCacheServer) GetAvatarForHash(hash string) *Avatar {
+	if setting.DisableGravatar {
 		alog.Warn("'GetGravatarForHash' called despite gravatars being disabled; returning default profile image")
 		return a.notFound
 	}

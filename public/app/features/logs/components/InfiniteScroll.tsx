@@ -1,12 +1,11 @@
 import { css } from '@emotion/css';
-import React, { ReactNode, useEffect, useRef, useState } from 'react';
+import React, { ReactNode, useEffect, useState } from 'react';
 
 import { AbsoluteTimeRange, LogRowModel, TimeRange } from '@grafana/data';
 import { convertRawToRange, isRelativeTime, isRelativeTimeRange } from '@grafana/data/src/datetime/rangeutil';
-import { config, reportInteraction } from '@grafana/runtime';
+import { reportInteraction } from '@grafana/runtime';
 import { LogsSortOrder, TimeZone } from '@grafana/schema';
-
-import { LoadingIndicator } from './LoadingIndicator';
+import { Spinner } from '@grafana/ui';
 
 export type Props = {
   children: ReactNode;
@@ -17,7 +16,6 @@ export type Props = {
   scrollElement?: HTMLDivElement;
   sortOrder: LogsSortOrder;
   timeZone: TimeZone;
-  topScrollEnabled?: boolean;
 };
 
 export const InfiniteScroll = ({
@@ -29,22 +27,18 @@ export const InfiniteScroll = ({
   scrollElement,
   sortOrder,
   timeZone,
-  topScrollEnabled = false,
 }: Props) => {
   const [upperOutOfRange, setUpperOutOfRange] = useState(false);
   const [lowerOutOfRange, setLowerOutOfRange] = useState(false);
   const [upperLoading, setUpperLoading] = useState(false);
   const [lowerLoading, setLowerLoading] = useState(false);
-  const rowsRef = useRef<LogRowModel[]>(rows);
-  const lastScroll = useRef<number>(scrollElement?.scrollTop || 0);
+  const [lastScroll, setLastScroll] = useState(scrollElement?.scrollTop || 0);
 
-  // Reset messages when range/order/rows change
   useEffect(() => {
     setUpperOutOfRange(false);
     setLowerOutOfRange(false);
   }, [range, rows, sortOrder]);
 
-  // Reset loading messages when loading stops
   useEffect(() => {
     if (!loading) {
       setUpperLoading(false);
@@ -52,53 +46,37 @@ export const InfiniteScroll = ({
     }
   }, [loading]);
 
-  // Ensure bottom loader visibility
-  useEffect(() => {
-    if (lowerLoading && scrollElement) {
-      scrollElement.scrollTo(0, scrollElement.scrollHeight - scrollElement.clientHeight);
-    }
-  }, [lowerLoading, scrollElement]);
-
-  // Request came back with no new past rows
-  useEffect(() => {
-    if (rows !== rowsRef.current && rows.length === rowsRef.current.length && (upperLoading || lowerLoading)) {
-      if (sortOrder === LogsSortOrder.Descending && lowerLoading) {
-        setLowerOutOfRange(true);
-      } else if (sortOrder === LogsSortOrder.Ascending && upperLoading) {
-        setUpperOutOfRange(true);
-      }
-    }
-    rowsRef.current = rows;
-  }, [lowerLoading, rows, sortOrder, upperLoading]);
-
   useEffect(() => {
     if (!scrollElement || !loadMoreLogs) {
       return;
     }
 
     function handleScroll(event: Event | WheelEvent) {
-      if (!scrollElement || !loadMoreLogs || !rows.length || loading || !config.featureToggles.logsInfiniteScrolling) {
+      if (!scrollElement || !loadMoreLogs || !rows.length || loading) {
         return;
       }
       event.stopImmediatePropagation();
-      const scrollDirection = shouldLoadMore(event, scrollElement, lastScroll.current);
-      lastScroll.current = scrollElement.scrollTop;
+      setLastScroll(scrollElement.scrollTop);
+      const scrollDirection = shouldLoadMore(event, scrollElement, lastScroll);
       if (scrollDirection === ScrollDirection.NoScroll) {
         return;
-      } else if (scrollDirection === ScrollDirection.Top && topScrollEnabled) {
+      } else if (scrollDirection === ScrollDirection.Top) {
         scrollTop();
-      } else if (scrollDirection === ScrollDirection.Bottom) {
+      } else {
         scrollBottom();
       }
     }
 
     function scrollTop() {
-      const newRange = canScrollTop(getVisibleRange(rows), range, timeZone, sortOrder);
-      if (!newRange) {
+      if (!canScrollTop(getVisibleRange(rows), range, timeZone, sortOrder)) {
         setUpperOutOfRange(true);
         return;
       }
       setUpperOutOfRange(false);
+      const newRange =
+        sortOrder === LogsSortOrder.Descending
+          ? getNextRange(getVisibleRange(rows), range, timeZone)
+          : getPrevRange(getVisibleRange(rows), range);
       loadMoreLogs?.(newRange);
       setUpperLoading(true);
       reportInteraction('grafana_logs_infinite_scrolling', {
@@ -108,12 +86,15 @@ export const InfiniteScroll = ({
     }
 
     function scrollBottom() {
-      const newRange = canScrollBottom(getVisibleRange(rows), range, timeZone, sortOrder);
-      if (!newRange) {
+      if (!canScrollBottom(getVisibleRange(rows), range, timeZone, sortOrder)) {
         setLowerOutOfRange(true);
         return;
       }
       setLowerOutOfRange(false);
+      const newRange =
+        sortOrder === LogsSortOrder.Descending
+          ? getPrevRange(getVisibleRange(rows), range)
+          : getNextRange(getVisibleRange(rows), range, timeZone);
       loadMoreLogs?.(newRange);
       setLowerLoading(true);
       reportInteraction('grafana_logs_infinite_scrolling', {
@@ -129,7 +110,7 @@ export const InfiniteScroll = ({
       scrollElement.removeEventListener('scroll', handleScroll);
       scrollElement.removeEventListener('wheel', handleScroll);
     };
-  }, [loadMoreLogs, loading, range, rows, scrollElement, sortOrder, timeZone, topScrollEnabled]);
+  }, [lastScroll, loadMoreLogs, loading, range, rows, scrollElement, sortOrder, timeZone]);
 
   // We allow "now" to move when using relative time, so we hide the message so it doesn't flash.
   const hideTopMessage = sortOrder === LogsSortOrder.Descending && isRelativeTime(range.raw.to);
@@ -137,11 +118,11 @@ export const InfiniteScroll = ({
 
   return (
     <>
-      {upperLoading && <LoadingIndicator adjective={sortOrder === LogsSortOrder.Descending ? 'newer' : 'older'} />}
+      {upperLoading && loadingMessage}
       {!hideTopMessage && upperOutOfRange && outOfRangeMessage}
       {children}
       {!hideBottomMessage && lowerOutOfRange && outOfRangeMessage}
-      {lowerLoading && <LoadingIndicator adjective={sortOrder === LogsSortOrder.Descending ? 'older' : 'newer'} />}
+      {lowerLoading && loadingMessage}
     </>
   );
 };
@@ -156,6 +137,11 @@ const styles = {
 const outOfRangeMessage = (
   <div className={styles.messageContainer} data-testid="end-of-range">
     End of the selected time range.
+  </div>
+);
+const loadingMessage = (
+  <div className={styles.messageContainer}>
+    <Spinner />
   </div>
 );
 
@@ -178,8 +164,9 @@ function shouldLoadMore(event: Event | WheelEvent, element: HTMLDivElement, last
     scrollDirection === ScrollDirection.Top
       ? element.scrollTop
       : element.scrollHeight - element.scrollTop - element.clientHeight;
+  const coef = 1;
 
-  return diff <= 1 ? scrollDirection : ScrollDirection.NoScroll;
+  return diff <= coef ? scrollDirection : ScrollDirection.NoScroll;
 }
 
 function getVisibleRange(rows: LogRowModel[]) {
@@ -212,16 +199,13 @@ function canScrollTop(
   currentRange: TimeRange,
   timeZone: TimeZone,
   sortOrder: LogsSortOrder
-): AbsoluteTimeRange | undefined {
+) {
   if (sortOrder === LogsSortOrder.Descending) {
     // When requesting new logs, update the current range if using relative time ranges.
     currentRange = updateCurrentRange(currentRange, timeZone);
-    const canScroll = currentRange.to.valueOf() - visibleRange.to > SCROLLING_THRESHOLD;
-    return canScroll ? getNextRange(visibleRange, currentRange, timeZone) : undefined;
+    return currentRange.to.valueOf() - visibleRange.to > SCROLLING_THRESHOLD;
   }
-
-  const canScroll = Math.abs(currentRange.from.valueOf() - visibleRange.from) > SCROLLING_THRESHOLD;
-  return canScroll ? getPrevRange(visibleRange, currentRange) : undefined;
+  return Math.abs(currentRange.from.valueOf() - visibleRange.from) > SCROLLING_THRESHOLD;
 }
 
 function canScrollBottom(
@@ -229,15 +213,13 @@ function canScrollBottom(
   currentRange: TimeRange,
   timeZone: TimeZone,
   sortOrder: LogsSortOrder
-): AbsoluteTimeRange | undefined {
+) {
   if (sortOrder === LogsSortOrder.Descending) {
-    const canScroll = Math.abs(currentRange.from.valueOf() - visibleRange.from) > SCROLLING_THRESHOLD;
-    return canScroll ? getPrevRange(visibleRange, currentRange) : undefined;
+    return Math.abs(currentRange.from.valueOf() - visibleRange.from) > SCROLLING_THRESHOLD;
   }
   // When requesting new logs, update the current range if using relative time ranges.
   currentRange = updateCurrentRange(currentRange, timeZone);
-  const canScroll = currentRange.to.valueOf() - visibleRange.to > SCROLLING_THRESHOLD;
-  return canScroll ? getNextRange(visibleRange, currentRange, timeZone) : undefined;
+  return currentRange.to.valueOf() - visibleRange.to > SCROLLING_THRESHOLD;
 }
 
 // Given a TimeRange, returns a new instance if using relative time, or else the same.

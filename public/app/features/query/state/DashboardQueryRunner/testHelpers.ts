@@ -41,7 +41,6 @@ export function getDefaultOptions(): DashboardQueryRunnerOptions {
   const nextGen = getAnnotation({ datasource: NEXT_GEN_DS_NAME });
   const dashboard: any = {
     id: 1,
-    uid: '1',
     annotations: {
       list: [
         legacy,

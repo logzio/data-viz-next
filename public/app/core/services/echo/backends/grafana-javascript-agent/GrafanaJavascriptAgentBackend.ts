@@ -1,5 +1,5 @@
 import { BuildInfo } from '@grafana/data';
-import { BaseTransport, defaultInternalLoggerLevel } from '@grafana/faro-core';
+import { BaseTransport } from '@grafana/faro-core';
 import {
   initializeFaro,
   BrowserConfig,
@@ -74,7 +74,6 @@ export class GrafanaJavascriptAgentBackend
       batching: {
         sendTimeout: 1000,
       },
-      internalLoggerLevel: options.internalLoggerLevel || defaultInternalLoggerLevel,
     };
     this.faroInstance = initializeFaro(grafanaJavaScriptAgentOptions);
 

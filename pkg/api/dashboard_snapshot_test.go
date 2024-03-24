@@ -9,14 +9,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
-
 	"github.com/grafana/grafana/pkg/services/accesscontrol"
 	"github.com/grafana/grafana/pkg/services/accesscontrol/acimpl"
 	"github.com/grafana/grafana/pkg/services/user"
 	"github.com/grafana/grafana/pkg/web/webtest"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
 	"github.com/grafana/grafana/pkg/components/simplejson"
 	"github.com/grafana/grafana/pkg/infra/db/dbtest"
@@ -149,11 +148,12 @@ func TestDashboardSnapshotAPIEndpoint_singleSnapshot(t *testing.T) {
 				sc.handlerFunc = hs.DeleteDashboardSnapshotByDeleteKey
 				sc.fakeReqWithParams("GET", sc.url, map[string]string{"deleteKey": "12345"}).exec()
 
-				require.Equal(t, 200, sc.resp.Code, "BODY: "+sc.resp.Body.String())
+				require.Equal(t, 200, sc.resp.Code)
 				respJSON, err := simplejson.NewJson(sc.resp.Body.Bytes())
 				require.NoError(t, err)
 
 				assert.True(t, strings.HasPrefix(respJSON.Get("message").MustString(), "Snapshot deleted"))
+				assert.Equal(t, 1, respJSON.Get("id").MustInt())
 
 				assert.Equal(t, http.MethodGet, externalRequest.Method)
 				assert.Equal(t, ts.URL, fmt.Sprintf("http://%s", externalRequest.Host))
@@ -271,7 +271,7 @@ func TestGetDashboardSnapshotNotFound(t *testing.T) {
 			sc.handlerFunc = hs.DeleteDashboardSnapshot
 			sc.fakeReqWithParams("DELETE", sc.url, map[string]string{"key": "12345"}).exec()
 
-			assert.Equal(t, http.StatusNotFound, sc.resp.Code, "BODY: "+sc.resp.Body.String())
+			assert.Equal(t, http.StatusNotFound, sc.resp.Code)
 		}, sqlmock)
 
 	loggedInUserScenarioWithRole(t,
@@ -282,7 +282,7 @@ func TestGetDashboardSnapshotNotFound(t *testing.T) {
 			sc.handlerFunc = hs.DeleteDashboardSnapshotByDeleteKey
 			sc.fakeReqWithParams("DELETE", sc.url, map[string]string{"deleteKey": "12345"}).exec()
 
-			assert.Equal(t, http.StatusNotFound, sc.resp.Code, "BODY: "+sc.resp.Body.String())
+			assert.Equal(t, http.StatusNotFound, sc.resp.Code)
 		}, sqlmock)
 }
 
@@ -345,7 +345,7 @@ func TestGetDashboardSnapshotFailure(t *testing.T) {
 			sc.handlerFunc = hs.DeleteDashboardSnapshot
 			sc.fakeReqWithParams("DELETE", sc.url, map[string]string{"key": "12345"}).exec()
 
-			assert.Equal(t, http.StatusForbidden, sc.resp.Code, "BODY: "+sc.resp.Body.String())
+			assert.Equal(t, http.StatusForbidden, sc.resp.Code)
 		}, sqlmock)
 
 	loggedInUserScenarioWithRole(t,
@@ -356,7 +356,7 @@ func TestGetDashboardSnapshotFailure(t *testing.T) {
 			sc.handlerFunc = hs.DeleteDashboardSnapshotByDeleteKey
 			sc.fakeReqWithParams("DELETE", sc.url, map[string]string{"deleteKey": "12345"}).exec()
 
-			assert.Equal(t, http.StatusInternalServerError, sc.resp.Code, "BODY: "+sc.resp.Body.String())
+			assert.Equal(t, http.StatusInternalServerError, sc.resp.Code)
 		}, sqlmock)
 
 	loggedInUserScenarioWithRole(t,
@@ -367,7 +367,7 @@ func TestGetDashboardSnapshotFailure(t *testing.T) {
 			sc.handlerFunc = hs.DeleteDashboardSnapshotByDeleteKey
 			sc.fakeReqWithParams("DELETE", sc.url, map[string]string{"deleteKey": "12345"}).exec()
 
-			assert.Equal(t, http.StatusForbidden, sc.resp.Code, "BODY: "+sc.resp.Body.String())
+			assert.Equal(t, http.StatusForbidden, sc.resp.Code)
 		}, sqlmock)
 }
 
@@ -391,7 +391,6 @@ func setUpSnapshotTest(t *testing.T, userId int64, deleteUrl string) dashboardsn
 
 	res := &dashboardsnapshots.DashboardSnapshot{
 		ID:        1,
-		OrgID:     1,
 		Key:       "12345",
 		DeleteKey: "54321",
 		Dashboard: jsonModel,

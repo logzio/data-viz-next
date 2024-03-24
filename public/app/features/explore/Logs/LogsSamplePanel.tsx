@@ -45,9 +45,6 @@ export function LogsSamplePanel(props: Props) {
   };
 
   const OpenInSplitViewButton = () => {
-    if (!datasourceInstance) {
-      return null;
-    }
     if (!hasSupplementaryQuerySupport(datasourceInstance, SupplementaryQueryType.LogsSample)) {
       return null;
     }

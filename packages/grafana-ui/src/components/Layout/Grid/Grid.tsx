@@ -4,14 +4,12 @@ import React, { forwardRef, HTMLAttributes } from 'react';
 import { GrafanaTheme2, ThemeSpacingTokens } from '@grafana/data';
 
 import { useStyles2 } from '../../../themes';
-import { AlignItems } from '../types';
 import { getResponsiveStyle, ResponsiveProp } from '../utils/responsiveness';
 
 interface GridPropsBase extends Omit<HTMLAttributes<HTMLDivElement>, 'className' | 'style'> {
   children: NonNullable<React.ReactNode>;
   /** Specifies the gutters between columns and rows. It is overwritten when a column or row gap has a value. */
   gap?: ResponsiveProp<ThemeSpacingTokens>;
-  alignItems?: ResponsiveProp<AlignItems>;
 }
 
 interface PropsWithColumns extends GridPropsBase {
@@ -32,8 +30,8 @@ interface PropsWithMinColumnWidth extends GridPropsBase {
 type GridProps = PropsWithColumns | PropsWithMinColumnWidth;
 
 export const Grid = forwardRef<HTMLDivElement, GridProps>((props, ref) => {
-  const { alignItems, children, gap, columns, minColumnWidth, ...rest } = props;
-  const styles = useStyles2(getGridStyles, gap, columns, minColumnWidth, alignItems);
+  const { children, gap, columns, minColumnWidth, ...rest } = props;
+  const styles = useStyles2(getGridStyles, gap, columns, minColumnWidth);
 
   return (
     <div ref={ref} {...rest} className={styles.grid}>
@@ -48,8 +46,7 @@ const getGridStyles = (
   theme: GrafanaTheme2,
   gap: GridProps['gap'],
   columns: GridProps['columns'],
-  minColumnWidth: GridProps['minColumnWidth'],
-  alignItems: GridProps['alignItems']
+  minColumnWidth: GridProps['minColumnWidth']
 ) => {
   return {
     grid: css([
@@ -65,9 +62,6 @@ const getGridStyles = (
         getResponsiveStyle(theme, columns, (val) => ({
           gridTemplateColumns: `repeat(${val}, 1fr)`,
         })),
-      getResponsiveStyle(theme, alignItems, (val) => ({
-        alignItems: val,
-      })),
     ]),
   };
 };

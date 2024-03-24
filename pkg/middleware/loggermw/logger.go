@@ -74,7 +74,6 @@ func (l *loggerImpl) Middleware() web.Middleware {
 			duration := time.Since(start)
 			timeTaken := duration / time.Millisecond
 			ctx := contexthandler.FromContext(r.Context())
-
 			if ctx != nil && ctx.PerfmonTimer != nil {
 				ctx.PerfmonTimer.Observe(float64(timeTaken))
 			}
@@ -129,8 +128,10 @@ func (l *loggerImpl) prepareLogParams(c *contextmodel.ReqContext, duration time.
 		logParams = append(logParams, "handler", handler)
 	}
 
-	rmd := requestmeta.GetRequestMetaData(c.Req.Context())
-	logParams = append(logParams, "status_source", rmd.StatusSource)
+	if l.flags.IsEnabled(r.Context(), featuremgmt.FlagRequestInstrumentationStatusSource) {
+		rmd := requestmeta.GetRequestMetaData(c.Req.Context())
+		logParams = append(logParams, "status_source", rmd.StatusSource)
+	}
 
 	logParams = append(logParams, errorLogParams(c.Error)...)
 

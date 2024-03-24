@@ -30,7 +30,6 @@ exports[`VariableQueryEditor renders correctly 1`] = `
           aria-live="polite"
           aria-relevant="additions text"
           className="css-1f43avz-a11yText-A11yText"
-          role="log"
         />
         <div
           className="css-1i88p6p"
@@ -50,7 +49,6 @@ exports[`VariableQueryEditor renders correctly 1`] = `
               data-value=""
             >
               <input
-                aria-activedescendant=""
                 aria-autocomplete="list"
                 aria-expanded={false}
                 aria-haspopup={true}

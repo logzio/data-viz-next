@@ -2,10 +2,8 @@ package dashboards
 
 import (
 	"context"
-	"errors"
 	"strings"
 
-	"github.com/grafana/grafana/pkg/infra/metrics"
 	ac "github.com/grafana/grafana/pkg/services/accesscontrol"
 	"github.com/grafana/grafana/pkg/services/folder"
 )
@@ -51,9 +49,7 @@ func NewFolderNameScopeResolver(folderDB folder.FolderStore, folderSvc folder.Se
 		if len(nsName) == 0 {
 			return nil, ac.ErrInvalidScope
 		}
-		// this will fetch only root folders
-		// this is legacy code so most probably it is not used
-		folder, err := folderDB.GetFolderByTitle(ctx, orgID, nsName, nil)
+		folder, err := folderDB.GetFolderByTitle(ctx, orgID, nsName)
 		if err != nil {
 			return nil, err
 		}
@@ -170,13 +166,11 @@ func NewDashboardUIDScopeResolver(folderDB folder.FolderStore, ds DashboardServi
 
 func resolveDashboardScope(ctx context.Context, folderDB folder.FolderStore, orgID int64, dashboard *Dashboard, folderSvc folder.Service) ([]string, error) {
 	var folderUID string
-	metrics.MFolderIDsServiceCount.WithLabelValues(metrics.Dashboard).Inc()
 	// nolint:staticcheck
 	if dashboard.FolderID < 0 {
 		return []string{ScopeDashboardsProvider.GetResourceScopeUID(dashboard.UID)}, nil
 	}
 
-	metrics.MFolderIDsServiceCount.WithLabelValues(metrics.Dashboard).Inc()
 	// nolint:staticcheck
 	if dashboard.FolderID == 0 {
 		folderUID = ac.GeneralFolderUID
@@ -213,9 +207,6 @@ func GetInheritedScopes(ctx context.Context, orgID int64, folderUID string, fold
 	})
 
 	if err != nil {
-		if errors.Is(err, folder.ErrFolderNotFound) {
-			return nil, err
-		}
 		return nil, ac.ErrInternal.Errorf("could not retrieve folder parents: %w", err)
 	}
 

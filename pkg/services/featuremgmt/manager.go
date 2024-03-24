@@ -6,6 +6,7 @@ import (
 	"reflect"
 
 	"github.com/grafana/grafana/pkg/infra/log"
+	"github.com/grafana/grafana/pkg/services/licensing"
 	"github.com/grafana/grafana/pkg/setting"
 )
 
@@ -19,11 +20,12 @@ type FeatureManager struct {
 
 	Settings setting.FeatureMgmtSettings
 
-	flags    map[string]*FeatureFlag
-	enabled  map[string]bool   // only the "on" values
-	startup  map[string]bool   // the explicit values registered at startup
-	warnings map[string]string // potential warnings about the flag
-	log      log.Logger
+	licensing licensing.Licensing
+	flags     map[string]*FeatureFlag
+	enabled   map[string]bool   // only the "on" values
+	startup   map[string]bool   // the explicit values registered at startup
+	warnings  map[string]string // potential warnings about the flag
+	log       log.Logger
 }
 
 // This will merge the flags with the current configuration
@@ -43,6 +45,9 @@ func (fm *FeatureManager) registerFlags(flags ...FeatureFlag) {
 		if add.Description != "" {
 			flag.Description = add.Description
 		}
+		if add.DocsURL != "" {
+			flag.DocsURL = add.DocsURL
+		}
 		if add.Expression != "" {
 			flag.Expression = add.Expression
 		}
@@ -55,6 +60,10 @@ func (fm *FeatureManager) registerFlags(flags ...FeatureFlag) {
 		// Only gets more restrictive
 		if add.RequiresDevMode {
 			flag.RequiresDevMode = true
+		}
+
+		if add.RequiresLicense {
+			flag.RequiresLicense = true
 		}
 
 		if add.RequiresRestart {
@@ -70,6 +79,10 @@ func (fm *FeatureManager) registerFlags(flags ...FeatureFlag) {
 func (fm *FeatureManager) meetsRequirements(ff *FeatureFlag) (bool, string) {
 	if ff.RequiresDevMode && !fm.isDevMod {
 		return false, "requires dev mode"
+	}
+
+	if ff.RequiresLicense && (fm.licensing == nil || !fm.licensing.FeatureEnabled(ff.Name)) {
+		return false, "license requirement"
 	}
 
 	return true, ""
@@ -89,8 +102,7 @@ func (fm *FeatureManager) update() {
 		// Update the registry
 		track := 0.0
 
-		startup, ok := fm.startup[flag.Name]
-		if startup || (!ok && flag.Expression == "true") {
+		if flag.Expression == "true" || (fm.startup[flag.Name]) {
 			track = 1
 			enabled[flag.Name] = true
 		}
@@ -131,14 +143,16 @@ func (fm *FeatureManager) GetFlags() []FeatureFlag {
 	return v
 }
 
+func (fm *FeatureManager) GetState() *FeatureManagerState {
+	return &FeatureManagerState{
+		RestartRequired: fm.restartRequired,
+		AllowEditing:    fm.Settings.AllowEditing,
+	}
+}
+
 // isFeatureEditingAllowed checks if the backend is properly configured to allow feature toggle changes from the UI
 func (fm *FeatureManager) IsFeatureEditingAllowed() bool {
 	return fm.Settings.AllowEditing && fm.Settings.UpdateWebhook != ""
-}
-
-// indicate if a change has been made (not that accurate, but better than nothing)
-func (fm *FeatureManager) IsRestartRequired() bool {
-	return fm.restartRequired
 }
 
 // Flags that can be edited
@@ -151,7 +165,6 @@ func (fm *FeatureManager) IsEditableFromAdminPage(key string) bool {
 		return false
 	}
 	return flag.Stage == FeatureStageGeneralAvailability ||
-		flag.Stage == FeatureStagePublicPreview ||
 		flag.Stage == FeatureStageDeprecated
 }
 

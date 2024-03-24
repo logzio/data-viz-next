@@ -40,7 +40,6 @@ type LokiConfig struct {
 	TenantID          string
 	ExternalLabels    map[string]string
 	Encoder           encoder
-	MaxQueryLength    time.Duration
 }
 
 func NewLokiConfig(cfg setting.UnifiedAlertingStateHistorySettings) (LokiConfig, error) {
@@ -75,7 +74,6 @@ func NewLokiConfig(cfg setting.UnifiedAlertingStateHistorySettings) (LokiConfig,
 		BasicAuthPassword: cfg.LokiBasicAuthPassword,
 		TenantID:          cfg.LokiTenantID,
 		ExternalLabels:    cfg.ExternalLabels,
-		MaxQueryLength:    cfg.LokiMaxQueryLength,
 		// Snappy-compressed protobuf is the default, same goes for Promtail.
 		Encoder: SnappyProtoEncoder{},
 	}, nil
@@ -195,20 +193,26 @@ func (c *HttpLokiClient) Push(ctx context.Context, s []Stream) error {
 	c.metrics.BytesWritten.Add(float64(len(enc)))
 	req = req.WithContext(ctx)
 	resp, err := c.client.Do(req)
+	if resp != nil {
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				c.log.Warn("Failed to close response body", "err", err)
+			}
+		}()
+	}
 	if err != nil {
 		return fmt.Errorf("failed to send request: %w", err)
 	}
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			c.log.Warn("Failed to close response body", "err", err)
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		byt, _ := io.ReadAll(resp.Body)
+		if len(byt) > 0 {
+			c.log.Error("Error response from Loki", "response", string(byt), "status", resp.StatusCode)
+		} else {
+			c.log.Error("Error response from Loki with an empty body", "status", resp.StatusCode)
 		}
-	}()
-
-	_, err = c.handleLokiResponse(resp)
-	if err != nil {
-		return err
+		return fmt.Errorf("received a non-200 response from loki, status: %d", resp.StatusCode)
 	}
-
 	return nil
 }
 
@@ -227,7 +231,6 @@ func (c *HttpLokiClient) RangeQuery(ctx context.Context, logQL string, start, en
 	if start > end {
 		return QueryRes{}, fmt.Errorf("start time cannot be after end time")
 	}
-	start, end = ClampRange(start, end, c.cfg.MaxQueryLength.Nanoseconds())
 	if limit < 1 {
 		limit = defaultPageSize
 	}
@@ -258,15 +261,23 @@ func (c *HttpLokiClient) RangeQuery(ctx context.Context, logQL string, start, en
 	if err != nil {
 		return QueryRes{}, fmt.Errorf("error executing request: %w", err)
 	}
+
 	defer func() {
-		if err := res.Body.Close(); err != nil {
-			c.log.Warn("Failed to close response body", "err", err)
-		}
+		_ = res.Body.Close()
 	}()
 
-	data, err := c.handleLokiResponse(res)
+	data, err := io.ReadAll(res.Body)
 	if err != nil {
-		return QueryRes{}, err
+		return QueryRes{}, fmt.Errorf("error reading request response: %w", err)
+	}
+
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		if len(data) > 0 {
+			c.log.Error("Error response from Loki", "response", string(data), "status", res.StatusCode)
+		} else {
+			c.log.Error("Error response from Loki with an empty body", "status", res.StatusCode)
+		}
+		return QueryRes{}, fmt.Errorf("received a non-200 response from loki, status: %d", res.StatusCode)
 	}
 
 	result := QueryRes{}
@@ -285,37 +296,4 @@ type QueryRes struct {
 
 type QueryData struct {
 	Result []Stream `json:"result"`
-}
-
-func (c *HttpLokiClient) handleLokiResponse(res *http.Response) ([]byte, error) {
-	if res == nil {
-		return nil, fmt.Errorf("response is nil")
-	}
-
-	data, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, fmt.Errorf("error reading request response: %w", err)
-	}
-
-	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		if len(data) > 0 {
-			c.log.Error("Error response from Loki", "response", string(data), "status", res.StatusCode)
-		} else {
-			c.log.Error("Error response from Loki with an empty body", "status", res.StatusCode)
-		}
-		return nil, fmt.Errorf("received a non-200 response from loki, status: %d", res.StatusCode)
-	}
-
-	return data, nil
-}
-
-// ClampRange ensures that the time range is within the configured maximum query length.
-func ClampRange(start, end, maxTimeRange int64) (newStart int64, newEnd int64) {
-	newStart, newEnd = start, end
-
-	if maxTimeRange != 0 && end-start > maxTimeRange {
-		newStart = end - maxTimeRange
-	}
-
-	return newStart, newEnd
 }

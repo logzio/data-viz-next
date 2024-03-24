@@ -4,7 +4,6 @@ import React from 'react';
 import { TestProvider } from 'test/helpers/TestProvider';
 import { selectOptionInTest } from 'test/helpers/selectOptionInTest';
 
-import { selectors } from '@grafana/e2e-selectors';
 import { setBackendSrv } from '@grafana/runtime';
 import { backendSrv } from 'app/core/services/__mocks__/backend_srv';
 import * as api from 'app/features/manage-dashboards/state/actions';
@@ -71,7 +70,7 @@ describe('browse-dashboards MoveModal', () => {
   it('displays a folder picker', async () => {
     render(<MoveModal {...props} />);
 
-    expect(await screen.findByTestId(selectors.components.FolderPicker.input)).toBeInTheDocument();
+    expect(await screen.findByRole('combobox', { name: 'Select a folder' })).toBeInTheDocument();
   });
 
   it('displays a warning about permissions if a folder is selected', async () => {
@@ -89,7 +88,7 @@ describe('browse-dashboards MoveModal', () => {
     render(<MoveModal {...props} />);
 
     expect(await screen.findByRole('button', { name: 'Move' })).toBeDisabled();
-    const folderPicker = await screen.findByTestId(selectors.components.FolderPicker.input);
+    const folderPicker = await screen.findByRole('combobox', { name: 'Select a folder' });
 
     await selectOptionInTest(folderPicker, mockFolders[1].title);
     expect(await screen.findByRole('button', { name: 'Move' })).toBeEnabled();
@@ -97,7 +96,7 @@ describe('browse-dashboards MoveModal', () => {
 
   it('calls onConfirm when clicking the `Move` button', async () => {
     render(<MoveModal {...props} />);
-    const folderPicker = await screen.findByTestId(selectors.components.FolderPicker.input);
+    const folderPicker = await screen.findByRole('combobox', { name: 'Select a folder' });
 
     await selectOptionInTest(folderPicker, mockFolders[1].title);
     await userEvent.click(await screen.findByRole('button', { name: 'Move' }));

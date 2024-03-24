@@ -1,28 +1,17 @@
 package notifications
 
 import (
-	"bufio"
-	"bytes"
-	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
 	"net"
-	"net/textproto"
 	"strconv"
 	"strings"
 
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/trace"
 	gomail "gopkg.in/mail.v2"
 
 	"github.com/grafana/grafana/pkg/setting"
 )
-
-var tracer = otel.Tracer("github.com/grafana/grafana/pkg/services/notifications")
 
 type SmtpClient struct {
 	cfg setting.SmtpSettings
@@ -40,12 +29,7 @@ func NewSmtpClient(cfg setting.SmtpSettings) (*SmtpClient, error) {
 	return client, nil
 }
 
-func (sc *SmtpClient) Send(ctx context.Context, messages ...*Message) (int, error) {
-	ctx, span := tracer.Start(ctx, "notifications.SmtpClient.Send",
-		trace.WithAttributes(attribute.Int("messages", len(messages))),
-	)
-	defer span.End()
-
+func (sc *SmtpClient) Send(messages ...*Message) (int, error) {
 	sentEmailsCount := 0
 	dialer, err := sc.createDialer()
 	if err != nil {
@@ -53,12 +37,7 @@ func (sc *SmtpClient) Send(ctx context.Context, messages ...*Message) (int, erro
 	}
 
 	for _, msg := range messages {
-		span.SetAttributes(
-			attribute.String("smtp.sender", msg.From),
-			attribute.StringSlice("smtp.recipients", msg.To),
-		)
-
-		m := sc.buildEmail(ctx, msg)
+		m := sc.buildEmail(msg)
 
 		innerError := dialer.DialAndSend(m)
 		emailsSentTotal.Inc()
@@ -71,9 +50,6 @@ func (sc *SmtpClient) Send(ctx context.Context, messages ...*Message) (int, erro
 			}
 
 			err = fmt.Errorf("failed to send notification to email addresses: %s: %w", strings.Join(msg.To, ";"), innerError)
-			span.RecordError(err)
-			span.SetStatus(codes.Error, err.Error())
-
 			continue
 		}
 
@@ -84,7 +60,7 @@ func (sc *SmtpClient) Send(ctx context.Context, messages ...*Message) (int, erro
 }
 
 // buildEmail converts the Message DTO to a gomail message.
-func (sc *SmtpClient) buildEmail(ctx context.Context, msg *Message) *gomail.Message {
+func (sc *SmtpClient) buildEmail(msg *Message) *gomail.Message {
 	m := gomail.NewMessage()
 	// add all static headers to the email message
 	for h, val := range sc.cfg.StaticHeaders {
@@ -93,11 +69,6 @@ func (sc *SmtpClient) buildEmail(ctx context.Context, msg *Message) *gomail.Mess
 	m.SetHeader("From", msg.From)
 	m.SetHeader("To", msg.To...)
 	m.SetHeader("Subject", msg.Subject)
-
-	if sc.cfg.EnableTracing {
-		otel.GetTextMapPropagator().Inject(ctx, gomailHeaderCarrier{m})
-	}
-
 	sc.setFiles(m, msg)
 	for _, replyTo := range msg.ReplyTo {
 		m.SetAddressHeader("Reply-To", replyTo, "")
@@ -159,8 +130,12 @@ func (sc *SmtpClient) createDialer() (*gomail.Dialer, error) {
 	d := gomail.NewDialer(host, iPort, sc.cfg.User, sc.cfg.Password)
 	d.TLSConfig = tlsconfig
 	d.StartTLSPolicy = getStartTLSPolicy(sc.cfg.StartTLSPolicy)
-	d.LocalName = sc.cfg.EhloIdentity
 
+	if sc.cfg.EhloIdentity != "" {
+		d.LocalName = sc.cfg.EhloIdentity
+	} else {
+		d.LocalName = setting.InstanceName
+	}
 	return d, nil
 }
 
@@ -173,37 +148,4 @@ func getStartTLSPolicy(policy string) gomail.StartTLSPolicy {
 	default:
 		return 0
 	}
-}
-
-type gomailHeaderCarrier struct {
-	*gomail.Message
-}
-
-var _ propagation.TextMapCarrier = (*gomailHeaderCarrier)(nil)
-
-func (c gomailHeaderCarrier) Get(key string) string {
-	if hdr := c.Message.GetHeader(key); len(hdr) > 0 {
-		return hdr[0]
-	}
-
-	return ""
-}
-
-func (c gomailHeaderCarrier) Set(key string, value string) {
-	c.Message.SetHeader(key, value)
-}
-
-func (c gomailHeaderCarrier) Keys() []string {
-	// there's no way to get all the header keys directly from a gomail.Message,
-	// but we can encode the whole message and re-parse. This is not ideal, but
-	// this function shouldn't be used in the hot path.
-	buf := bytes.Buffer{}
-	_, _ = c.Message.WriteTo(&buf)
-	hdr, _ := textproto.NewReader(bufio.NewReader(&buf)).ReadMIMEHeader()
-	keys := make([]string, 0, len(hdr))
-	for k := range hdr {
-		keys = append(keys, k)
-	}
-
-	return keys
 }

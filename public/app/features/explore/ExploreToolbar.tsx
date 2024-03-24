@@ -273,7 +273,12 @@ export function ExploreToolbar({ exploreId, onChangeTime, onContentOutlineToogle
               </ToolbarButton>
             </ButtonGroup>
           ),
-          <ToolbarExtensionPoint key="toolbar-extension-point" exploreId={exploreId} timeZone={timeZone} />,
+          <ToolbarExtensionPoint
+            splitted={splitted}
+            key="toolbar-extension-point"
+            exploreId={exploreId}
+            timeZone={timeZone}
+          />,
           !isLive && (
             <ExploreTimeControls
               key="timeControls"

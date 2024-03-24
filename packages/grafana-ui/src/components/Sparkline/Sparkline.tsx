@@ -10,7 +10,6 @@ import {
   FieldSparkline,
   FieldType,
   getFieldColorModeForField,
-  nullToValue,
 } from '@grafana/data';
 import {
   AxisPlacement,
@@ -63,8 +62,7 @@ export class Sparkline extends PureComponent<SparklineProps, State> {
   }
 
   static getDerivedStateFromProps(props: SparklineProps, state: State) {
-    const _frame = preparePlotFrame(props.sparkline, props.config);
-    const frame = nullToValue(_frame);
+    const frame = preparePlotFrame(props.sparkline, props.config);
     if (!frame) {
       return { ...state };
     }
@@ -98,12 +96,6 @@ export class Sparkline extends PureComponent<SparklineProps, State> {
 
   getYRange(field: Field): Range.MinMax {
     let { min, max } = this.state.alignedDataFrame.fields[1].state?.range!;
-    const noValue = +this.state.alignedDataFrame.fields[1].config?.noValue!;
-
-    if (!Number.isNaN(noValue)) {
-      min = Math.min(min!, +noValue);
-      max = Math.max(max!, +noValue);
-    }
 
     if (min === max) {
       if (min === 0) {

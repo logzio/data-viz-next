@@ -13,74 +13,120 @@ import (
 	"unsafe"
 
 	"github.com/grafana/grafana/pkg/services/ngalert/models"
+	"github.com/grafana/grafana/pkg/util"
 )
 
 var errRuleDeleted = errors.New("rule deleted")
 
-type ruleFactory interface {
-	new(context.Context) Rule
+type alertRuleInfoRegistry struct {
+	mu            sync.Mutex
+	alertRuleInfo map[models.AlertRuleKey]*alertRuleInfo
 }
 
-type ruleRegistry struct {
-	mu    sync.Mutex
-	rules map[models.AlertRuleKey]Rule
-}
-
-func newRuleRegistry() ruleRegistry {
-	return ruleRegistry{rules: make(map[models.AlertRuleKey]Rule)}
-}
-
-// getOrCreate gets rule routine from registry by the key. If it does not exist, it creates a new one.
-// Returns a pointer to the rule routine and a flag that indicates whether it is a new struct or not.
-func (r *ruleRegistry) getOrCreate(context context.Context, key models.AlertRuleKey, factory ruleFactory) (Rule, bool) {
+// getOrCreateInfo gets rule routine information from registry by the key. If it does not exist, it creates a new one.
+// Returns a pointer to the rule routine information and a flag that indicates whether it is a new struct or not.
+func (r *alertRuleInfoRegistry) getOrCreateInfo(context context.Context, key models.AlertRuleKey) (*alertRuleInfo, bool) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	rule, ok := r.rules[key]
+	info, ok := r.alertRuleInfo[key]
 	if !ok {
-		rule = factory.new(context)
-		r.rules[key] = rule
+		info = newAlertRuleInfo(context)
+		r.alertRuleInfo[key] = info
 	}
-	return rule, !ok
+	return info, !ok
 }
 
-func (r *ruleRegistry) exists(key models.AlertRuleKey) bool {
+func (r *alertRuleInfoRegistry) exists(key models.AlertRuleKey) bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	_, ok := r.rules[key]
+	_, ok := r.alertRuleInfo[key]
 	return ok
 }
 
-// del removes pair that has specific key from the registry.
+// del removes pair that has specific key from alertRuleInfo.
 // Returns 2-tuple where the first element is value of the removed pair
 // and the second element indicates whether element with the specified key existed.
-func (r *ruleRegistry) del(key models.AlertRuleKey) (Rule, bool) {
+func (r *alertRuleInfoRegistry) del(key models.AlertRuleKey) (*alertRuleInfo, bool) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	rule, ok := r.rules[key]
+	info, ok := r.alertRuleInfo[key]
 	if ok {
-		delete(r.rules, key)
+		delete(r.alertRuleInfo, key)
 	}
-	return rule, ok
+	return info, ok
 }
 
-func (r *ruleRegistry) keyMap() map[models.AlertRuleKey]struct{} {
+func (r *alertRuleInfoRegistry) keyMap() map[models.AlertRuleKey]struct{} {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	definitionsIDs := make(map[models.AlertRuleKey]struct{}, len(r.rules))
-	for k := range r.rules {
+	definitionsIDs := make(map[models.AlertRuleKey]struct{}, len(r.alertRuleInfo))
+	for k := range r.alertRuleInfo {
 		definitionsIDs[k] = struct{}{}
 	}
 	return definitionsIDs
 }
 
-type RuleVersionAndPauseStatus struct {
+type ruleVersionAndPauseStatus struct {
 	Fingerprint fingerprint
 	IsPaused    bool
 }
 
-type Evaluation struct {
+type alertRuleInfo struct {
+	evalCh   chan *evaluation
+	updateCh chan ruleVersionAndPauseStatus
+	ctx      context.Context
+	stop     func(reason error)
+}
+
+func newAlertRuleInfo(parent context.Context) *alertRuleInfo {
+	ctx, stop := util.WithCancelCause(parent)
+	return &alertRuleInfo{evalCh: make(chan *evaluation), updateCh: make(chan ruleVersionAndPauseStatus), ctx: ctx, stop: stop}
+}
+
+// eval signals the rule evaluation routine to perform the evaluation of the rule. Does nothing if the loop is stopped.
+// Before sending a message into the channel, it does non-blocking read to make sure that there is no concurrent send operation.
+// Returns a tuple where first element is
+//   - true when message was sent
+//   - false when the send operation is stopped
+//
+// the second element contains a dropped message that was sent by a concurrent sender.
+func (a *alertRuleInfo) eval(eval *evaluation) (bool, *evaluation) {
+	// read the channel in unblocking manner to make sure that there is no concurrent send operation.
+	var droppedMsg *evaluation
+	select {
+	case droppedMsg = <-a.evalCh:
+	default:
+	}
+
+	select {
+	case a.evalCh <- eval:
+		return true, droppedMsg
+	case <-a.ctx.Done():
+		return false, droppedMsg
+	}
+}
+
+// update sends an instruction to the rule evaluation routine to update the scheduled rule to the specified version. The specified version must be later than the current version, otherwise no update will happen.
+func (a *alertRuleInfo) update(lastVersion ruleVersionAndPauseStatus) bool {
+	// check if the channel is not empty.
+	select {
+	case <-a.updateCh:
+	case <-a.ctx.Done():
+		return false
+	default:
+	}
+
+	select {
+	case a.updateCh <- lastVersion:
+		return true
+	case <-a.ctx.Done():
+		return false
+	}
+}
+
+type evaluation struct {
 	scheduledAt time.Time
 	rule        *models.AlertRule
 	folderTitle string
@@ -88,12 +134,12 @@ type Evaluation struct {
 
 type alertRulesRegistry struct {
 	rules        map[models.AlertRuleKey]*models.AlertRule
-	folderTitles map[models.FolderKey]string
+	folderTitles map[string]string
 	mu           sync.Mutex
 }
 
 // all returns all rules in the registry.
-func (r *alertRulesRegistry) all() ([]*models.AlertRule, map[models.FolderKey]string) {
+func (r *alertRulesRegistry) all() ([]*models.AlertRule, map[string]string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	result := make([]*models.AlertRule, 0, len(r.rules))
@@ -110,7 +156,7 @@ func (r *alertRulesRegistry) get(k models.AlertRuleKey) *models.AlertRule {
 }
 
 // set replaces all rules in the registry. Returns difference between previous and the new current version of the registry
-func (r *alertRulesRegistry) set(rules []*models.AlertRule, folders map[models.FolderKey]string) diff {
+func (r *alertRulesRegistry) set(rules []*models.AlertRule, folders map[string]string) diff {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	rulesMap := make(map[models.AlertRuleKey]*models.AlertRule)
@@ -288,11 +334,6 @@ func (r ruleWithFolder) Fingerprint() fingerprint {
 		writeInt(1)
 	} else {
 		writeInt(0)
-	}
-
-	for _, setting := range rule.NotificationSettings {
-		binary.LittleEndian.PutUint64(tmp, uint64(setting.Fingerprint()))
-		writeBytes(tmp)
 	}
 
 	// fields that do not affect the state.

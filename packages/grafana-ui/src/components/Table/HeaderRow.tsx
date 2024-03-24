@@ -1,7 +1,6 @@
 import React from 'react';
 import { HeaderGroup, Column } from 'react-table';
 
-import { Field } from '@grafana/data';
 import { selectors } from '@grafana/e2e-selectors';
 
 import { getFieldTypeIcon } from '../../types';
@@ -9,7 +8,6 @@ import { Icon } from '../Icon/Icon';
 
 import { Filter } from './Filter';
 import { TableStyles } from './styles';
-import { TableFieldOptions } from './types';
 
 export interface HeaderRowProps {
   headerGroups: HeaderGroup[];
@@ -45,8 +43,7 @@ export const HeaderRow = (props: HeaderRowProps) => {
 
 function renderHeaderCell(column: any, tableStyles: TableStyles, showTypeIcons?: boolean) {
   const headerProps = column.getHeaderProps();
-  const field: Field = column.field ?? null;
-  const tableFieldOptions: TableFieldOptions | undefined = field?.config.custom;
+  const field = column.field ?? null;
 
   if (column.canResize) {
     headerProps.style.userSelect = column.isResizing ? 'none' : 'auto'; // disables selecting text while resizing
@@ -54,37 +51,27 @@ function renderHeaderCell(column: any, tableStyles: TableStyles, showTypeIcons?:
 
   headerProps.style.position = 'absolute';
   headerProps.style.justifyContent = column.justifyContent;
-  headerProps.style.left = column.totalLeft;
-
-  let headerContent = column.render('Header');
-
-  let sortHeaderContent = column.canSort && (
-    <>
-      <button {...column.getSortByToggleProps()} className={tableStyles.headerCellLabel}>
-        {showTypeIcons && (
-          <Icon name={getFieldTypeIcon(field)} title={field?.type} size="sm" className={tableStyles.typeIcon} />
-        )}
-        <div>{headerContent}</div>
-        {column.isSorted &&
-          (column.isSortedDesc ? (
-            <Icon size="lg" name="arrow-down" className={tableStyles.sortIcon} />
-          ) : (
-            <Icon name="arrow-up" size="lg" className={tableStyles.sortIcon} />
-          ))}
-      </button>
-      {column.canFilter && <Filter column={column} tableStyles={tableStyles} field={field} />}
-    </>
-  );
-  if (sortHeaderContent && tableFieldOptions?.headerComponent) {
-    sortHeaderContent = <tableFieldOptions.headerComponent field={field} defaultContent={sortHeaderContent} />;
-  } else if (tableFieldOptions?.headerComponent) {
-    headerContent = <tableFieldOptions.headerComponent field={field} defaultContent={headerContent} />;
-  }
 
   return (
     <div className={tableStyles.headerCell} {...headerProps} role="columnheader">
-      {column.canSort && sortHeaderContent}
-      {!column.canSort && headerContent}
+      {column.canSort && (
+        <>
+          <button {...column.getSortByToggleProps()} className={tableStyles.headerCellLabel}>
+            {showTypeIcons && (
+              <Icon name={getFieldTypeIcon(field)} title={field?.type} size="sm" className={tableStyles.typeIcon} />
+            )}
+            <div>{column.render('Header')}</div>
+            {column.isSorted &&
+              (column.isSortedDesc ? (
+                <Icon size="lg" name="arrow-down" className={tableStyles.sortIcon} />
+              ) : (
+                <Icon name="arrow-up" size="lg" className={tableStyles.sortIcon} />
+              ))}
+          </button>
+          {column.canFilter && <Filter column={column} tableStyles={tableStyles} field={field} />}
+        </>
+      )}
+      {!column.canSort && column.render('Header')}
       {!column.canSort && column.canFilter && <Filter column={column} tableStyles={tableStyles} field={field} />}
       {column.canResize && <div {...column.getResizerProps()} className={tableStyles.resizeHandle} />}
     </div>

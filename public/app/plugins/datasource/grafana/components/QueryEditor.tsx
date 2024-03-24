@@ -6,6 +6,7 @@ import { DropEvent, FileRejection } from 'react-dropzone';
 import {
   QueryEditorProps,
   SelectableValue,
+  dataFrameFromJSON,
   rangeUtil,
   DataQueryRequest,
   DataFrame,
@@ -15,7 +16,7 @@ import {
   getValueFormat,
   formattedValueToString,
 } from '@grafana/data';
-import { config, getDataSourceSrv, reportInteraction } from '@grafana/runtime';
+import { config, getBackendSrv, getDataSourceSrv, reportInteraction } from '@grafana/runtime';
 import {
   InlineField,
   Select,
@@ -32,7 +33,6 @@ import {
 } from '@grafana/ui';
 import { hasAlphaPanels } from 'app/core/config';
 import * as DFImport from 'app/features/dataframe-import';
-import { getManagedChannelInfo } from 'app/features/live/info';
 import { SearchQuery } from 'app/features/search/service';
 
 import { GrafanaDatasource } from '../datasource';
@@ -91,9 +91,35 @@ export class UnthemedQueryEditor extends PureComponent<Props, State> {
   }
 
   loadChannelInfo() {
-    getManagedChannelInfo().then((v) => {
-      this.setState(v);
-    });
+    getBackendSrv()
+      .fetch({ url: 'api/live/list' })
+      .subscribe({
+        next: (v: any) => {
+          const channelInfo = v.data?.channels as any[];
+          if (channelInfo?.length) {
+            const channelFields: Record<string, Array<SelectableValue<string>>> = {};
+            const channels: Array<SelectableValue<string>> = channelInfo.map((c) => {
+              if (c.data) {
+                const distinctFields = new Set<string>();
+                const frame = dataFrameFromJSON(c.data);
+                for (const f of frame.fields) {
+                  distinctFields.add(f.name);
+                }
+                channelFields[c.channel] = Array.from(distinctFields).map((n) => ({
+                  value: n,
+                  label: n,
+                }));
+              }
+              return {
+                value: c.channel,
+                label: c.channel + ' [' + c.minute_rate + ' msg/min]',
+              };
+            });
+
+            this.setState({ channelFields, channels });
+          }
+        },
+      });
   }
 
   loadFolderInfo() {

@@ -14,7 +14,7 @@ import { ThresholdsConfig, ThresholdsMode } from '../types/thresholds';
 
 import { PanelPlugin } from './PanelPlugin';
 
-interface Props {
+export interface Props {
   plugin: PanelPlugin;
   currentFieldConfig: FieldConfigSource;
   currentOptions: Record<string, unknown>;

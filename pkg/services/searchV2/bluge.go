@@ -435,12 +435,6 @@ func doSearchQuery(
 		hasConstraints = true
 	}
 
-	// DatasourceType
-	if q.DatasourceType != "" {
-		fullQuery.AddMust(bluge.NewTermQuery(q.DatasourceType).SetField(documentFieldDSType))
-		hasConstraints = true
-	}
-
 	// Folder
 	if q.Location != "" {
 		fullQuery.AddMust(bluge.NewTermQuery(q.Location).SetField(documentFieldLocation))

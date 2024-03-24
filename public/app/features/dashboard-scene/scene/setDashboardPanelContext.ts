@@ -1,5 +1,5 @@
 import { AnnotationChangeEvent, AnnotationEventUIModel, CoreApp, DataFrame } from '@grafana/data';
-import { AdHocFiltersVariable, dataLayers, SceneDataLayers, sceneGraph, sceneUtils, VizPanel } from '@grafana/scenes';
+import { AdHocFilterSet, dataLayers, SceneDataLayers, VizPanel } from '@grafana/scenes';
 import { DataSourceRef } from '@grafana/schema';
 import { AdHocFilterItem, PanelContext } from '@grafana/ui';
 import { deleteAnnotation, saveAnnotation, updateAnnotation } from 'app/features/annotations/api';
@@ -111,8 +111,8 @@ export function setDashboardPanelContext(vizPanel: VizPanel, context: PanelConte
       return;
     }
 
-    const filterVar = getAdHocFilterVariableFor(dashboard, queryRunner.state.datasource);
-    updateAdHocFilterVariable(filterVar, newFilter);
+    const filterSet = getAdHocFilterSetFor(dashboard, queryRunner.state.datasource);
+    updateAdHocFilterSet(filterSet, newFilter);
   };
 
   context.onUpdateData = (frames: DataFrame[]): Promise<boolean> => {
@@ -149,37 +149,33 @@ function reRunBuiltInAnnotationsLayer(scene: DashboardScene) {
   }
 }
 
-export function getAdHocFilterVariableFor(scene: DashboardScene, ds: DataSourceRef | null | undefined) {
-  const variables = sceneGraph.getVariables(scene);
+export function getAdHocFilterSetFor(scene: DashboardScene, ds: DataSourceRef | null | undefined) {
+  const controls = scene.state.controls ?? [];
 
-  for (const variable of variables.state.variables) {
-    if (sceneUtils.isAdHocVariable(variable)) {
-      const filtersDs = variable.state.datasource;
-      if (filtersDs === ds || filtersDs?.uid === ds?.uid) {
-        return variable;
+  for (const control of controls) {
+    if (control instanceof AdHocFilterSet) {
+      if (control.state.datasource === ds || control.state.datasource?.uid === ds?.uid) {
+        return control;
       }
     }
   }
 
-  const newVariable = new AdHocFiltersVariable({
-    name: 'Filters',
-    datasource: ds,
-  });
+  const newSet = new AdHocFilterSet({ datasource: ds });
 
   // Add it to the scene
-  variables.setState({
-    variables: [...variables.state.variables, newVariable],
+  scene.setState({
+    controls: [controls[0], newSet, ...controls.slice(1)],
   });
 
-  return newVariable;
+  return newSet;
 }
 
-function updateAdHocFilterVariable(filterVar: AdHocFiltersVariable, newFilter: AdHocFilterItem) {
+function updateAdHocFilterSet(filterSet: AdHocFilterSet, newFilter: AdHocFilterItem) {
   // Check if we need to update an existing filter
-  for (const filter of filterVar.state.filters) {
+  for (const filter of filterSet.state.filters) {
     if (filter.key === newFilter.key) {
-      filterVar.setState({
-        filters: filterVar.state.filters.map((f) => {
+      filterSet.setState({
+        filters: filterSet.state.filters.map((f) => {
           if (f.key === newFilter.key) {
             return newFilter;
           }
@@ -191,7 +187,7 @@ function updateAdHocFilterVariable(filterVar: AdHocFiltersVariable, newFilter: A
   }
 
   // Add new filter
-  filterVar.setState({
-    filters: [...filterVar.state.filters, newFilter],
+  filterSet.setState({
+    filters: [...filterSet.state.filters, newFilter],
   });
 }

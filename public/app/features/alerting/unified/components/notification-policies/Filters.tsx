@@ -1,27 +1,24 @@
 import { css } from '@emotion/css';
-import { debounce, isEqual } from 'lodash';
+import { debounce } from 'lodash';
 import React, { useCallback, useEffect, useRef } from 'react';
 
 import { SelectableValue } from '@grafana/data';
-import { Button, Field, Icon, Input, Label, Select, Stack, Text, Tooltip, useStyles2 } from '@grafana/ui';
+import { Button, Field, Icon, Input, Label as LabelElement, Select, Tooltip, useStyles2, Stack } from '@grafana/ui';
 import { ObjectMatcher, Receiver, RouteWithID } from 'app/plugins/datasource/alertmanager/types';
 
 import { useURLSearchParams } from '../../hooks/useURLSearchParams';
 import { matcherToObjectMatcher, parseMatchers } from '../../utils/alertmanager';
-import { normalizeMatchers } from '../../utils/matchers';
 
 interface NotificationPoliciesFilterProps {
   receivers: Receiver[];
   onChangeMatchers: (labels: ObjectMatcher[]) => void;
   onChangeReceiver: (receiver: string | undefined) => void;
-  matchingCount: number;
 }
 
 const NotificationPoliciesFilter = ({
   receivers,
   onChangeReceiver,
   onChangeMatchers,
-  matchingCount,
 }: NotificationPoliciesFilterProps) => {
   const [searchParams, setSearchParams] = useURLSearchParams();
   const searchInputRef = useRef<HTMLInputElement | null>(null);
@@ -53,11 +50,11 @@ const NotificationPoliciesFilter = ({
   const inputInvalid = queryString && queryString.length > 3 ? parseMatchers(queryString).length === 0 : false;
 
   return (
-    <Stack direction="row" alignItems="flex-end" gap={1}>
+    <Stack direction="row" alignItems="flex-start" gap={0.5}>
       <Field
         className={styles.noBottom}
         label={
-          <Label>
+          <LabelElement>
             <Stack gap={0.5}>
               <span>Search by matchers</span>
               <Tooltip
@@ -71,7 +68,7 @@ const NotificationPoliciesFilter = ({
                 <Icon name="info-circle" size="sm" />
               </Tooltip>
             </Stack>
-          </Label>
+          </LabelElement>
         }
         invalid={inputInvalid}
         error={inputInvalid ? 'Query must use valid matcher syntax' : null}
@@ -102,16 +99,9 @@ const NotificationPoliciesFilter = ({
         />
       </Field>
       {hasFilters && (
-        <Stack alignItems="center">
-          <Button variant="secondary" icon="times" onClick={clearFilters}>
-            Clear filters
-          </Button>
-          <Text variant="bodySmall" color="secondary">
-            {matchingCount === 0 && 'No policies matching filters.'}
-            {matchingCount === 1 && `${matchingCount} policy matches the filters.`}
-            {matchingCount > 1 && `${matchingCount} policies match the filters.`}
-          </Text>
-        </Stack>
+        <Button variant="secondary" icon="times" onClick={clearFilters} style={{ marginTop: 19 }}>
+          Clear filters
+        </Button>
       )}
     </Stack>
   );
@@ -122,46 +112,19 @@ const NotificationPoliciesFilter = ({
  */
 type FilterPredicate = (route: RouteWithID) => boolean;
 
-/**
- * Find routes int the tree that match the given predicate function
- * @param routeTree the route tree to search
- * @param predicateFn the predicate function to match routes
- * @returns
- * - matches: list of routes that match the predicate
- * - matchingRouteIdsWithPath: map with routeids that are part of the path of a matching route
- *  key is the route id, value is an array of route ids that are part of its path
- */
-export function findRoutesMatchingPredicate(
-  routeTree: RouteWithID,
-  predicateFn: FilterPredicate
-): Map<RouteWithID, RouteWithID[]> {
-  // map with routids that are part of the path of a matching route
-  // key is the route id, value is an array of route ids that are part of the path
-  const matchingRouteIdsWithPath = new Map<RouteWithID, RouteWithID[]>();
+export function findRoutesMatchingPredicate(routeTree: RouteWithID, predicateFn: FilterPredicate): RouteWithID[] {
+  const matches: RouteWithID[] = [];
 
-  function findMatch(route: RouteWithID, path: RouteWithID[]) {
-    const newPath = [...path, route];
-
+  function findMatch(route: RouteWithID) {
     if (predicateFn(route)) {
-      // if the route matches the predicate, we need to add the path to the map of matching routes
-      const previousPath = matchingRouteIdsWithPath.get(route) ?? [];
-      // add the current route id to the map with its path
-      matchingRouteIdsWithPath.set(route, [...previousPath, ...newPath]);
+      matches.push(route);
     }
 
-    // if the route has subroutes, call findMatch recursively
-    route.routes?.forEach((route) => findMatch(route, newPath));
+    route.routes?.forEach(findMatch);
   }
 
-  findMatch(routeTree, []);
-
-  return matchingRouteIdsWithPath;
-}
-
-export function findRoutesByMatchers(route: RouteWithID, labelMatchersFilter: ObjectMatcher[]): boolean {
-  const routeMatchers = normalizeMatchers(route);
-
-  return labelMatchersFilter.every((filter) => routeMatchers.some((matcher) => isEqual(filter, matcher)));
+  findMatch(routeTree);
+  return matches;
 }
 
 const toOption = (receiver: Receiver) => ({
@@ -175,9 +138,9 @@ const getNotificationPoliciesFilters = (searchParams: URLSearchParams) => ({
 });
 
 const getStyles = () => ({
-  noBottom: css({
-    marginBottom: 0,
-  }),
+  noBottom: css`
+    margin-bottom: 0;
+  `,
 });
 
 export { NotificationPoliciesFilter };

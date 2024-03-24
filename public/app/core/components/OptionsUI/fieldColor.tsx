@@ -28,22 +28,20 @@ export const FieldColorEditor = ({ value, onChange, item, id }: Props) => {
     ? fieldColorModeRegistry.list()
     : fieldColorModeRegistry.list().filter((m) => !m.isByValue);
 
-  const options = availableOptions
-    .filter((mode) => !mode.excludeFromPicker)
-    .map((mode) => {
-      let suffix = mode.isByValue ? ' (by value)' : '';
+  const options = availableOptions.map((mode) => {
+    let suffix = mode.isByValue ? ' (by value)' : '';
 
-      return {
-        value: mode.id,
-        label: `${mode.name}${suffix}`,
-        description: mode.description,
-        isContinuous: mode.isContinuous,
-        isByValue: mode.isByValue,
-        component() {
-          return <FieldColorModeViz mode={mode} theme={theme} />;
-        },
-      };
-    });
+    return {
+      value: mode.id,
+      label: `${mode.name}${suffix}`,
+      description: mode.description,
+      isContinuous: mode.isContinuous,
+      isByValue: mode.isByValue,
+      component() {
+        return <FieldColorModeViz mode={mode} theme={theme} />;
+      },
+    };
+  });
 
   const onModeChange = (newMode: SelectableValue<string>) => {
     onChange({

@@ -406,10 +406,7 @@ describe('TimeSeries', () => {
 
   describe('legend decimals', () => {
     let series: TimeSeries;
-    let panel: {
-      decimals: number | null;
-      yaxes: Array<{ decimals: number | null }>;
-    };
+    let panel: any;
     const height = 200;
     beforeEach(() => {
       testData = {

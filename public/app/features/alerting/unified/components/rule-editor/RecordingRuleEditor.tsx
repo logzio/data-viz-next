@@ -68,11 +68,8 @@ export const RecordingRuleEditor: FC<RecordingRuleEditorProps> = ({
         datasource: changedQuery.datasource,
         refId: changedQuery.refId,
         editorMode: changedQuery.editorMode,
-        // Instant and range are used by Prometheus queries
-        instant: changedQuery.instant,
-        range: changedQuery.range,
-        // Query type is used by Loki queries
-        queryType: changedQuery.queryType,
+        instant: Boolean(changedQuery.instant),
+        range: Boolean(changedQuery.range),
         legendFormat: changedQuery.legendFormat,
       },
     };

@@ -2,9 +2,11 @@ import React, { PureComponent } from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 
 import { DataSourceInstanceSettings, getDataSourceRef } from '@grafana/data';
-import { AdHocVariableForm } from 'app/features/dashboard-scene/settings/variables/components/AdHocVariableForm';
+import { Alert, Field } from '@grafana/ui';
+import { DataSourcePicker } from 'app/features/datasources/components/picker/DataSourcePicker';
 import { StoreState } from 'app/types';
 
+import { VariableLegend } from '../../dashboard-scene/settings/variables/components/VariableLegend';
 import { initialVariableEditorState } from '../editor/reducer';
 import { getAdhocVariableEditorState } from '../editor/selectors';
 import { VariableEditorProps } from '../editor/types';
@@ -56,13 +58,23 @@ export class AdHocVariableEditorUnConnected extends PureComponent<Props> {
 
   render() {
     const { variable, extended } = this.props;
+    const infoText = extended?.infoText ?? null;
 
     return (
-      <AdHocVariableForm
-        datasource={variable.datasource ?? undefined}
-        onDataSourceChange={this.onDatasourceChanged}
-        infoText={extended?.infoText}
-      />
+      <>
+        <VariableLegend>Ad-hoc options</VariableLegend>
+        <Field label="Data source" htmlFor="data-source-picker">
+          <DataSourcePicker
+            current={variable.datasource}
+            onChange={this.onDatasourceChanged}
+            width={30}
+            variables={true}
+            noDefault
+          />
+        </Field>
+
+        {infoText ? <Alert title={infoText} severity="info" /> : null}
+      </>
     );
   }
 }

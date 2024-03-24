@@ -213,8 +213,7 @@ export class UPlotAxisBuilder extends PlotConfigBuilder<AxisProps, Axis> {
   }
 }
 
-/** @internal */
-export const timeUnitSize = {
+const timeUnitSize = {
   second: 1000,
   minute: 60 * 1000,
   hour: 60 * 60 * 1000,

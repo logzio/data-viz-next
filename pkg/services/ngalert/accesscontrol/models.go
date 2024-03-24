@@ -8,12 +8,12 @@ import (
 )
 
 var (
-	ErrAuthorizationBase = errutil.Forbidden("alerting.unauthorized")
+	errAuthorizationGeneric = errutil.Forbidden("alerting.unauthorized")
 )
 
 func NewAuthorizationErrorWithPermissions(action string, eval accesscontrol.Evaluator) error {
 	msg := fmt.Sprintf("user is not authorized to %s", action)
-	err := ErrAuthorizationBase.Errorf(msg)
+	err := errAuthorizationGeneric.Errorf(msg)
 	err.PublicMessage = msg
 	if eval != nil {
 		err.PublicPayload = map[string]any{

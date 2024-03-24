@@ -1,8 +1,6 @@
 package routing
 
 import (
-	"net/http"
-
 	"github.com/grafana/grafana/pkg/api/response"
 	contextmodel "github.com/grafana/grafana/pkg/services/contexthandler/model"
 	"github.com/grafana/grafana/pkg/web"
@@ -10,7 +8,7 @@ import (
 
 var (
 	ServerError = func(err error) response.Response {
-		return response.Error(http.StatusInternalServerError, "Server error", err)
+		return response.Error(500, "Server error", err)
 	}
 )
 

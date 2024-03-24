@@ -13,6 +13,7 @@ import {
   EventBus,
   ExploreLogsPanelState,
   ExplorePanelsState,
+  FeatureState,
   Field,
   GrafanaTheme2,
   LinkModel,
@@ -35,6 +36,7 @@ import { config, reportInteraction } from '@grafana/runtime';
 import { DataQuery, TimeZone } from '@grafana/schema';
 import {
   Button,
+  FeatureBadge,
   InlineField,
   InlineFieldRow,
   InlineSwitch,
@@ -437,46 +439,6 @@ class UnthemedLogs extends PureComponent<Props, State> {
     };
   };
 
-  getPreviousLog(row: LogRowModel, allLogs: LogRowModel[]): LogRowModel | null {
-    for (let i = allLogs.indexOf(row) - 1; i >= 0; i--) {
-      if (allLogs[i].timeEpochMs > row.timeEpochMs) {
-        return allLogs[i];
-      }
-    }
-
-    return null;
-  }
-
-  getPermalinkRange(row: LogRowModel) {
-    const range = {
-      from: new Date(this.props.absoluteRange.from).toISOString(),
-      to: new Date(this.props.absoluteRange.to).toISOString(),
-    };
-    if (!config.featureToggles.logsInfiniteScrolling) {
-      return range;
-    }
-
-    // With infinite scrolling, the time range of the log line can be after the absolute range or beyond the request line limit, so we need to adjust
-    // Look for the previous sibling log, and use its timestamp
-    const allLogs = this.props.logRows.filter((logRow) => logRow.dataFrame.refId === row.dataFrame.refId);
-    const prevLog = this.getPreviousLog(row, allLogs);
-
-    if (row.timeEpochMs > this.props.absoluteRange.to && !prevLog) {
-      // Because there's no sibling and the current `to` is oldest than the log, we have no reference we can use for the interval
-      // This only happens when you scroll into the future and you want to share the first log of the list
-      return {
-        from: new Date(this.props.absoluteRange.from).toISOString(),
-        // Slide 1ms otherwise it's very likely to be omitted in the results
-        to: new Date(row.timeEpochMs + 1).toISOString(),
-      };
-    }
-
-    return {
-      from: new Date(this.props.absoluteRange.from).toISOString(),
-      to: new Date(prevLog ? prevLog.timeEpochMs : this.props.absoluteRange.to).toISOString(),
-    };
-  }
-
   onPermalinkClick = async (row: LogRowModel) => {
     // this is an extra check, to be sure that we are not
     // creating permalinks for logs without an id-field.
@@ -492,7 +454,10 @@ class UnthemedLogs extends PureComponent<Props, State> {
       ...this.props.panelState,
       logs: { id: row.uid, visualisationType: this.state.visualisationType ?? getDefaultVisualisationType() },
     };
-    urlState.range = this.getPermalinkRange(row);
+    urlState.range = {
+      from: new Date(this.props.absoluteRange.from).toISOString(),
+      to: new Date(this.props.absoluteRange.to).toISOString(),
+    };
 
     // append changed urlState to baseUrl
     const serializedState = serializeStateToUrlParam(urlState);
@@ -662,13 +627,21 @@ class UnthemedLogs extends PureComponent<Props, State> {
         </PanelChrome>
         <PanelChrome
           titleItems={[
-            config.featureToggles.logsExploreTableVisualisation ? (
-              this.state.visualisationType === 'logs' ? null : (
-                <PanelChrome.TitleItem title="Feedback" key="A">
-                  <LogsFeedback feedbackUrl="https://forms.gle/5YyKdRQJ5hzq4c289" />
-                </PanelChrome.TitleItem>
-              )
-            ) : null,
+            config.featureToggles.logsExploreTableVisualisation
+              ? this.state.visualisationType === 'logs'
+                ? null
+                : [
+                    <PanelChrome.TitleItem title="Experimental" key="A">
+                      <FeatureBadge
+                        featureState={FeatureState.beta}
+                        tooltip="Table view is experimental and may change in future versions"
+                      />
+                    </PanelChrome.TitleItem>,
+                    <PanelChrome.TitleItem title="Feedback" key="B">
+                      <LogsFeedback feedbackUrl="https://forms.gle/5YyKdRQJ5hzq4c289" />
+                    </PanelChrome.TitleItem>,
+                  ]
+              : null,
           ]}
           title={'Logs'}
           actions={
@@ -754,13 +727,9 @@ class UnthemedLogs extends PureComponent<Props, State> {
                 </InlineFieldRow>
 
                 <div>
-                  <InlineField
-                    label="Display results"
-                    className={styles.horizontalInlineLabel}
-                    transparent
-                    disabled={isFlipping || loading}
-                  >
+                  <InlineField label="Display results" className={styles.horizontalInlineLabel} transparent>
                     <RadioButtonGroup
+                      disabled={isFlipping}
                       options={[
                         {
                           label: 'Newest first',

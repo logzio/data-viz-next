@@ -10,12 +10,7 @@ import (
 
 	"github.com/grafana/grafana/pkg/infra/db"
 	"github.com/grafana/grafana/pkg/services/signingkeys"
-	"github.com/grafana/grafana/pkg/tests/testsuite"
 )
-
-func TestMain(m *testing.M) {
-	testsuite.Run(m)
-}
 
 func TestIntegrationSigningKeyStore(t *testing.T) {
 	if testing.Short() {

@@ -2,7 +2,6 @@ import { css } from '@emotion/css';
 import React, { useCallback, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
-import { GrafanaTheme2 } from '@grafana/data';
 import { AccessoryButton } from '@grafana/experimental';
 import { FetchError } from '@grafana/runtime';
 import { useStyles2 } from '@grafana/ui';
@@ -13,20 +12,17 @@ import { TempoDatasource } from '../datasource';
 import SearchField from './SearchField';
 import { getFilteredTags } from './utils';
 
-const getStyles = (theme: GrafanaTheme2) => ({
-  vertical: css({
-    display: 'flex',
-    flexDirection: 'column',
-    gap: theme.spacing(0.25),
-  }),
-  horizontal: css({
-    display: 'flex',
-    flexDirection: 'row',
-    gap: theme.spacing(1),
-  }),
-  addTag: css({
-    marginLeft: theme.spacing(1),
-  }),
+const getStyles = () => ({
+  vertical: css`
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  `,
+  horizontal: css`
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+  `,
 });
 
 interface Props {
@@ -34,11 +30,10 @@ interface Props {
   deleteFilter: (f: TraceqlFilter) => void;
   filters: TraceqlFilter[];
   datasource: TempoDatasource;
-  setError: (error: FetchError | null) => void;
+  setError: (error: FetchError) => void;
   staticTags: Array<string | undefined>;
   isTagsLoading: boolean;
   hideValues?: boolean;
-  requireTagAndValue?: boolean;
   query: string;
 }
 const TagsInput = ({
@@ -50,7 +45,6 @@ const TagsInput = ({
   staticTags,
   isTagsLoading,
   hideValues,
-  requireTagAndValue,
   query,
 }: Props) => {
   const styles = useStyles2(getStyles);
@@ -71,11 +65,6 @@ const TagsInput = ({
     return getFilteredTags(tags, staticTags);
   };
 
-  const validInput = (f: TraceqlFilter) => {
-    // If value is removed from the filter, it can be set as an empty array
-    return requireTagAndValue ? f.tag && f.value && f.value.length > 0 : f.tag;
-  };
-
   return (
     <div className={styles.vertical}>
       {filters?.map((f, i) => (
@@ -87,28 +76,13 @@ const TagsInput = ({
             updateFilter={updateFilter}
             tags={getTags(f)}
             isTagsLoading={isTagsLoading}
+            deleteFilter={deleteFilter}
+            allowDelete={true}
             hideValue={hideValues}
             query={query}
           />
-          {(validInput(f) || filters.length > 1) && (
-            <AccessoryButton
-              aria-label={`Remove tag with ID ${f.id}`}
-              variant={'secondary'}
-              icon={'times'}
-              onClick={() => deleteFilter?.(f)}
-              tooltip={'Remove tag'}
-            />
-          )}
-          {validInput(f) && i === filters.length - 1 && (
-            <span className={styles.addTag}>
-              <AccessoryButton
-                aria-label="Add tag"
-                variant={'secondary'}
-                icon={'plus'}
-                onClick={handleOnAdd}
-                tooltip={'Add tag'}
-              />
-            </span>
+          {i === filters.length - 1 && (
+            <AccessoryButton variant={'secondary'} icon={'plus'} onClick={handleOnAdd} title={'Add tag'} />
           )}
         </div>
       ))}

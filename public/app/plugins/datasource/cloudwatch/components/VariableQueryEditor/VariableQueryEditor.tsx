@@ -6,14 +6,7 @@ import { config } from '@grafana/runtime';
 import { InlineField } from '@grafana/ui';
 
 import { CloudWatchDatasource } from '../../datasource';
-import {
-  useAccountOptions,
-  useDimensionKeys,
-  useMetrics,
-  useNamespaces,
-  useRegions,
-  useEnsureVariableHasSingleSelection,
-} from '../../hooks';
+import { useAccountOptions, useDimensionKeys, useMetrics, useNamespaces, useRegions } from '../../hooks';
 import { migrateVariableQuery } from '../../migrations/variableQueryMigrations';
 import { CloudWatchJsonData, CloudWatchQuery, VariableQuery, VariableQueryType } from '../../types';
 import { ALL_ACCOUNTS_OPTION } from '../shared/Account';
@@ -50,7 +43,6 @@ export const VariableQueryEditor = ({ query, datasource, onChange }: Props) => {
   const metrics = useMetrics(datasource, { region, namespace });
   const dimensionKeys = useDimensionKeys(datasource, { region, namespace, metricName });
   const accountState = useAccountOptions(datasource.resources, query.region);
-  const dimensionKeyError = useEnsureVariableHasSingleSelection(datasource, dimensionKey);
 
   const newFormStylingEnabled = config.featureToggles.awsDatasourcesNewFormStyling;
   const onRegionChange = async (region: string) => {
@@ -187,7 +179,6 @@ export const VariableQueryEditor = ({ query, datasource, onChange }: Props) => {
             inputId={`variable-query-dimension-key-${query.refId}`}
             allowCustomValue
             newFormStylingEnabled={newFormStylingEnabled}
-            error={dimensionKeyError}
           />
           {newFormStylingEnabled ? (
             <EditorField label="Dimensions" className="width-30" tooltip="Dimensions to filter the returned values on">
@@ -267,12 +258,11 @@ export const VariableQueryEditor = ({ query, datasource, onChange }: Props) => {
               }
             >
               <MultiFilter
-                filters={parsedQuery.ec2Filters ?? {}}
+                filters={parsedQuery.ec2Filters}
                 onChange={(filters) => {
                   onChange({ ...parsedQuery, ec2Filters: filters });
                 }}
                 keyPlaceholder="filter/tag"
-                datasource={datasource}
               />
             </EditorField>
           ) : (
@@ -294,12 +284,11 @@ export const VariableQueryEditor = ({ query, datasource, onChange }: Props) => {
               }
             >
               <MultiFilter
-                filters={parsedQuery.ec2Filters ?? {}}
+                filters={parsedQuery.ec2Filters}
                 onChange={(filters) => {
                   onChange({ ...parsedQuery, ec2Filters: filters });
                 }}
                 keyPlaceholder="filter/tag"
-                datasource={datasource}
               />
             </InlineField>
           )}
@@ -321,7 +310,6 @@ export const VariableQueryEditor = ({ query, datasource, onChange }: Props) => {
                   onChange({ ...parsedQuery, tags: filters });
                 }}
                 keyPlaceholder="tag"
-                datasource={datasource}
               />
             </EditorField>
           ) : (
@@ -332,7 +320,6 @@ export const VariableQueryEditor = ({ query, datasource, onChange }: Props) => {
                   onChange({ ...parsedQuery, tags: filters });
                 }}
                 keyPlaceholder="tag"
-                datasource={datasource}
               />
             </InlineField>
           )}

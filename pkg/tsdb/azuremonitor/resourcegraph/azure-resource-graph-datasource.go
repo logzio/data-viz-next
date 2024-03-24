@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
-	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/tracing"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 	"go.opentelemetry.io/otel/attribute"
@@ -31,8 +30,7 @@ type AzureResourceGraphResponse struct {
 
 // AzureResourceGraphDatasource calls the Azure Resource Graph API's
 type AzureResourceGraphDatasource struct {
-	Proxy  types.ServiceProxy
-	Logger log.Logger
+	Proxy types.ServiceProxy
 }
 
 // AzureResourceGraphQuery is the query request that is built from the saved values for
@@ -162,7 +160,7 @@ func (e *AzureResourceGraphDatasource) executeQuery(ctx context.Context, query *
 	)
 
 	defer span.End()
-	e.Logger.Debug("azure resource graph query", "traceID", trace.SpanContextFromContext(ctx).TraceID())
+	backend.Logger.Debug("azure resource graph query", "traceID", trace.SpanContextFromContext(ctx).TraceID())
 
 	res, err := client.Do(req)
 	if err != nil {
@@ -190,7 +188,12 @@ func (e *AzureResourceGraphDatasource) executeQuery(ctx context.Context, query *
 		return &dataResponse, nil
 	}
 
-	url := dsInfo.Routes["Azure Portal"].URL + "/#blade/HubsExtension/ArgQueryBlade/query/" + url.PathEscape(query.InterpolatedQuery)
+	azurePortalUrl, err := loganalytics.GetAzurePortalUrl(dsInfo.Cloud)
+	if err != nil {
+		return nil, err
+	}
+
+	url := azurePortalUrl + "/#blade/HubsExtension/ArgQueryBlade/query/" + url.PathEscape(query.InterpolatedQuery)
 	frameWithLink := loganalytics.AddConfigLinks(*frame, url, nil)
 	if frameWithLink.Meta == nil {
 		frameWithLink.Meta = &data.FrameMeta{}
@@ -221,7 +224,7 @@ func (e *AzureResourceGraphDatasource) unmarshalResponse(res *http.Response) (Az
 
 	defer func() {
 		if err := res.Body.Close(); err != nil {
-			e.Logger.Warn("Failed to close response body", "err", err)
+			backend.Logger.Warn("Failed to close response body", "err", err)
 		}
 	}()
 

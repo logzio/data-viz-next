@@ -7,15 +7,16 @@ import (
 	"math"
 	"net/url"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/google/uuid"
-
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
-	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
+
+	"github.com/grafana/grafana/pkg/infra/log"
 	"github.com/grafana/grafana/pkg/tsdb/cloudwatch/kinds/dataquery"
 )
 
@@ -478,7 +479,22 @@ func parseDimensions(dimensions map[string]any) (map[string][]string, error) {
 		}
 	}
 
-	return parsedDimensions, nil
+	sortedDimensions := sortDimensions(parsedDimensions)
+	return sortedDimensions, nil
+}
+
+func sortDimensions(dimensions map[string][]string) map[string][]string {
+	sortedDimensions := make(map[string][]string, len(dimensions))
+	keys := make([]string, 0, len(dimensions))
+	for k := range dimensions {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		sortedDimensions[k] = dimensions[k]
+	}
+	return sortedDimensions
 }
 
 func getEndpoint(region string) string {

@@ -1,8 +1,8 @@
 import { css } from '@emotion/css';
 import React, { useEffect, useState } from 'react';
-import { UseFormReturn, Controller } from 'react-hook-form';
+import { UseFormReturn } from 'react-hook-form';
 
-import { Checkbox, Field, Input, SecretInput, Select, Switch, useTheme2 } from '@grafana/ui';
+import { Checkbox, Field, Input, InputControl, SecretInput, Select, Switch, useTheme2 } from '@grafana/ui';
 
 import { fieldMap } from './fields';
 import { SSOProviderDTO, SSOSettingsField } from './types';
@@ -13,7 +13,6 @@ interface FieldRendererProps
   field: SSOSettingsField;
   errors: UseFormReturn['formState']['errors'];
   secretConfigured: boolean;
-  provider: string;
 }
 
 export const FieldRenderer = ({
@@ -25,13 +24,12 @@ export const FieldRenderer = ({
   control,
   unregister,
   secretConfigured,
-  provider,
 }: FieldRendererProps) => {
   const [isSecretConfigured, setIsSecretConfigured] = useState(secretConfigured);
   const isDependantField = typeof field !== 'string';
   const name = isDependantField ? field.name : field;
   const parentValue = isDependantField ? watch(field.dependsOn) : null;
-  const fieldData = fieldMap(provider)[name];
+  const fieldData = fieldMap[name];
   const theme = useTheme2();
   // Unregister a field that depends on a toggle to clear its data
   useEffect(() => {
@@ -44,10 +42,6 @@ export const FieldRenderer = ({
 
   if (!field) {
     console.log('missing field:', name);
-    return null;
-  }
-
-  if (!!fieldData.hidden) {
     return null;
   }
 
@@ -65,20 +59,25 @@ export const FieldRenderer = ({
     error: fieldData.validation?.message,
     key: name,
     description: fieldData.description,
-    defaultValue: fieldData.defaultValue?.value,
+    defaultValue: fieldData.defaultValue,
   };
 
   switch (fieldData.type) {
     case 'text':
       return (
         <Field {...fieldProps}>
-          <Input {...register(name, fieldData.validation)} type={fieldData.type} id={name} autoComplete={'off'} />
+          <Input
+            {...register(name, { required: !!fieldData.validation?.required })}
+            type={fieldData.type}
+            id={name}
+            autoComplete={'off'}
+          />
         </Field>
       );
     case 'secret':
       return (
         <Field {...fieldProps} htmlFor={name}>
-          <Controller
+          <InputControl
             name={name}
             control={control}
             rules={fieldData.validation}
@@ -101,12 +100,13 @@ export const FieldRenderer = ({
     case 'select':
       const watchOptions = watch(name);
       let options = fieldData.options;
+
       if (!fieldData.options?.length) {
-        options = isSelectableValue(watchOptions) ? watchOptions : [];
+        options = isSelectableValue(watchOptions) ? watchOptions : [{ label: '', value: '' }];
       }
       return (
         <Field {...fieldProps} htmlFor={name}>
-          <Controller
+          <InputControl
             rules={fieldData.validation}
             name={name}
             control={control}

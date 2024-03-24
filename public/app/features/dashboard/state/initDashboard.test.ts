@@ -1,8 +1,8 @@
-import configureMockStore, { MockStore } from 'redux-mock-store';
+import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { Subject } from 'rxjs';
 
-import { BackendSrv, FetchError, locationService, setEchoSrv } from '@grafana/runtime';
+import { FetchError, locationService, setEchoSrv } from '@grafana/runtime';
 import appEvents from 'app/core/app_events';
 import { getBackendSrv } from 'app/core/services/backend_srv';
 import { KeybindingSrv } from 'app/core/services/keybindingSrv';
@@ -21,8 +21,8 @@ import { getPreloadedState } from '../../variables/state/helpers';
 import { initialTransactionState, variablesInitTransaction } from '../../variables/state/transactionReducer';
 import { TransactionStatus } from '../../variables/types';
 import { DashboardLoaderSrv, setDashboardLoaderSrv } from '../services/DashboardLoaderSrv';
-import { DashboardSrv, getDashboardSrv, setDashboardSrv } from '../services/DashboardSrv';
-import { getTimeSrv, setTimeSrv, TimeSrv } from '../services/TimeSrv';
+import { getDashboardSrv, setDashboardSrv } from '../services/DashboardSrv';
+import { getTimeSrv, setTimeSrv } from '../services/TimeSrv';
 
 import { initDashboard, InitDashboardArgs } from './initDashboard';
 import { dashboardInitCompleted, dashboardInitFetching, dashboardInitServices } from './reducers';
@@ -68,10 +68,10 @@ const mockStore = configureMockStore([thunk]);
 
 interface ScenarioContext {
   args: InitDashboardArgs;
-  loaderSrv: DashboardLoaderSrv;
-  backendSrv: jest.Mocked<BackendSrv>;
+  loaderSrv: any;
+  backendSrv: any;
   setup: (fn: () => void) => void;
-  actions: ReturnType<MockStore['getActions']>;
+  actions: any[];
   storeState: any;
 }
 
@@ -91,7 +91,7 @@ function describeInitScenario(description: string, scenarioFn: ScenarioFn) {
           title: 'My cool dashboard',
           panels: [
             {
-              type: 'stat',
+              type: 'add-panel',
               gridPos: { x: 0, y: 0, w: 12, h: 9 },
               title: 'Panel Title',
               id: 2,
@@ -175,14 +175,14 @@ function describeInitScenario(description: string, scenarioFn: ScenarioFn) {
           uid: DASH_UID,
         },
       })),
-    } as unknown as DashboardLoaderSrv;
+    };
 
-    setDashboardLoaderSrv(loaderSrv);
+    setDashboardLoaderSrv(loaderSrv as unknown as DashboardLoaderSrv);
     setDashboardQueryRunnerFactory(() => ({
       getResult: emptyResult,
       run: jest.fn(),
       cancel: () => undefined,
-      cancellations: () => new Subject(),
+      cancellations: () => new Subject<any>(),
       destroy: () => undefined,
     }));
 
@@ -197,7 +197,7 @@ function describeInitScenario(description: string, scenarioFn: ScenarioFn) {
           setupDashboardBindings: jest.fn(),
         } as unknown as KeybindingSrv,
       },
-      backendSrv: getBackendSrv() as unknown as jest.Mocked<BackendSrv>,
+      backendSrv: getBackendSrv(),
       loaderSrv,
       actions: [],
       storeState: {
@@ -226,11 +226,11 @@ function describeInitScenario(description: string, scenarioFn: ScenarioFn) {
     beforeEach(async () => {
       setDashboardSrv({
         setCurrent: jest.fn(),
-      } as unknown as DashboardSrv);
+      } as any);
 
       setTimeSrv({
         init: jest.fn(),
-      } as unknown as TimeSrv);
+      } as any);
 
       setupFn();
       setEchoSrv(new Echo());

@@ -14,20 +14,15 @@ import (
 
 	"github.com/grafana/grafana/pkg/login/social"
 	"github.com/grafana/grafana/pkg/models/roletype"
-	"github.com/grafana/grafana/pkg/services/auth/identity"
 	"github.com/grafana/grafana/pkg/services/featuremgmt"
 	"github.com/grafana/grafana/pkg/services/ssosettings"
 	ssoModels "github.com/grafana/grafana/pkg/services/ssosettings/models"
-	"github.com/grafana/grafana/pkg/services/ssosettings/validation"
 	"github.com/grafana/grafana/pkg/setting"
 	"github.com/grafana/grafana/pkg/util"
 	"github.com/grafana/grafana/pkg/util/errutil"
 )
 
-var ExtraGithubSettingKeys = map[string]ExtraKeyInfo{
-	allowedOrganizationsKey: {Type: String},
-	teamIdsKey:              {Type: String},
-}
+var ExtraGithubSettingKeys = []string{allowedOrganizationsKey, teamIdsKey}
 
 var _ social.SocialConnector = (*SocialGithub)(nil)
 var _ ssosettings.Reloadable = (*SocialGithub)(nil)
@@ -62,8 +57,9 @@ func NewGitHubProvider(info *social.OAuthInfo, cfg *setting.Cfg, ssoSettings sso
 	teamIdsSplitted := util.SplitString(info.Extra[teamIdsKey])
 	teamIds := mustInts(teamIdsSplitted)
 
+	config := createOAuthConfig(info, cfg, social.GitHubProviderName)
 	provider := &SocialGithub{
-		SocialBase:           newSocialBase(social.GitHubProviderName, info, features, cfg),
+		SocialBase:           newSocialBase(social.GitHubProviderName, config, info, cfg.AutoAssignOrgRole, features),
 		teamIds:              teamIds,
 		allowedOrganizations: util.SplitString(info.Extra[allowedOrganizationsKey]),
 	}
@@ -79,65 +75,28 @@ func NewGitHubProvider(info *social.OAuthInfo, cfg *setting.Cfg, ssoSettings sso
 	return provider
 }
 
-func (s *SocialGithub) Validate(ctx context.Context, settings ssoModels.SSOSettings, requester identity.Requester) error {
+func (s *SocialGithub) Validate(ctx context.Context, settings ssoModels.SSOSettings) error {
 	info, err := CreateOAuthInfoFromKeyValues(settings.Settings)
 	if err != nil {
 		return ssosettings.ErrInvalidSettings.Errorf("SSO settings map cannot be converted to OAuthInfo: %v", err)
 	}
 
-	err = validateInfo(info, requester)
+	err = validateInfo(info)
 	if err != nil {
 		return err
 	}
 
-	return validation.Validate(info, requester,
-		validation.MustBeEmptyValidator(info.AuthUrl, "Auth URL"),
-		validation.MustBeEmptyValidator(info.TokenUrl, "Token URL"),
-		validation.MustBeEmptyValidator(info.ApiUrl, "API URL"),
-		teamIdsNumbersValidator)
-}
-
-func teamIdsNumbersValidator(info *social.OAuthInfo, requester identity.Requester) error {
-	teamIdsSplitted := util.SplitString(info.Extra[teamIdsKey])
-	teamIds := mustInts(teamIdsSplitted)
-
-	if len(teamIdsSplitted) != len(teamIds) {
-		return ssosettings.ErrInvalidOAuthConfig("Failed to parse Team Ids. Team Ids must be a list of numbers.")
-	}
+	// add specific validation rules for Github
 
 	return nil
 }
 
-func (s *SocialGithub) Reload(ctx context.Context, settings ssoModels.SSOSettings) error {
-	newInfo, err := CreateOAuthInfoFromKeyValues(settings.Settings)
-	if err != nil {
-		return ssosettings.ErrInvalidSettings.Errorf("SSO settings map cannot be converted to OAuthInfo: %v", err)
-	}
-
-	teamIdsSplitted := util.SplitString(newInfo.Extra[teamIdsKey])
-	teamIds := mustInts(teamIdsSplitted)
-
-	if len(teamIdsSplitted) != len(teamIds) {
-		s.log.Warn("Failed to parse team ids. Team ids must be a list of numbers.", "teamIds", teamIdsSplitted)
-	}
-
-	s.reloadMutex.Lock()
-	defer s.reloadMutex.Unlock()
-
-	s.updateInfo(social.GitHubProviderName, newInfo)
-
-	s.teamIds = teamIds
-	s.allowedOrganizations = util.SplitString(newInfo.Extra[allowedOrganizationsKey])
-
-	return nil
-}
-
-func (s *SocialGithub) isTeamMember(ctx context.Context, client *http.Client) bool {
+func (s *SocialGithub) IsTeamMember(ctx context.Context, client *http.Client) bool {
 	if len(s.teamIds) == 0 {
 		return true
 	}
 
-	teamMemberships, err := s.fetchTeamMemberships(ctx, client)
+	teamMemberships, err := s.FetchTeamMemberships(ctx, client)
 	if err != nil {
 		return false
 	}
@@ -153,13 +112,13 @@ func (s *SocialGithub) isTeamMember(ctx context.Context, client *http.Client) bo
 	return false
 }
 
-func (s *SocialGithub) isOrganizationMember(ctx context.Context,
+func (s *SocialGithub) IsOrganizationMember(ctx context.Context,
 	client *http.Client, organizationsUrl string) bool {
 	if len(s.allowedOrganizations) == 0 {
 		return true
 	}
 
-	organizations, err := s.fetchOrganizations(ctx, client, organizationsUrl)
+	organizations, err := s.FetchOrganizations(ctx, client, organizationsUrl)
 	if err != nil {
 		return false
 	}
@@ -175,14 +134,16 @@ func (s *SocialGithub) isOrganizationMember(ctx context.Context,
 	return false
 }
 
-func (s *SocialGithub) fetchPrivateEmail(ctx context.Context, client *http.Client) (string, error) {
+func (s *SocialGithub) FetchPrivateEmail(ctx context.Context, client *http.Client) (string, error) {
 	type Record struct {
 		Email    string `json:"email"`
 		Primary  bool   `json:"primary"`
 		Verified bool   `json:"verified"`
 	}
 
-	response, err := s.httpGet(ctx, client, fmt.Sprintf(s.info.ApiUrl+"/emails"))
+	info := s.GetOAuthInfo()
+
+	response, err := s.httpGet(ctx, client, fmt.Sprintf(info.ApiUrl+"/emails"))
 	if err != nil {
 		return "", fmt.Errorf("Error getting email address: %s", err)
 	}
@@ -204,8 +165,10 @@ func (s *SocialGithub) fetchPrivateEmail(ctx context.Context, client *http.Clien
 	return email, nil
 }
 
-func (s *SocialGithub) fetchTeamMemberships(ctx context.Context, client *http.Client) ([]GithubTeam, error) {
-	url := fmt.Sprintf(s.info.ApiUrl + "/teams?per_page=100")
+func (s *SocialGithub) FetchTeamMemberships(ctx context.Context, client *http.Client) ([]GithubTeam, error) {
+	info := s.GetOAuthInfo()
+
+	url := fmt.Sprintf(info.ApiUrl + "/teams?per_page=100")
 	hasMore := true
 	teams := make([]GithubTeam, 0)
 
@@ -224,13 +187,13 @@ func (s *SocialGithub) fetchTeamMemberships(ctx context.Context, client *http.Cl
 
 		teams = append(teams, records...)
 
-		url, hasMore = s.hasMoreRecords(response.Headers)
+		url, hasMore = s.HasMoreRecords(response.Headers)
 	}
 
 	return teams, nil
 }
 
-func (s *SocialGithub) hasMoreRecords(headers http.Header) (string, bool) {
+func (s *SocialGithub) HasMoreRecords(headers http.Header) (string, bool) {
 	value, exists := headers["Link"]
 	if !exists {
 		return "", false
@@ -248,7 +211,7 @@ func (s *SocialGithub) hasMoreRecords(headers http.Header) (string, bool) {
 	return url, true
 }
 
-func (s *SocialGithub) fetchOrganizations(ctx context.Context, client *http.Client, organizationsUrl string) ([]string, error) {
+func (s *SocialGithub) FetchOrganizations(ctx context.Context, client *http.Client, organizationsUrl string) ([]string, error) {
 	url := organizationsUrl
 	hasMore := true
 	logins := make([]string, 0)
@@ -274,15 +237,12 @@ func (s *SocialGithub) fetchOrganizations(ctx context.Context, client *http.Clie
 			logins = append(logins, record.Login)
 		}
 
-		url, hasMore = s.hasMoreRecords(response.Headers)
+		url, hasMore = s.HasMoreRecords(response.Headers)
 	}
 	return logins, nil
 }
 
 func (s *SocialGithub) UserInfo(ctx context.Context, client *http.Client, token *oauth2.Token) (*social.BasicUserInfo, error) {
-	s.reloadMutex.RLock()
-	defer s.reloadMutex.RUnlock()
-
 	var data struct {
 		Id    int    `json:"id"`
 		Login string `json:"login"`
@@ -290,7 +250,9 @@ func (s *SocialGithub) UserInfo(ctx context.Context, client *http.Client, token 
 		Name  string `json:"name"`
 	}
 
-	response, err := s.httpGet(ctx, client, s.info.ApiUrl)
+	info := s.GetOAuthInfo()
+
+	response, err := s.httpGet(ctx, client, info.ApiUrl)
 	if err != nil {
 		return nil, fmt.Errorf("error getting user info: %s", err)
 	}
@@ -299,7 +261,7 @@ func (s *SocialGithub) UserInfo(ctx context.Context, client *http.Client, token 
 		return nil, fmt.Errorf("error unmarshalling user info: %s", err)
 	}
 
-	teamMemberships, err := s.fetchTeamMemberships(ctx, client)
+	teamMemberships, err := s.FetchTeamMemberships(ctx, client)
 	if err != nil {
 		return nil, fmt.Errorf("error getting user teams: %s", err)
 	}
@@ -309,20 +271,20 @@ func (s *SocialGithub) UserInfo(ctx context.Context, client *http.Client, token 
 	var role roletype.RoleType
 	var isGrafanaAdmin *bool = nil
 
-	if !s.info.SkipOrgRoleSync {
+	if !info.SkipOrgRoleSync {
 		var grafanaAdmin bool
 		role, grafanaAdmin, err = s.extractRoleAndAdmin(response.Body, teams)
 		if err != nil {
 			return nil, err
 		}
 
-		if s.info.AllowAssignGrafanaAdmin {
+		if info.AllowAssignGrafanaAdmin {
 			isGrafanaAdmin = &grafanaAdmin
 		}
 	}
 
 	// we skip allowing assignment of GrafanaAdmin if skipOrgRoleSync is present
-	if s.info.AllowAssignGrafanaAdmin && s.info.SkipOrgRoleSync {
+	if info.AllowAssignGrafanaAdmin && info.SkipOrgRoleSync {
 		s.log.Debug("AllowAssignGrafanaAdmin and skipOrgRoleSync are both set, Grafana Admin role will not be synced, consider setting one or the other")
 	}
 
@@ -339,20 +301,20 @@ func (s *SocialGithub) UserInfo(ctx context.Context, client *http.Client, token 
 		userInfo.Name = data.Name
 	}
 
-	organizationsUrl := fmt.Sprintf(s.info.ApiUrl + "/orgs?per_page=100")
+	organizationsUrl := fmt.Sprintf(info.ApiUrl + "/orgs?per_page=100")
 
-	if !s.isTeamMember(ctx, client) {
+	if !s.IsTeamMember(ctx, client) {
 		return nil, ErrMissingTeamMembership.Errorf("User is not a member of any of the allowed teams: %v", s.teamIds)
 	}
 
-	if !s.isOrganizationMember(ctx, client, organizationsUrl) {
+	if !s.IsOrganizationMember(ctx, client, organizationsUrl) {
 		return nil, ErrMissingOrganizationMembership.Errorf(
 			"User is not a member of any of the allowed organizations: %v",
 			s.allowedOrganizations)
 	}
 
 	if userInfo.Email == "" {
-		userInfo.Email, err = s.fetchPrivateEmail(ctx, client)
+		userInfo.Email, err = s.FetchPrivateEmail(ctx, client)
 		if err != nil {
 			return nil, err
 		}

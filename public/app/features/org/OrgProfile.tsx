@@ -1,7 +1,6 @@
 import React from 'react';
 
-import { Input, Field, FieldSet, Button } from '@grafana/ui';
-import { Form } from 'app/core/components/Form/Form';
+import { Input, Field, FieldSet, Button, Form } from '@grafana/ui';
 import { contextSrv } from 'app/core/core';
 import { AccessControlAction } from 'app/types';
 

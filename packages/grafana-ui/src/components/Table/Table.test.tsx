@@ -4,85 +4,60 @@ import React from 'react';
 
 import { applyFieldOverrides, createTheme, DataFrame, FieldType, toDataFrame } from '@grafana/data';
 
-import { Icon } from '../Icon/Icon';
-
 import { Table } from './Table';
-import { CustomHeaderRendererProps, Props } from './types';
+import { Props } from './types';
 
-// mock transition styles to ensure consistent behaviour in unit tests
-jest.mock('@floating-ui/react', () => ({
-  ...jest.requireActual('@floating-ui/react'),
-  useTransitionStyles: () => ({
-    styles: {},
-  }),
-}));
-
-const dataFrameData = {
-  name: 'A',
-  fields: [
-    {
-      name: 'time',
-      type: FieldType.time,
-      values: [1609459200000, 1609470000000, 1609462800000, 1609466400000],
-      config: {
-        custom: {
-          filterable: false,
-        },
-      },
-    },
-    {
-      name: 'temperature',
-      type: FieldType.number,
-      values: [10, NaN, 11, 12],
-      config: {
-        custom: {
-          filterable: false,
-          headerComponent: (props: CustomHeaderRendererProps) => (
-            <span>
-              {props.defaultContent}
-              <Icon aria-label={'header-icon'} name={'ellipsis-v'} />
-            </span>
-          ),
-        },
-        links: [
-          {
-            targetBlank: true,
-            title: 'Value link',
-            url: '${__value.text}',
+function getDefaultDataFrame(): DataFrame {
+  const dataFrame = toDataFrame({
+    name: 'A',
+    fields: [
+      {
+        name: 'time',
+        type: FieldType.time,
+        values: [1609459200000, 1609470000000, 1609462800000, 1609466400000],
+        config: {
+          custom: {
+            filterable: false,
           },
-        ],
-      },
-    },
-    {
-      name: 'img',
-      type: FieldType.string,
-      values: ['data:image/png;base64,1', 'data:image/png;base64,2', 'data:image/png;base64,3'],
-      config: {
-        custom: {
-          filterable: false,
-          displayMode: 'image',
         },
-        links: [
-          {
-            targetBlank: true,
-            title: 'Image link',
-            url: '${__value.text}',
-          },
-        ],
       },
-    },
-  ],
-};
-
-const fullDataFrame = toDataFrame(dataFrameData);
-
-const emptyValuesDataFrame = toDataFrame({
-  ...dataFrameData,
-  // Remove all values
-  fields: dataFrameData.fields.map((field) => ({ ...field, values: [] })),
-});
-
-function getDataFrame(dataFrame: DataFrame): DataFrame {
+      {
+        name: 'temperature',
+        type: FieldType.number,
+        values: [10, NaN, 11, 12],
+        config: {
+          custom: {
+            filterable: false,
+          },
+          links: [
+            {
+              targetBlank: true,
+              title: 'Value link',
+              url: '${__value.text}',
+            },
+          ],
+        },
+      },
+      {
+        name: 'img',
+        type: FieldType.string,
+        values: ['data:image/png;base64,1', 'data:image/png;base64,2', 'data:image/png;base64,3'],
+        config: {
+          custom: {
+            filterable: false,
+            displayMode: 'image',
+          },
+          links: [
+            {
+              targetBlank: true,
+              title: 'Image link',
+              url: '${__value.text}',
+            },
+          ],
+        },
+      },
+    ],
+  });
   return applyOverrides(dataFrame);
 }
 
@@ -93,7 +68,7 @@ function applyOverrides(dataFrame: DataFrame) {
       defaults: {},
       overrides: [],
     },
-    replaceVariables: (value, vars, _format) => {
+    replaceVariables: (value, vars, format) => {
       return vars && value === '${__value.text}' ? '${__value.text} interpolation' : value;
     },
     timeZone: 'utc',
@@ -108,13 +83,12 @@ function getTestContext(propOverrides: Partial<Props> = {}) {
   const onColumnResize = jest.fn();
   const props: Props = {
     ariaLabel: 'aria-label',
-    data: getDataFrame(fullDataFrame),
+    data: getDefaultDataFrame(),
     height: 600,
     width: 800,
     onSortByChange,
     onCellFilterAdded,
     onColumnResize,
-    initialRowIndex: undefined,
   };
 
   Object.assign(props, propOverrides);
@@ -153,53 +127,16 @@ function getRowsData(rows: HTMLElement[]): Object[] {
 }
 
 describe('Table', () => {
-  describe('when mounted with EMPTY data', () => {
-    describe('and Standard Options `No value` value is NOT set', () => {
-      it('the default `no data` message should be displayed', () => {
-        getTestContext({ data: toDataFrame([]) });
-        expect(getTable()).toBeInTheDocument();
-        expect(screen.queryByRole('row')).not.toBeInTheDocument();
-        expect(screen.getByText(/No data/i)).toBeInTheDocument();
-      });
-    });
-
-    describe('and Standard Options `No value` value IS set', () => {
-      it('the `No value` Standard Options message should be displayed', () => {
-        const noValuesDisplayText = 'All healthy';
-        getTestContext({
-          data: toDataFrame([]),
-          fieldConfig: { defaults: { noValue: noValuesDisplayText }, overrides: [] },
-        });
-        expect(getTable()).toBeInTheDocument();
-        expect(screen.queryByRole('row')).not.toBeInTheDocument();
-        expect(screen.getByText(noValuesDisplayText)).toBeInTheDocument();
-      });
+  describe('when mounted without data', () => {
+    it('then no data to show should be displayed', () => {
+      getTestContext({ data: toDataFrame([]) });
+      expect(getTable()).toBeInTheDocument();
+      expect(screen.queryByRole('row')).not.toBeInTheDocument();
+      expect(screen.getByText(/No data/i)).toBeInTheDocument();
     });
   });
 
   describe('when mounted with data', () => {
-    describe('but empty values', () => {
-      describe('and Standard Options `No value` value is NOT set', () => {
-        it('the default `no data` message should be displayed', () => {
-          getTestContext({ data: getDataFrame(emptyValuesDataFrame) });
-          expect(getTable()).toBeInTheDocument();
-          expect(screen.getByText(/No data/i)).toBeInTheDocument();
-        });
-      });
-
-      describe('and Standard Options `No value` value IS set', () => {
-        it('the `No value` Standard Options message should be displayed', () => {
-          const noValuesDisplayText = 'All healthy';
-          getTestContext({
-            data: getDataFrame(emptyValuesDataFrame),
-            fieldConfig: { defaults: { noValue: noValuesDisplayText }, overrides: [] },
-          });
-          expect(getTable()).toBeInTheDocument();
-          expect(screen.getByText(noValuesDisplayText)).toBeInTheDocument();
-        });
-      });
-    });
-
     it('then correct rows should be rendered', () => {
       getTestContext();
       expect(getTable()).toBeInTheDocument();
@@ -243,19 +180,6 @@ describe('Table', () => {
         { time: '2021-01-01 00:00:00', temperature: '10', link: '${__value.text} interpolation' },
         { time: '2021-01-01 03:00:00', temperature: 'NaN', link: '${__value.text} interpolation' },
       ]);
-    });
-  });
-
-  describe('custom header', () => {
-    it('Should be rendered', async () => {
-      getTestContext();
-
-      await userEvent.click(within(getColumnHeader(/temperature/)).getByText(/temperature/i));
-      await userEvent.click(within(getColumnHeader(/temperature/)).getByText(/temperature/i));
-
-      const rows = within(getTable()).getAllByRole('row');
-      expect(rows).toHaveLength(5);
-      expect(within(rows[0]).getByLabelText('header-icon')).toBeInTheDocument();
     });
   });
 
@@ -418,7 +342,7 @@ describe('Table', () => {
       const onColumnResize = jest.fn();
       const props: Props = {
         ariaLabel: 'aria-label',
-        data: getDataFrame(fullDataFrame),
+        data: getDefaultDataFrame(),
         height: 600,
         width: 800,
         onSortByChange,
@@ -560,7 +484,7 @@ describe('Table', () => {
       const onColumnResize = jest.fn();
       const props: Props = {
         ariaLabel: 'aria-label',
-        data: getDataFrame(fullDataFrame),
+        data: getDefaultDataFrame(),
         height: 600,
         width: 800,
         onSortByChange,
@@ -616,7 +540,7 @@ describe('Table', () => {
           })
         );
 
-      const defaultFrame = getDataFrame(fullDataFrame);
+      const defaultFrame = getDefaultDataFrame();
 
       getTestContext({
         data: applyOverrides({
@@ -731,21 +655,6 @@ describe('Table', () => {
       await userEvent.click(within(rows[1]).getByLabelText('Expand row'));
       subTable = screen.getAllByRole('table')[2];
       expect(subTable.style.height).toBe('108px');
-    });
-  });
-
-  describe('when mounted with scrolled to specific row', () => {
-    it('the row should be visible', async () => {
-      getTestContext({
-        initialRowIndex: 2,
-      });
-      expect(getTable()).toBeInTheDocument();
-
-      const rows = within(getTable()).getAllByRole('row');
-      expect(rows).toHaveLength(5);
-
-      let selected = within(getTable()).getByRole('row', { selected: true });
-      expect(selected).toBeVisible();
     });
   });
 });

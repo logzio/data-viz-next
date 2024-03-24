@@ -20,14 +20,14 @@ import {
 } from '@grafana/data';
 import { DataSourceWithBackend, getBackendSrv, getGrafanaLiveSrv, getTemplateSrv, TemplateSrv } from '@grafana/runtime';
 
-import { Scenario, TestDataDataQuery, TestDataQueryType } from './dataquery.gen';
+import { Scenario, TestData, TestDataQueryType } from './dataquery.gen';
 import { queryMetricTree } from './metricTree';
 import { generateRandomEdges, generateRandomNodes, savedNodesResponse } from './nodeGraphUtils';
 import { runStream } from './runStreams';
 import { flameGraphData, flameGraphDataDiff } from './testData/flameGraphResponse';
 import { TestDataVariableSupport } from './variables';
 
-export class TestDataDataSource extends DataSourceWithBackend<TestDataDataQuery> {
+export class TestDataDataSource extends DataSourceWithBackend<TestData> {
   scenariosCache?: Promise<Scenario[]>;
 
   constructor(
@@ -40,7 +40,7 @@ export class TestDataDataSource extends DataSourceWithBackend<TestDataDataQuery>
       getDefaultQuery: () => ({ scenarioId: TestDataQueryType.Annotations, lines: 10 }),
 
       // Make sure annotations have scenarioId set
-      prepareAnnotation: (old: AnnotationQuery<TestDataDataQuery>) => {
+      prepareAnnotation: (old: AnnotationQuery<TestData>) => {
         if (old.target?.scenarioId?.length) {
           return old;
         }
@@ -56,15 +56,15 @@ export class TestDataDataSource extends DataSourceWithBackend<TestDataDataQuery>
     };
   }
 
-  getDefaultQuery(): Partial<TestDataDataQuery> {
+  getDefaultQuery(): Partial<TestData> {
     return {
       scenarioId: TestDataQueryType.RandomWalk,
       seriesCount: 1,
     };
   }
 
-  query(options: DataQueryRequest<TestDataDataQuery>): Observable<DataQueryResponse> {
-    const backendQueries: TestDataDataQuery[] = [];
+  query(options: DataQueryRequest<TestData>): Observable<DataQueryResponse> {
+    const backendQueries: TestData[] = [];
     const streams: Array<Observable<DataQueryResponse>> = [];
 
     // Start streams and prepare queries
@@ -141,7 +141,7 @@ export class TestDataDataSource extends DataSourceWithBackend<TestDataDataQuery>
     return merge(...streams);
   }
 
-  resolveTemplateVariables(query: TestDataDataQuery, scopedVars: ScopedVars) {
+  resolveTemplateVariables(query: TestData, scopedVars: ScopedVars) {
     if (query.labels) {
       query.labels = this.templateSrv.replace(query.labels, scopedVars);
     }
@@ -162,15 +162,12 @@ export class TestDataDataSource extends DataSourceWithBackend<TestDataDataQuery>
     }
   }
 
-  applyTemplateVariables(query: TestDataDataQuery, scopedVars: ScopedVars): TestDataDataQuery {
+  applyTemplateVariables(query: TestData, scopedVars: ScopedVars): TestData {
     this.resolveTemplateVariables(query, scopedVars);
     return query;
   }
 
-  annotationDataTopicTest(
-    target: TestDataDataQuery,
-    req: DataQueryRequest<TestDataDataQuery>
-  ): Observable<DataQueryResponse> {
+  annotationDataTopicTest(target: TestData, req: DataQueryRequest<TestData>): Observable<DataQueryResponse> {
     const events = this.buildFakeAnnotationEvents(req.range, target.lines ?? 10);
     const dataFrame = new ArrayDataFrame(events);
     dataFrame.meta = { dataTopic: DataTopic.Annotations };
@@ -195,7 +192,7 @@ export class TestDataDataSource extends DataSourceWithBackend<TestDataDataQuery>
     return events;
   }
 
-  getQueryDisplayText(query: TestDataDataQuery) {
+  getQueryDisplayText(query: TestData) {
     const scenario = query.scenarioId ?? 'Default scenario';
 
     if (query.alias) {
@@ -220,10 +217,7 @@ export class TestDataDataSource extends DataSourceWithBackend<TestDataDataQuery>
     return this.scenariosCache;
   }
 
-  variablesQuery(
-    target: TestDataDataQuery,
-    options: DataQueryRequest<TestDataDataQuery>
-  ): Observable<DataQueryResponse> {
+  variablesQuery(target: TestData, options: DataQueryRequest<TestData>): Observable<DataQueryResponse> {
     const query = target.stringInput ?? '';
     const interpolatedQuery = this.templateSrv.replace(query, getSearchFilterScopedVar({ query, wildcardChar: '*' }));
     const children = queryMetricTree(interpolatedQuery);
@@ -233,21 +227,18 @@ export class TestDataDataSource extends DataSourceWithBackend<TestDataDataQuery>
     return of({ data: [dataFrame] }).pipe(delay(100));
   }
 
-  nodesQuery(target: TestDataDataQuery, options: DataQueryRequest<TestDataDataQuery>): Observable<DataQueryResponse> {
+  nodesQuery(target: TestData, options: DataQueryRequest<TestData>): Observable<DataQueryResponse> {
     const type = target.nodes?.type || 'random';
     let frames: DataFrame[];
     switch (type) {
       case 'random':
-        frames = generateRandomNodes(target.nodes?.count, target.nodes?.seed);
+        frames = generateRandomNodes(target.nodes?.count);
         break;
-      case 'response_small':
-        frames = savedNodesResponse('small');
-        break;
-      case 'response_medium':
-        frames = savedNodesResponse('medium');
+      case 'response':
+        frames = savedNodesResponse();
         break;
       case 'random edges':
-        frames = [generateRandomEdges(target.nodes?.count, target.nodes?.seed)];
+        frames = [generateRandomEdges(target.nodes?.count)];
         break;
       default:
         throw new Error(`Unknown node_graph sub type ${type}`);
@@ -256,12 +247,12 @@ export class TestDataDataSource extends DataSourceWithBackend<TestDataDataQuery>
     return of({ data: frames }).pipe(delay(100));
   }
 
-  flameGraphQuery(target: TestDataDataQuery): Observable<DataQueryResponse> {
+  flameGraphQuery(target: TestData): Observable<DataQueryResponse> {
     const data = target.flamegraphDiff ? flameGraphDataDiff : flameGraphData;
     return of({ data: [{ ...data, refId: target.refId }] }).pipe(delay(100));
   }
 
-  trace(options: DataQueryRequest<TestDataDataQuery>): Observable<DataQueryResponse> {
+  trace(options: DataQueryRequest<TestData>): Observable<DataQueryResponse> {
     const frame = new MutableDataFrame({
       meta: {
         preferredVisualisationType: 'trace',
@@ -323,10 +314,7 @@ export class TestDataDataSource extends DataSourceWithBackend<TestDataDataQuery>
     return of({ data: [frame] }).pipe(delay(100));
   }
 
-  rawFrameQuery(
-    target: TestDataDataQuery,
-    options: DataQueryRequest<TestDataDataQuery>
-  ): Observable<DataQueryResponse> {
+  rawFrameQuery(target: TestData, options: DataQueryRequest<TestData>): Observable<DataQueryResponse> {
     try {
       const data = JSON.parse(target.rawFrameContent ?? '[]').map((v: any) => {
         const f = toDataFrame(v);
@@ -342,10 +330,7 @@ export class TestDataDataSource extends DataSourceWithBackend<TestDataDataQuery>
     }
   }
 
-  serverErrorQuery(
-    target: TestDataDataQuery,
-    options: DataQueryRequest<TestDataDataQuery>
-  ): Observable<DataQueryResponse> | null {
+  serverErrorQuery(target: TestData, options: DataQueryRequest<TestData>): Observable<DataQueryResponse> | null {
     const { errorType } = target;
 
     if (errorType === 'server_panic') {
@@ -365,10 +350,7 @@ export class TestDataDataSource extends DataSourceWithBackend<TestDataDataQuery>
   }
 }
 
-function runGrafanaAPI(
-  target: TestDataDataQuery,
-  req: DataQueryRequest<TestDataDataQuery>
-): Observable<DataQueryResponse> {
+function runGrafanaAPI(target: TestData, req: DataQueryRequest<TestData>): Observable<DataQueryResponse> {
   const url = `/api/${target.stringInput}`;
   return from(
     getBackendSrv()
@@ -385,10 +367,7 @@ function runGrafanaAPI(
 
 let liveQueryCounter = 1000;
 
-function runGrafanaLiveQuery(
-  target: TestDataDataQuery,
-  req: DataQueryRequest<TestDataDataQuery>
-): Observable<DataQueryResponse> {
+function runGrafanaLiveQuery(target: TestData, req: DataQueryRequest<TestData>): Observable<DataQueryResponse> {
   if (!target.channel) {
     throw new Error(`Missing channel config`);
   }

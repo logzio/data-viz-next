@@ -19,7 +19,6 @@ import (
 )
 
 func TestTimeSeriesFilter(t *testing.T) {
-	service := &Service{}
 	t.Run("parses params", func(t *testing.T) {
 		query := &cloudMonitoringTimeSeriesList{parameters: &dataquery.TimeSeriesList{}}
 		query.setParams(time.Time{}, time.Time{}, 0, 0)
@@ -64,7 +63,7 @@ func TestTimeSeriesFilter(t *testing.T) {
 
 		res := &backend.DataResponse{}
 		query := &cloudMonitoringTimeSeriesList{params: url.Values{}, parameters: &dataquery.TimeSeriesList{}}
-		err = query.parseResponse(res, data, "", service.logger)
+		err = query.parseResponse(res, data, "")
 		require.NoError(t, err)
 		frames := res.Frames
 		require.Len(t, frames, 1)
@@ -87,7 +86,7 @@ func TestTimeSeriesFilter(t *testing.T) {
 		assert.Equal(t, 3, len(data.TimeSeries))
 		res := &backend.DataResponse{}
 		query := &cloudMonitoringTimeSeriesList{params: url.Values{}, parameters: &dataquery.TimeSeriesList{}}
-		err = query.parseResponse(res, data, "", service.logger)
+		err = query.parseResponse(res, data, "")
 		require.NoError(t, err)
 
 		field := res.Frames[0].Fields[1]
@@ -129,7 +128,7 @@ func TestTimeSeriesFilter(t *testing.T) {
 		query := &cloudMonitoringTimeSeriesList{params: url.Values{}, parameters: &dataquery.TimeSeriesList{GroupBys: []string{
 			"metric.label.instance_name", "resource.label.zone",
 		}}}
-		err = query.parseResponse(res, data, "", service.logger)
+		err = query.parseResponse(res, data, "")
 		require.NoError(t, err)
 		frames := res.Frames
 		require.NoError(t, err)
@@ -154,7 +153,7 @@ func TestTimeSeriesFilter(t *testing.T) {
 				},
 				aliasBy: "{{metric.type}} - {{metric.label.instance_name}} - {{resource.label.zone}}",
 			}
-			err = query.parseResponse(res, data, "", service.logger)
+			err = query.parseResponse(res, data, "")
 			require.NoError(t, err)
 			frames := res.Frames
 			require.NoError(t, err)
@@ -171,7 +170,7 @@ func TestTimeSeriesFilter(t *testing.T) {
 				parameters: &dataquery.TimeSeriesList{GroupBys: []string{"metric.label.instance_name", "resource.label.zone"}},
 				aliasBy:    "metric {{metric.name}} service {{metric.service}}",
 			}
-			err = query.parseResponse(res, data, "", service.logger)
+			err = query.parseResponse(res, data, "")
 			require.NoError(t, err)
 			frames := res.Frames
 			require.NoError(t, err)
@@ -193,7 +192,7 @@ func TestTimeSeriesFilter(t *testing.T) {
 			parameters: &dataquery.TimeSeriesList{},
 			aliasBy:    "{{bucket}}",
 		}
-		err = query.parseResponse(res, data, "", service.logger)
+		err = query.parseResponse(res, data, "")
 		require.NoError(t, err)
 		frames := res.Frames
 		require.NoError(t, err)
@@ -238,7 +237,7 @@ func TestTimeSeriesFilter(t *testing.T) {
 			parameters: &dataquery.TimeSeriesList{},
 			aliasBy:    "{{bucket}}",
 		}
-		err = query.parseResponse(res, data, "", service.logger)
+		err = query.parseResponse(res, data, "")
 		require.NoError(t, err)
 		frames := res.Frames
 		require.NoError(t, err)
@@ -276,7 +275,7 @@ func TestTimeSeriesFilter(t *testing.T) {
 			parameters: &dataquery.TimeSeriesList{},
 			aliasBy:    "{{bucket}}",
 		}
-		err = query.parseResponse(res, data, "", service.logger)
+		err = query.parseResponse(res, data, "")
 		require.NoError(t, err)
 		require.NoError(t, err)
 		assert.Equal(t, 3, len(res.Frames))
@@ -316,7 +315,7 @@ func TestTimeSeriesFilter(t *testing.T) {
 				parameters: &dataquery.TimeSeriesList{},
 				aliasBy:    "{{metadata.system_labels.test}}",
 			}
-			err = query.parseResponse(res, data, "", service.logger)
+			err = query.parseResponse(res, data, "")
 			require.NoError(t, err)
 			frames := res.Frames
 			require.NoError(t, err)
@@ -334,7 +333,7 @@ func TestTimeSeriesFilter(t *testing.T) {
 				parameters: &dataquery.TimeSeriesList{},
 				aliasBy:    "{{metadata.system_labels.test2}}",
 			}
-			err = query.parseResponse(res, data, "", service.logger)
+			err = query.parseResponse(res, data, "")
 			require.NoError(t, err)
 			frames := res.Frames
 			require.NoError(t, err)
@@ -350,7 +349,7 @@ func TestTimeSeriesFilter(t *testing.T) {
 			assert.Equal(t, 1, len(data.TimeSeries))
 			res := &backend.DataResponse{}
 			query := &cloudMonitoringTimeSeriesList{params: url.Values{}, parameters: &dataquery.TimeSeriesList{}}
-			err = query.parseResponse(res, data, "", service.logger)
+			err = query.parseResponse(res, data, "")
 			require.NoError(t, err)
 			frames := res.Frames
 			require.NoError(t, err)
@@ -363,7 +362,7 @@ func TestTimeSeriesFilter(t *testing.T) {
 			assert.Equal(t, 3, len(data.TimeSeries))
 			res := &backend.DataResponse{}
 			query := &cloudMonitoringTimeSeriesList{params: url.Values{}, parameters: &dataquery.TimeSeriesList{}}
-			err = query.parseResponse(res, data, "", service.logger)
+			err = query.parseResponse(res, data, "")
 			require.NoError(t, err)
 			frames := res.Frames
 			require.NoError(t, err)
@@ -392,7 +391,7 @@ func TestTimeSeriesFilter(t *testing.T) {
 					To:   fromStart.Add(34 * time.Minute),
 				},
 			}
-			err = query.parseResponse(res, data, "", service.logger)
+			err = query.parseResponse(res, data, "")
 			require.NoError(t, err)
 			frames := res.Frames
 			assert.Equal(t, "test-proj - asia-northeast1-c - 6724404429462225363 - 200", frames[0].Fields[1].Name)
@@ -413,7 +412,7 @@ func TestTimeSeriesFilter(t *testing.T) {
 				GraphPeriod: strPtr("60s"),
 			},
 		}
-		err = query.parseResponse(res, data, "", service.logger)
+		err = query.parseResponse(res, data, "")
 		require.NoError(t, err)
 		assert.Equal(t, "value_utilization_sum", res.Frames[0].Fields[1].Name)
 	})
@@ -424,7 +423,7 @@ func TestTimeSeriesFilter(t *testing.T) {
 		assert.Equal(t, 3, len(data.TimeSeries))
 		res := &backend.DataResponse{}
 		query := &cloudMonitoringTimeSeriesList{params: url.Values{}, parameters: &dataquery.TimeSeriesList{}}
-		err = query.parseResponse(res, data, "", service.logger)
+		err = query.parseResponse(res, data, "")
 		require.NoError(t, err)
 		frames := res.Frames
 		custom, ok := frames[0].Meta.Custom.(map[string]any)
@@ -442,7 +441,7 @@ func TestTimeSeriesFilter(t *testing.T) {
 		query := &cloudMonitoringTimeSeriesList{params: url.Values{
 			"aggregation.alignmentPeriod": []string{"+60s"},
 		}, parameters: &dataquery.TimeSeriesList{}}
-		err = query.parseResponse(res, data, "", service.logger)
+		err = query.parseResponse(res, data, "")
 		require.NoError(t, err)
 		frames := res.Frames
 		timeField := frames[0].Fields[0]
@@ -456,7 +455,7 @@ func TestTimeSeriesFilter(t *testing.T) {
 			assert.Equal(t, 1, len(data.TimeSeries))
 
 			res := &backend.DataResponse{}
-			require.NoError(t, (&cloudMonitoringTimeSeriesList{parameters: &dataquery.TimeSeriesList{GroupBys: []string{"test_group_by"}}}).parseResponse(res, data, "test_query", service.logger))
+			require.NoError(t, (&cloudMonitoringTimeSeriesList{parameters: &dataquery.TimeSeriesList{GroupBys: []string{"test_group_by"}}}).parseResponse(res, data, "test_query"))
 
 			require.NotNil(t, res.Frames[0].Meta)
 			assert.Equal(t, sdkdata.FrameMeta{
@@ -479,7 +478,7 @@ func TestTimeSeriesFilter(t *testing.T) {
 			assert.Equal(t, 1, len(data.TimeSeries))
 
 			res := &backend.DataResponse{}
-			require.NoError(t, (&cloudMonitoringTimeSeriesList{parameters: &dataquery.TimeSeriesList{GroupBys: []string{"test_group_by"}}}).parseResponse(res, data, "test_query", service.logger))
+			require.NoError(t, (&cloudMonitoringTimeSeriesList{parameters: &dataquery.TimeSeriesList{GroupBys: []string{"test_group_by"}}}).parseResponse(res, data, "test_query"))
 
 			require.NotNil(t, res.Frames[0].Meta)
 			assert.Equal(t, sdkdata.FrameMeta{
@@ -502,7 +501,7 @@ func TestTimeSeriesFilter(t *testing.T) {
 			assert.Equal(t, 1, len(data.TimeSeries))
 
 			res := &backend.DataResponse{}
-			require.NoError(t, (&cloudMonitoringTimeSeriesList{parameters: &dataquery.TimeSeriesList{GroupBys: []string{"test_group_by"}}}).parseResponse(res, data, "test_query", service.logger))
+			require.NoError(t, (&cloudMonitoringTimeSeriesList{parameters: &dataquery.TimeSeriesList{GroupBys: []string{"test_group_by"}}}).parseResponse(res, data, "test_query"))
 
 			require.NotNil(t, res.Frames[0].Meta)
 			assert.Equal(t, sdkdata.FrameMeta{

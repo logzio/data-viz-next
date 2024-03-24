@@ -269,7 +269,10 @@ func TestAPIDeletePublicDashboard(t *testing.T) {
 			assert.Equal(t, test.ExpectedHttpResponse, response.Code)
 
 			if test.ExpectedHttpResponse == http.StatusOK {
-				assert.Equal(t, []byte(nil), response.Body.Bytes())
+				var jsonResp any
+				err := json.Unmarshal(response.Body.Bytes(), &jsonResp)
+				require.NoError(t, err)
+				assert.Equal(t, jsonResp, nil)
 			}
 
 			if !test.ShouldCallService {

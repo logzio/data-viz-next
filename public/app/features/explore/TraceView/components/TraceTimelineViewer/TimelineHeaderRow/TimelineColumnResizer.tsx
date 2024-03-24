@@ -16,10 +16,12 @@ import { css } from '@emotion/css';
 import cx from 'classnames';
 import * as React from 'react';
 
+import { stylesFactory } from '@grafana/ui';
+
 import { TNil } from '../../types';
 import DraggableManager, { DraggableBounds, DraggingUpdate } from '../../utils/DraggableManager';
 
-export const getStyles = () => {
+export const getStyles = stylesFactory(() => {
   return {
     TimelineColumnResizer: css`
       left: 0;
@@ -93,7 +95,7 @@ export const getStyles = () => {
       }
     `,
   };
-};
+});
 
 export type TimelineColumnResizerProps = {
   min: number;

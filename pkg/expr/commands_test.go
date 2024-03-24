@@ -210,7 +210,7 @@ func TestReduceExecute(t *testing.T) {
 	})
 }
 
-func randomReduceFunc() mathexp.ReducerID {
+func randomReduceFunc() string {
 	res := mathexp.GetSupportedReduceFuncs()
 	return res[rand.Intn(len(res))]
 }

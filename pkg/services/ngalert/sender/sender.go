@@ -43,7 +43,7 @@ type ExternalAlertmanager struct {
 
 type ExternalAMcfg struct {
 	URL     string
-	Headers http.Header
+	Headers map[string]string
 }
 
 type Option func(*ExternalAlertmanager)
@@ -127,14 +127,13 @@ func (s *ExternalAlertmanager) ApplyConfig(orgId, id int64, alertmanagers []Exte
 }
 
 func (s *ExternalAlertmanager) Run() {
-	logger := s.logger
 	s.wg.Add(2)
 
 	go func() {
-		logger.Info("Initiating communication with a group of external Alertmanagers")
+		s.logger.Info("Initiating communication with a group of external Alertmanagers")
 
 		if err := s.sdManager.Run(); err != nil {
-			logger.Error("Failed to start the sender service discovery manager", "error", err)
+			s.logger.Error("Failed to start the sender service discovery manager", "error", err)
 		}
 		s.wg.Done()
 	}()
@@ -177,9 +176,9 @@ func (s *ExternalAlertmanager) DroppedAlertmanagers() []*url.URL {
 	return s.manager.DroppedAlertmanagers()
 }
 
-func buildNotifierConfig(alertmanagers []ExternalAMcfg) (*config.Config, map[string]http.Header, error) {
+func buildNotifierConfig(alertmanagers []ExternalAMcfg) (*config.Config, map[string]map[string]string, error) {
 	amConfigs := make([]*config.AlertmanagerConfig, 0, len(alertmanagers))
-	headers := map[string]http.Header{}
+	headers := map[string]map[string]string{}
 	for i, am := range alertmanagers {
 		u, err := url.Parse(am.URL)
 		if err != nil {

@@ -14,6 +14,7 @@ import (
 	"github.com/grafana/grafana/pkg/services/authn"
 	"github.com/grafana/grafana/pkg/services/login"
 	"github.com/grafana/grafana/pkg/services/org"
+	"github.com/grafana/grafana/pkg/services/user"
 	"github.com/grafana/grafana/pkg/util"
 	"github.com/grafana/grafana/pkg/util/errutil"
 )
@@ -28,15 +29,17 @@ var (
 var _ authn.HookClient = new(APIKey)
 var _ authn.ContextAwareClient = new(APIKey)
 
-func ProvideAPIKey(apiKeyService apikey.Service) *APIKey {
+func ProvideAPIKey(apiKeyService apikey.Service, userService user.Service) *APIKey {
 	return &APIKey{
 		log:           log.New(authn.ClientAPIKey),
+		userService:   userService,
 		apiKeyService: apiKeyService,
 	}
 }
 
 type APIKey struct {
 	log           log.Logger
+	userService   user.Service
 	apiKeyService apikey.Service
 }
 
@@ -78,12 +81,16 @@ func (s *APIKey) Authenticate(ctx context.Context, r *authn.Request) (*authn.Ide
 		}, nil
 	}
 
-	return &authn.Identity{
-		ID:              authn.NamespacedID(authn.NamespaceServiceAccount, *apiKey.ServiceAccountId),
-		OrgID:           apiKey.OrgID,
-		AuthenticatedBy: login.APIKeyAuthModule,
-		ClientParams:    authn.ClientParams{FetchSyncedUser: true, SyncPermissions: true},
-	}, nil
+	usr, err := s.userService.GetSignedInUserWithCacheCtx(ctx, &user.GetSignedInUserQuery{
+		UserID: *apiKey.ServiceAccountId,
+		OrgID:  apiKey.OrgID,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return authn.IdentityFromSignedInUser(authn.NamespacedID(authn.NamespaceServiceAccount, usr.UserID), usr, authn.ClientParams{SyncPermissions: true}, login.APIKeyAuthModule), nil
 }
 
 func (s *APIKey) getAPIKey(ctx context.Context, token string) (*apikey.APIKey, error) {

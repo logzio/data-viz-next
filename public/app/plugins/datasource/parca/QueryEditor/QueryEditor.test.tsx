@@ -1,10 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { of } from 'rxjs';
 
 import { CoreApp, DataSourcePluginMeta, PluginType } from '@grafana/data';
-import { BackendSrv, getBackendSrv, setBackendSrv } from '@grafana/runtime';
 
 import { ParcaDataSource } from '../datasource';
 import { ProfileTypeMessage } from '../types';
@@ -12,25 +10,13 @@ import { ProfileTypeMessage } from '../types';
 import { Props, QueryEditor } from './QueryEditor';
 
 describe('QueryEditor', () => {
-  let origBackendSrv: BackendSrv;
-  const fetchMock = jest.fn().mockReturnValue(of({ data: [] }));
-
-  beforeEach(() => {
-    origBackendSrv = getBackendSrv();
-  });
-
-  afterEach(() => {
-    setBackendSrv(origBackendSrv);
-  });
-
   it('should render without error', async () => {
     setup();
 
-    expect(await screen.findByText(/process_cpu - cpu/)).toBeDefined();
+    expect(screen.findByText('process_cpu:cpu')).toBeDefined();
   });
 
   it('should render options', async () => {
-    setBackendSrv({ ...origBackendSrv, fetch: fetchMock });
     setup();
     await openOptions();
     expect(screen.getByText(/Metric/)).toBeDefined();
@@ -39,7 +25,6 @@ describe('QueryEditor', () => {
   });
 
   it('should render correct options outside of explore', async () => {
-    setBackendSrv({ ...origBackendSrv, fetch: fetchMock });
     setup({ props: { app: CoreApp.Dashboard } });
     await openOptions();
     expect(screen.getByText(/Metric/)).toBeDefined();

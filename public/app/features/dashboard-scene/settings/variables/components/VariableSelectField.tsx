@@ -1,5 +1,5 @@
 import { css } from '@emotion/css';
-import React, { PropsWithChildren, useId } from 'react';
+import React, { PropsWithChildren, ReactElement, useId } from 'react';
 
 import { GrafanaTheme2, SelectableValue } from '@grafana/data';
 import { Field, Select, useStyles2 } from '@grafana/ui';
@@ -22,22 +22,23 @@ export function VariableSelectField({
   onChange,
   testId,
   width,
-}: PropsWithChildren<VariableSelectFieldProps<any>>) {
+}: PropsWithChildren<VariableSelectFieldProps<any>>): ReactElement {
   const styles = useStyles2(getStyles);
   const uniqueId = useId();
   const inputId = `variable-select-input-${name}-${uniqueId}`;
 
   return (
     <Field label={name} description={description} htmlFor={inputId}>
-      <Select
-        data-testid={testId}
-        inputId={inputId}
-        onChange={onChange}
-        value={value}
-        width={width ?? 30}
-        options={options}
-        className={styles.selectContainer}
-      />
+      <div data-testid={testId}>
+        <Select
+          inputId={inputId}
+          onChange={onChange}
+          value={value}
+          width={width ?? 30}
+          options={options}
+          className={styles.selectContainer}
+        />
+      </div>
     </Field>
   );
 }

@@ -35,14 +35,14 @@ var (
 // that HTTPServer needs
 func (hs *HTTPServer) declareFixedRoles() error {
 	// Declare plugins roles
-	if err := pluginaccesscontrol.DeclareRBACRoles(hs.accesscontrolService, hs.Cfg, hs.Features); err != nil {
+	if err := pluginaccesscontrol.DeclareRBACRoles(hs.accesscontrolService, hs.Cfg); err != nil {
 		return err
 	}
 
 	provisioningWriterRole := ac.RoleRegistration{
 		Role: ac.RoleDTO{
 			Name:        "fixed:provisioning:writer",
-			DisplayName: "Writer",
+			DisplayName: "Provisioning writer",
 			Description: "Reload provisioning.",
 			Group:       "Provisioning",
 			Permissions: []ac.Permission{
@@ -58,7 +58,7 @@ func (hs *HTTPServer) declareFixedRoles() error {
 	datasourcesExplorerRole := ac.RoleRegistration{
 		Role: ac.RoleDTO{
 			Name:        "fixed:datasources:explorer",
-			DisplayName: "Explorer",
+			DisplayName: "Data source explorer",
 			Description: "Enable the Explore feature. Data source permissions still apply; you can only query data sources for which you have query permissions.",
 			Group:       "Data sources",
 			Permissions: []ac.Permission{
@@ -77,7 +77,7 @@ func (hs *HTTPServer) declareFixedRoles() error {
 	datasourcesReaderRole := ac.RoleRegistration{
 		Role: ac.RoleDTO{
 			Name:        "fixed:datasources:reader",
-			DisplayName: "Reader",
+			DisplayName: "Data source reader",
 			Description: "Read and query all data sources.",
 			Group:       "Data sources",
 			Permissions: []ac.Permission{
@@ -97,7 +97,7 @@ func (hs *HTTPServer) declareFixedRoles() error {
 	builtInDatasourceReader := ac.RoleRegistration{
 		Role: ac.RoleDTO{
 			Name:        "fixed:datasources.builtin:reader",
-			DisplayName: "Built in reader",
+			DisplayName: "Built in data source reader",
 			Description: "Read and query Grafana's built in test data sources.",
 			Group:       "Data sources",
 			Permissions: []ac.Permission{
@@ -123,7 +123,7 @@ func (hs *HTTPServer) declareFixedRoles() error {
 	datasourcesCreatorRole := ac.RoleRegistration{
 		Role: ac.RoleDTO{
 			Name:        "fixed:datasources:creator",
-			DisplayName: "Creator",
+			DisplayName: "Data source creator",
 			Description: "Create data sources.",
 			Group:       "Data sources",
 			Permissions: []ac.Permission{
@@ -138,7 +138,7 @@ func (hs *HTTPServer) declareFixedRoles() error {
 	datasourcesWriterRole := ac.RoleRegistration{
 		Role: ac.RoleDTO{
 			Name:        "fixed:datasources:writer",
-			DisplayName: "Writer",
+			DisplayName: "Data source writer",
 			Description: "Create, update, delete, read, or query data sources.",
 			Group:       "Data sources",
 			Permissions: ac.ConcatPermissions(datasourcesReaderRole.Role.Permissions, []ac.Permission{
@@ -177,7 +177,7 @@ func (hs *HTTPServer) declareFixedRoles() error {
 	apikeyReaderRole := ac.RoleRegistration{
 		Role: ac.RoleDTO{
 			Name:        "fixed:apikeys:reader",
-			DisplayName: "Reader",
+			DisplayName: "APIKeys reader",
 			Description: "Gives access to read api keys.",
 			Group:       "API Keys",
 			Permissions: []ac.Permission{
@@ -193,7 +193,7 @@ func (hs *HTTPServer) declareFixedRoles() error {
 	apikeyWriterRole := ac.RoleRegistration{
 		Role: ac.RoleDTO{
 			Name:        "fixed:apikeys:writer",
-			DisplayName: "Writer",
+			DisplayName: "APIKeys writer",
 			Description: "Gives access to add and delete api keys.",
 			Group:       "API Keys",
 			Permissions: ac.ConcatPermissions(apikeyReaderRole.Role.Permissions, []ac.Permission{
@@ -212,7 +212,7 @@ func (hs *HTTPServer) declareFixedRoles() error {
 	orgReaderRole := ac.RoleRegistration{
 		Role: ac.RoleDTO{
 			Name:        "fixed:organization:reader",
-			DisplayName: "Reader",
+			DisplayName: "Organization reader",
 			Description: "Read an organization, such as its ID, name, address, or quotas.",
 			Group:       "Organizations",
 			Permissions: []ac.Permission{
@@ -226,7 +226,7 @@ func (hs *HTTPServer) declareFixedRoles() error {
 	orgWriterRole := ac.RoleRegistration{
 		Role: ac.RoleDTO{
 			Name:        "fixed:organization:writer",
-			DisplayName: "Writer",
+			DisplayName: "Organization writer",
 			Description: "Read an organization, its quotas, or its preferences. Update organization properties, or its preferences.",
 			Group:       "Organizations",
 			Permissions: ac.ConcatPermissions(orgReaderRole.Role.Permissions, []ac.Permission{
@@ -241,7 +241,7 @@ func (hs *HTTPServer) declareFixedRoles() error {
 	orgMaintainerRole := ac.RoleRegistration{
 		Role: ac.RoleDTO{
 			Name:        "fixed:organization:maintainer",
-			DisplayName: "Maintainer",
+			DisplayName: "Organization maintainer",
 			Description: "Create, read, write, or delete an organization. Read or write an organization's quotas. Needs to be assigned globally.",
 			Group:       "Organizations",
 			Permissions: ac.ConcatPermissions(orgReaderRole.Role.Permissions, []ac.Permission{
@@ -261,7 +261,7 @@ func (hs *HTTPServer) declareFixedRoles() error {
 	teamsCreatorRole := ac.RoleRegistration{
 		Role: ac.RoleDTO{
 			Name:        "fixed:teams:creator",
-			DisplayName: "Creator",
+			DisplayName: "Team creator",
 			Description: "Create teams and read organisation users (required to manage the created teams).",
 			Group:       "Teams",
 			Permissions: []ac.Permission{
@@ -275,7 +275,7 @@ func (hs *HTTPServer) declareFixedRoles() error {
 	teamsReaderRole := ac.RoleRegistration{
 		Role: ac.RoleDTO{
 			Name:        "fixed:teams:read",
-			DisplayName: "Reader",
+			DisplayName: "Team reader",
 			Description: "List all teams.",
 			Group:       "Teams",
 			Permissions: []ac.Permission{
@@ -288,7 +288,7 @@ func (hs *HTTPServer) declareFixedRoles() error {
 	teamsWriterRole := ac.RoleRegistration{
 		Role: ac.RoleDTO{
 			Name:        "fixed:teams:writer",
-			DisplayName: "Writer",
+			DisplayName: "Team writer",
 			Description: "Create, read, write, or delete a team as well as controlling team memberships.",
 			Group:       "Teams",
 			Permissions: []ac.Permission{
@@ -306,7 +306,7 @@ func (hs *HTTPServer) declareFixedRoles() error {
 	annotationsReaderRole := ac.RoleRegistration{
 		Role: ac.RoleDTO{
 			Name:        "fixed:annotations:reader",
-			DisplayName: "Reader",
+			DisplayName: "Annotation reader",
 			Description: "Read annotations and tags",
 			Group:       "Annotations",
 			Permissions: []ac.Permission{
@@ -336,7 +336,7 @@ func (hs *HTTPServer) declareFixedRoles() error {
 	annotationsWriterRole := ac.RoleRegistration{
 		Role: ac.RoleDTO{
 			Name:        "fixed:annotations:writer",
-			DisplayName: "Writer",
+			DisplayName: "Annotation writer",
 			Description: "Update all annotations.",
 			Group:       "Annotations",
 			Permissions: []ac.Permission{
@@ -389,7 +389,7 @@ func (hs *HTTPServer) declareFixedRoles() error {
 	dashboardsCreatorRole := ac.RoleRegistration{
 		Role: ac.RoleDTO{
 			Name:        "fixed:dashboards:creator",
-			DisplayName: "Creator",
+			DisplayName: "Dashboard creator",
 			Description: "Create dashboard in general folder.",
 			Group:       "Dashboards",
 			Permissions: []ac.Permission{
@@ -403,7 +403,7 @@ func (hs *HTTPServer) declareFixedRoles() error {
 	dashboardsReaderRole := ac.RoleRegistration{
 		Role: ac.RoleDTO{
 			Name:        "fixed:dashboards:reader",
-			DisplayName: "Reader",
+			DisplayName: "Dashboard reader",
 			Description: "Read all dashboards.",
 			Group:       "Dashboards",
 			Permissions: []ac.Permission{
@@ -416,7 +416,7 @@ func (hs *HTTPServer) declareFixedRoles() error {
 	dashboardsWriterRole := ac.RoleRegistration{
 		Role: ac.RoleDTO{
 			Name:        "fixed:dashboards:writer",
-			DisplayName: "Writer",
+			DisplayName: "Dashboard writer",
 			Group:       "Dashboards",
 			Description: "Create, read, write or delete all dashboards and their permissions.",
 			Permissions: ac.ConcatPermissions(dashboardsReaderRole.Role.Permissions, []ac.Permission{
@@ -433,7 +433,7 @@ func (hs *HTTPServer) declareFixedRoles() error {
 	foldersCreatorRole := ac.RoleRegistration{
 		Role: ac.RoleDTO{
 			Name:        "fixed:folders:creator",
-			DisplayName: "Creator",
+			DisplayName: "Folder creator",
 			Description: "Create folders.",
 			Group:       "Folders",
 			Permissions: []ac.Permission{
@@ -446,7 +446,7 @@ func (hs *HTTPServer) declareFixedRoles() error {
 	foldersReaderRole := ac.RoleRegistration{
 		Role: ac.RoleDTO{
 			Name:        "fixed:folders:reader",
-			DisplayName: "Reader",
+			DisplayName: "Folder reader",
 			Description: "Read all folders and dashboards.",
 			Group:       "Folders",
 			Permissions: []ac.Permission{
@@ -457,25 +457,10 @@ func (hs *HTTPServer) declareFixedRoles() error {
 		Grants: []string{"Admin"},
 	}
 
-	// Needed to be able to list permissions on the general folder for viewers, doesn't actually grant access to any resources
-	generalFolderReaderRole := ac.RoleRegistration{
-		Role: ac.RoleDTO{
-			Name:        "fixed:folders.general:reader",
-			DisplayName: "General folder reader",
-			Description: "Access the general (root) folder.",
-			Group:       "Folders",
-			Hidden:      true,
-			Permissions: []ac.Permission{
-				{Action: dashboards.ActionFoldersRead, Scope: dashboards.ScopeFoldersProvider.GetResourceScopeUID(ac.GeneralFolderUID)},
-			},
-		},
-		Grants: []string{string(org.RoleViewer)},
-	}
-
 	foldersWriterRole := ac.RoleRegistration{
 		Role: ac.RoleDTO{
 			Name:        "fixed:folders:writer",
-			DisplayName: "Writer",
+			DisplayName: "Folder writer",
 			Description: "Create, read, write or delete all folders and dashboards and their permissions.",
 			Group:       "Folders",
 			Permissions: ac.ConcatPermissions(
@@ -497,7 +482,7 @@ func (hs *HTTPServer) declareFixedRoles() error {
 	libraryPanelsCreatorRole := ac.RoleRegistration{
 		Role: ac.RoleDTO{
 			Name:        "fixed:library.panels:creator",
-			DisplayName: "Creator",
+			DisplayName: "Library panel creator",
 			Description: "Create library panel in general folder.",
 			Group:       "Library panels",
 			Permissions: []ac.Permission{
@@ -511,7 +496,7 @@ func (hs *HTTPServer) declareFixedRoles() error {
 	libraryPanelsReaderRole := ac.RoleRegistration{
 		Role: ac.RoleDTO{
 			Name:        "fixed:library.panels:reader",
-			DisplayName: "Reader",
+			DisplayName: "Library panel reader",
 			Description: "Read all library panels.",
 			Group:       "Library panels",
 			Permissions: []ac.Permission{
@@ -524,7 +509,7 @@ func (hs *HTTPServer) declareFixedRoles() error {
 	libraryPanelsGeneralReaderRole := ac.RoleRegistration{
 		Role: ac.RoleDTO{
 			Name:        "fixed:library.panels:general.reader",
-			DisplayName: "General reader",
+			DisplayName: "Library panel general reader",
 			Description: "Read all library panels in general folder.",
 			Group:       "Library panels",
 			Permissions: []ac.Permission{
@@ -537,7 +522,7 @@ func (hs *HTTPServer) declareFixedRoles() error {
 	libraryPanelsWriterRole := ac.RoleRegistration{
 		Role: ac.RoleDTO{
 			Name:        "fixed:library.panels:writer",
-			DisplayName: "Writer",
+			DisplayName: "Library panel writer",
 			Group:       "Library panels",
 			Description: "Create, read, write or delete all library panels and their permissions.",
 			Permissions: ac.ConcatPermissions(libraryPanelsReaderRole.Role.Permissions, []ac.Permission{
@@ -552,7 +537,7 @@ func (hs *HTTPServer) declareFixedRoles() error {
 	libraryPanelsGeneralWriterRole := ac.RoleRegistration{
 		Role: ac.RoleDTO{
 			Name:        "fixed:library.panels:general.writer",
-			DisplayName: "General writer",
+			DisplayName: "Library panel general writer",
 			Group:       "Library panels",
 			Description: "Create, read, write or delete all library panels and their permissions in the general folder.",
 			Permissions: ac.ConcatPermissions(libraryPanelsGeneralReaderRole.Role.Permissions, []ac.Permission{
@@ -580,7 +565,7 @@ func (hs *HTTPServer) declareFixedRoles() error {
 	featuremgmtReaderRole := ac.RoleRegistration{
 		Role: ac.RoleDTO{
 			Name:        "fixed:featuremgmt:reader",
-			DisplayName: "Reader",
+			DisplayName: "Feature Management reader",
 			Description: "Read feature toggles",
 			Group:       "Feature Management",
 			Permissions: []ac.Permission{
@@ -593,7 +578,7 @@ func (hs *HTTPServer) declareFixedRoles() error {
 	featuremgmtWriterRole := ac.RoleRegistration{
 		Role: ac.RoleDTO{
 			Name:        "fixed:featuremgmt:writer",
-			DisplayName: "Writer",
+			DisplayName: "Feature Management writer",
 			Description: "Write feature toggles",
 			Group:       "Feature Management",
 			Permissions: []ac.Permission{
@@ -608,7 +593,7 @@ func (hs *HTTPServer) declareFixedRoles() error {
 		orgMaintainerRole, teamsCreatorRole, teamsWriterRole, teamsReaderRole, datasourcesExplorerRole,
 		annotationsReaderRole, dashboardAnnotationsWriterRole, annotationsWriterRole,
 		dashboardsCreatorRole, dashboardsReaderRole, dashboardsWriterRole,
-		foldersCreatorRole, foldersReaderRole, generalFolderReaderRole, foldersWriterRole, apikeyReaderRole, apikeyWriterRole,
+		foldersCreatorRole, foldersReaderRole, foldersWriterRole, apikeyReaderRole, apikeyWriterRole,
 		publicDashboardsWriterRole, featuremgmtReaderRole, featuremgmtWriterRole, libraryPanelsCreatorRole,
 		libraryPanelsReaderRole, libraryPanelsWriterRole, libraryPanelsGeneralReaderRole, libraryPanelsGeneralWriterRole}
 
@@ -616,12 +601,12 @@ func (hs *HTTPServer) declareFixedRoles() error {
 		allAnnotationsReaderRole := ac.RoleRegistration{
 			Role: ac.RoleDTO{
 				Name:        "fixed:annotations.all:reader",
-				DisplayName: "Reader",
+				DisplayName: "Annotation reader",
 				Description: "Read all annotations and tags",
 				Group:       "Annotations",
 				Permissions: []ac.Permission{
 					{Action: ac.ActionAnnotationsRead, Scope: ac.ScopeAnnotationsTypeOrganization},
-					{Action: ac.ActionAnnotationsRead, Scope: dashboards.ScopeFoldersAll},
+					{Action: ac.ActionAnnotationsRead, Scope: dashboards.ScopeDashboardsAll},
 				},
 			},
 			Grants: []string{string(org.RoleAdmin)},
@@ -630,16 +615,16 @@ func (hs *HTTPServer) declareFixedRoles() error {
 		allAnnotationsWriterRole := ac.RoleRegistration{
 			Role: ac.RoleDTO{
 				Name:        "fixed:annotations.all:writer",
-				DisplayName: "Writer",
+				DisplayName: "Annotation writer",
 				Description: "Update all annotations.",
 				Group:       "Annotations",
 				Permissions: []ac.Permission{
 					{Action: ac.ActionAnnotationsCreate, Scope: ac.ScopeAnnotationsTypeOrganization},
-					{Action: ac.ActionAnnotationsCreate, Scope: dashboards.ScopeFoldersAll},
+					{Action: ac.ActionAnnotationsCreate, Scope: dashboards.ScopeDashboardsAll},
 					{Action: ac.ActionAnnotationsDelete, Scope: ac.ScopeAnnotationsTypeOrganization},
-					{Action: ac.ActionAnnotationsDelete, Scope: dashboards.ScopeFoldersAll},
+					{Action: ac.ActionAnnotationsDelete, Scope: dashboards.ScopeDashboardsAll},
 					{Action: ac.ActionAnnotationsWrite, Scope: ac.ScopeAnnotationsTypeOrganization},
-					{Action: ac.ActionAnnotationsWrite, Scope: dashboards.ScopeFoldersAll},
+					{Action: ac.ActionAnnotationsWrite, Scope: dashboards.ScopeDashboardsAll},
 				},
 			},
 			Grants: []string{string(org.RoleAdmin)},
@@ -654,7 +639,7 @@ func (hs *HTTPServer) declareFixedRoles() error {
 // Metadata helpers
 // getAccessControlMetadata returns the accesscontrol metadata associated with a given resource
 func (hs *HTTPServer) getAccessControlMetadata(c *contextmodel.ReqContext,
-	prefix string, resourceID string) ac.Metadata {
+	orgID int64, prefix string, resourceID string) ac.Metadata {
 	ids := map[string]bool{resourceID: true}
 	return hs.getMultiAccessControlMetadata(c, prefix, ids)[resourceID]
 }

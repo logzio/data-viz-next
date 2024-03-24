@@ -104,12 +104,17 @@ export function AutoSaveField<T = string>(props: Props<T>) {
         )}
       </Field>
       {fieldState.isLoading && (
-        <InlineToast referenceElement={fieldRef.current} placement="right">
+        <InlineToast referenceElement={fieldRef.current} placement="right" alternativePlacement="bottom">
           Saving <EllipsisAnimated />
         </InlineToast>
       )}
       {fieldState.showSuccess && (
-        <InlineToast suffixIcon={'check'} referenceElement={fieldRef.current} placement="right">
+        <InlineToast
+          suffixIcon={'check'}
+          referenceElement={fieldRef.current}
+          placement="right"
+          alternativePlacement="bottom"
+        >
           Saved!
         </InlineToast>
       )}

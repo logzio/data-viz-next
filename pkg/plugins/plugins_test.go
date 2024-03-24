@@ -49,8 +49,7 @@ func Test_ReadPluginJSON(t *testing.T) {
 						{Path: "img/screenshot1.png", Name: "img1"},
 						{Path: "img/screenshot2.png", Name: "img2"},
 					},
-					Updated:  "2015-02-10",
-					Keywords: []string{"test"},
+					Updated: "2015-02-10",
 				},
 				Dependencies: Dependencies{
 					GrafanaVersion: "3.x.x",
@@ -108,7 +107,7 @@ func Test_ReadPluginJSON(t *testing.T) {
 			pluginJSON: func(t *testing.T) io.ReadCloser {
 				pJSON := `{
 					"id": "grafana-pyroscope-datasource",
-					"type": "datasource",
+					"type": "datasource",					
 					"aliasIDs": ["phlare"]
 				}`
 				return io.NopCloser(strings.NewReader(pJSON))

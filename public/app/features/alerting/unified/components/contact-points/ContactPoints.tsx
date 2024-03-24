@@ -25,7 +25,7 @@ import {
   Tooltip,
   useStyles2,
 } from '@grafana/ui';
-import ConditionalWrap from 'app/features/alerting/unified/components/ConditionalWrap';
+import ConditionalWrap from 'app/features/alerting/components/ConditionalWrap';
 import { receiverTypeNames } from 'app/plugins/datasource/alertmanager/consts';
 import { GrafanaManagedReceiverConfig } from 'app/plugins/datasource/alertmanager/types';
 import { GrafanaNotifierType, NotifierStatus } from 'app/types/alerting';
@@ -80,9 +80,6 @@ const ContactPoints = () => {
   );
   const [exportContactPointsSupported, exportContactPointsAllowed] = useAlertmanagerAbility(
     AlertmanagerAction.ExportContactPoint
-  );
-  const [createTemplateSupported, createTemplateAllowed] = useAlertmanagerAbility(
-    AlertmanagerAction.CreateNotificationTemplate
   );
 
   const [DeleteModal, showDeleteModal] = useDeleteContactPointModal(deleteTrigger, updateAlertmanagerState.isLoading);
@@ -180,16 +177,9 @@ const ContactPoints = () => {
                       Create notification templates to customize your notifications.
                     </Text>
                     <Spacer />
-                    {createTemplateSupported && (
-                      <LinkButton
-                        icon="plus"
-                        variant="primary"
-                        href="/alerting/notifications/templates/new"
-                        disabled={!createTemplateAllowed}
-                      >
-                        Add notification template
-                      </LinkButton>
-                    )}
+                    <LinkButton icon="plus" variant="primary" href="/alerting/notifications/templates/new">
+                      Add notification template
+                    </LinkButton>
                   </Stack>
                   <NotificationTemplates />
                 </>

@@ -42,7 +42,6 @@ func parseQuery(tsdbQuery []backend.DataQuery, logger log.Logger) ([]*Query, err
 			IntervalMs:    intervalMs,
 			RefID:         q.RefID,
 			MaxDataPoints: q.MaxDataPoints,
-			TimeRange:     q.TimeRange,
 		})
 	}
 

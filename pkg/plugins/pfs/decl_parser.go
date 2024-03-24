@@ -6,24 +6,13 @@ import (
 	"path/filepath"
 	"sort"
 
+	"github.com/grafana/kindsys"
 	"github.com/grafana/thema"
 )
 
 type declParser struct {
 	rt   *thema.Runtime
 	skip map[string]bool
-}
-
-// Extracted from kindsys repository
-var schemaInterfaces = map[string]*SchemaInterface{
-	"PanelCfg": {
-		Name:    "PanelCfg",
-		IsGroup: true,
-	},
-	"DataQuery": {
-		Name:    "DataQuery",
-		IsGroup: false,
-	},
 }
 
 func NewDeclParser(rt *thema.Runtime, skip map[string]bool) *declParser {
@@ -61,11 +50,12 @@ func (psr *declParser) Parse(root fs.FS) ([]*PluginDecl, error) {
 		}
 
 		for slotName, kind := range pp.ComposableKinds {
+			slot, err := kindsys.FindSchemaInterface(slotName)
 			if err != nil {
 				return nil, fmt.Errorf("parsing plugin failed for %s: %s", dir, err)
 			}
 			decls = append(decls, &PluginDecl{
-				SchemaInterface: schemaInterfaces[slotName],
+				SchemaInterface: &slot,
 				Lineage:         kind.Lineage(),
 				Imports:         pp.CUEImports,
 				PluginMeta:      pp.Properties,

@@ -32,6 +32,6 @@ const getStyles = (theme: GrafanaTheme2) =>
     borderRadius: theme.shape.radius.default,
     color: theme.colors.text.primary,
     fontSize: theme.typography.body.fontSize,
-    margin: theme.spacing(0, 0.5),
-    padding: theme.spacing(0.25, 0.5),
+    margin: `0 ${theme.spacing(0.5)}`,
+    padding: theme.spacing(0.5, 1),
   });

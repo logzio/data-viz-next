@@ -21,8 +21,6 @@ export const panelsToCheckFirst = [
   'logs',
   'candlestick',
   'flamegraph',
-  'traces',
-  'nodeGraph',
 ];
 
 export async function getAllSuggestions(data?: PanelData, panel?: PanelModel): Promise<VisualizationSuggestion[]> {

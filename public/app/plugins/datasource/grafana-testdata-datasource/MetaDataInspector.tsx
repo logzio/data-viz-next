@@ -3,10 +3,10 @@ import React from 'react';
 import { MetadataInspectorProps } from '@grafana/data';
 import { Stack } from '@grafana/ui';
 
-import { TestDataDataQuery } from './dataquery.gen';
+import { TestData } from './dataquery.gen';
 import { TestDataDataSource } from './datasource';
 
-export type Props = MetadataInspectorProps<TestDataDataSource, TestDataDataQuery>;
+export type Props = MetadataInspectorProps<TestDataDataSource, TestData>;
 
 export function MetaDataInspector({ data }: Props) {
   return (

@@ -1,8 +1,9 @@
 module.exports = {
-  extends: ['stylelint-config-sass-guidelines'],
+  extends: ['stylelint-config-sass-guidelines', 'stylelint-config-prettier'],
   ignoreFiles: ['**/node_modules/**/*.scss'],
   rules: {
     'at-rule-no-vendor-prefix': null,
+    'color-hex-case': null,
     'color-hex-length': null,
     'color-named': null,
     'declaration-block-no-duplicate-properties': [
@@ -20,9 +21,11 @@ module.exports = {
       'border-right': [],
       'border-top': [],
     },
+    'function-comma-space-after': null,
     'function-url-quotes': null,
     'length-zero-no-unit': null,
     'max-nesting-depth': null,
+    'number-no-trailing-zeros': null,
     'property-no-vendor-prefix': null,
     'rule-empty-line-before': null,
     'scss/at-function-pattern': null,

@@ -77,6 +77,7 @@ interface Props extends Themeable2 {
   dashboard: DashboardModel;
   panel?: PanelModel;
   activeTab?: string;
+
   onDismiss(): void;
 }
 

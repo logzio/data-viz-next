@@ -30,10 +30,9 @@ const (
 
 // Defines values for SupportingQueryType.
 const (
-	SupportingQueryTypeDataSample     SupportingQueryType = "dataSample"
-	SupportingQueryTypeInfiniteScroll SupportingQueryType = "infiniteScroll"
-	SupportingQueryTypeLogsSample     SupportingQueryType = "logsSample"
-	SupportingQueryTypeLogsVolume     SupportingQueryType = "logsVolume"
+	SupportingQueryTypeDataSample SupportingQueryType = "dataSample"
+	SupportingQueryTypeLogsSample SupportingQueryType = "logsSample"
+	SupportingQueryTypeLogsVolume SupportingQueryType = "logsVolume"
 )
 
 // These are the common properties available to all queries in all datasources.

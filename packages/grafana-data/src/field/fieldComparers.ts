@@ -5,6 +5,7 @@ import { Field, FieldType } from '../types/dataFrame';
 
 type IndexComparer = (a: number, b: number) => number;
 
+/** @public */
 export const fieldIndexComparer = (field: Field, reverse = false): IndexComparer => {
   const values = field.values;
 
@@ -25,7 +26,8 @@ export const fieldIndexComparer = (field: Field, reverse = false): IndexComparer
   }
 };
 
-const timeComparer = (a: unknown, b: unknown): number => {
+/** @public */
+export const timeComparer = (a: unknown, b: unknown): number => {
   if (!a || !b) {
     return falsyComparer(a, b);
   }
@@ -47,18 +49,20 @@ const timeComparer = (a: unknown, b: unknown): number => {
   return 0;
 };
 
-const numericComparer = (a: number, b: number): number => {
+/** @public */
+export const numericComparer = (a: number, b: number): number => {
   return a - b;
 };
 
-const stringComparer = (a: string, b: string): number => {
+/** @public */
+export const stringComparer = (a: string, b: string): number => {
   if (!a || !b) {
     return falsyComparer(a, b);
   }
   return a.localeCompare(b);
 };
 
-const booleanComparer = (a: boolean, b: boolean): number => {
+export const booleanComparer = (a: boolean, b: boolean): number => {
   return falsyComparer(a, b);
 };
 

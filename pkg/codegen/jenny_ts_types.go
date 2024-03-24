@@ -3,21 +3,16 @@ package codegen
 import (
 	"github.com/grafana/codejen"
 	"github.com/grafana/cuetsy"
-	"github.com/grafana/cuetsy/ts/ast"
 	"github.com/grafana/grafana/pkg/cuectx"
 	"github.com/grafana/thema/encoding/typescript"
 )
-
-type ApplyFunc func(sfg SchemaForGen, file *ast.File)
 
 // TSTypesJenny is a [OneToOne] that produces TypeScript types and
 // defaults for a Thema schema.
 //
 // Thema's generic TS jenny will be able to replace this one once
 // https://github.com/grafana/thema/issues/89 is complete.
-type TSTypesJenny struct {
-	ApplyFuncs []ApplyFunc
-}
+type TSTypesJenny struct{}
 
 var _ codejen.OneToOne[SchemaForGen] = &TSTypesJenny{}
 
@@ -35,11 +30,6 @@ func (j TSTypesJenny) Generate(sfg SchemaForGen) (*codejen.File, error) {
 		RootName: sfg.Name,
 		Group:    sfg.IsGroup,
 	})
-
-	for _, renameFunc := range j.ApplyFuncs {
-		renameFunc(sfg, f)
-	}
-
 	if err != nil {
 		return nil, err
 	}

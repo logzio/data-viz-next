@@ -4,7 +4,7 @@
 //     public/app/plugins/gen.go
 // Using jennies:
 //     TSTypesJenny
-//     PluginTsTypesJenny
+//     PluginTSTypesJenny
 //
 // Run 'make gen-cue' from repository root to regenerate.
 
@@ -14,7 +14,7 @@ export type ParcaQueryType = ('metrics' | 'profile' | 'both');
 
 export const defaultParcaQueryType: ParcaQueryType = 'both';
 
-export interface ParcaDataQuery extends common.DataQuery {
+export interface Parca extends common.DataQuery {
   /**
    * Specifies the query label selectors.
    */
@@ -25,6 +25,6 @@ export interface ParcaDataQuery extends common.DataQuery {
   profileTypeId: string;
 }
 
-export const defaultParcaDataQuery: Partial<ParcaDataQuery> = {
+export const defaultParca: Partial<Parca> = {
   labelSelector: '{}',
 };

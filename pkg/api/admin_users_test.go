@@ -320,9 +320,9 @@ func Test_AdminUpdateUserPermissions(t *testing.T) {
 			case login.GenericOAuthModule:
 				socialService.ExpectedAuthInfoProvider = &social.OAuthInfo{AllowAssignGrafanaAdmin: tc.allowAssignGrafanaAdmin, Enabled: tc.authEnabled, SkipOrgRoleSync: tc.skipOrgRoleSync}
 			case login.JWTModule:
-				cfg.JWTAuth.Enabled = tc.authEnabled
-				cfg.JWTAuth.SkipOrgRoleSync = tc.skipOrgRoleSync
-				cfg.JWTAuth.AllowAssignGrafanaAdmin = tc.allowAssignGrafanaAdmin
+				cfg.JWTAuthEnabled = tc.authEnabled
+				cfg.JWTAuthSkipOrgRoleSync = tc.skipOrgRoleSync
+				cfg.JWTAuthAllowAssignGrafanaAdmin = tc.allowAssignGrafanaAdmin
 			}
 
 			hs := &HTTPServer{

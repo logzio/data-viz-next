@@ -1,7 +1,7 @@
 import { memoize } from 'lodash';
 
 import { DataSourceInstanceSettings, SelectableValue } from '@grafana/data';
-import { getBackendSrv, TemplateSrv } from '@grafana/runtime';
+import { getBackendSrv, config, TemplateSrv } from '@grafana/runtime';
 
 import { CloudWatchRequest } from '../query-runner/CloudWatchRequest';
 import { CloudWatchJsonData, LogGroupField, MultiFilters } from '../types';
@@ -52,6 +52,12 @@ export class ResourcesAPI extends CloudWatchRequest {
   }
 
   getRegions(): Promise<SelectableResourceValue[]> {
+    if (!config.featureToggles.cloudwatchNewRegionsHandler) {
+      return this.memoizedGetRequest<SelectableResourceValue[]>('regions').then((regions) => [
+        { label: 'default', value: 'default', text: 'default' },
+        ...regions.filter((r) => r.value),
+      ]);
+    }
     return this.memoizedGetRequest<Array<ResourceResponse<RegionResponse>>>('regions').then((regions) => {
       return [
         { label: 'default', value: 'default', text: 'default' },
@@ -110,18 +116,19 @@ export class ResourcesAPI extends CloudWatchRequest {
     }).then((metrics) => metrics.map((m) => ({ metricName: m.value.name, namespace: m.value.namespace })));
   }
 
-  getDimensionKeys(
-    { region, namespace = '', dimensionFilters = {}, metricName = '', accountId }: GetDimensionKeysRequest,
-    displayErrorIfIsMultiTemplateVariable?: boolean
-  ): Promise<Array<SelectableValue<string>>> {
+  getDimensionKeys({
+    region,
+    namespace = '',
+    dimensionFilters = {},
+    metricName = '',
+    accountId,
+  }: GetDimensionKeysRequest): Promise<Array<SelectableValue<string>>> {
     return this.memoizedGetRequest<Array<ResourceResponse<string>>>('dimension-keys', {
       region: this.templateSrv.replace(this.getActualRegion(region)),
       namespace: this.templateSrv.replace(namespace),
       accountId: this.templateSrv.replace(accountId),
       metricName: this.templateSrv.replace(metricName),
-      dimensionFilters: JSON.stringify(
-        this.convertDimensionFormat(dimensionFilters, {}, displayErrorIfIsMultiTemplateVariable)
-      ),
+      dimensionFilters: JSON.stringify(this.convertDimensionFormat(dimensionFilters, {})),
     }).then((r) => r.map((r) => ({ label: r.value, value: r.value })));
   }
 
@@ -141,7 +148,7 @@ export class ResourcesAPI extends CloudWatchRequest {
       region: this.templateSrv.replace(this.getActualRegion(region)),
       namespace: this.templateSrv.replace(namespace),
       metricName: this.templateSrv.replace(metricName.trim()),
-      dimensionKey: this.replaceVariableAndDisplayWarningIfMulti(dimensionKey, {}, true),
+      dimensionKey: this.templateSrv.replace(dimensionKey),
       dimensionFilters: JSON.stringify(this.convertDimensionFormat(dimensionFilters, {})),
       accountId: this.templateSrv.replace(accountId),
     }).then((r) => r.map((r) => ({ label: r.value, value: r.value })));

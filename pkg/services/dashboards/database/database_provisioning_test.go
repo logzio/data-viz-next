@@ -39,10 +39,11 @@ func TestIntegrationDashboardProvisioningTest(t *testing.T) {
 	saveDashboardCmd := dashboards.SaveDashboardCommand{
 		OrgID:     1,
 		IsFolder:  false,
+		FolderID:  dash.ID, // nolint:staticcheck
 		FolderUID: dash.UID,
 		Dashboard: simplejson.NewFromAny(map[string]any{
 			"id":    nil,
-			"title": "test dashboard 2",
+			"title": "test dashboard",
 		}),
 	}
 

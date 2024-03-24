@@ -9,15 +9,12 @@ import { Options, ScatterSeriesConfig } from './panelcfg.gen';
 
 export interface Props extends StandardEditorProps<ScatterSeriesConfig, unknown, Options> {
   baseNameMode: FieldNamePickerBaseNameMode;
-  frameFilter?: number;
 }
 
-export const ScatterSeriesEditor = ({ value, onChange, context, baseNameMode, frameFilter = -1 }: Props) => {
+export const ScatterSeriesEditor = ({ value, onChange, context, baseNameMode }: Props) => {
   const onFieldChange = (val: unknown | undefined, field: string) => {
     onChange({ ...value, [field]: val });
   };
-
-  const frame = context.data && frameFilter > -1 ? context.data[frameFilter] : undefined;
 
   return (
     <div>
@@ -30,10 +27,7 @@ export const ScatterSeriesEditor = ({ value, onChange, context, baseNameMode, fr
             id: 'x',
             name: 'x',
             settings: {
-              filter: (field) =>
-                frame?.fields.some((obj) => obj.state?.displayName === field.state?.displayName) ?? true,
               baseNameMode,
-              placeholderText: 'select X field',
             },
           }}
         />
@@ -44,13 +38,10 @@ export const ScatterSeriesEditor = ({ value, onChange, context, baseNameMode, fr
           context={context}
           onChange={(field) => onFieldChange(field, 'y')}
           item={{
-            id: 'y',
-            name: 'y',
+            id: 'x',
+            name: 'x',
             settings: {
-              filter: (field) =>
-                frame?.fields.some((obj) => obj.state?.displayName === field.state?.displayName) ?? true,
               baseNameMode,
-              placeholderText: 'select Y field',
             },
           }}
         />

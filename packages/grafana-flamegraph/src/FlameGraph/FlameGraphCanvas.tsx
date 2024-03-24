@@ -3,9 +3,9 @@ import React, { MouseEvent as ReactMouseEvent, useCallback, useEffect, useRef, u
 import { useMeasure } from 'react-use';
 
 import { PIXELS_PER_LEVEL } from '../constants';
-import { ClickedItemData, ColorScheme, ColorSchemeDiff, SelectedView, TextAlign } from '../types';
+import { ClickedItemData, ColorScheme, ColorSchemeDiff, TextAlign } from '../types';
 
-import FlameGraphContextMenu, { GetExtraContextMenuButtonsFunction } from './FlameGraphContextMenu';
+import FlameGraphContextMenu from './FlameGraphContextMenu';
 import FlameGraphTooltip from './FlameGraphTooltip';
 import { CollapseConfig, CollapsedMap, FlameGraphDataContainer, LevelItem } from './dataTransform';
 import { getBarX, useFlameRender } from './rendering';
@@ -37,10 +37,6 @@ type Props = {
   collapsedMap: CollapsedMap;
   setCollapsedMap: (collapsedMap: CollapsedMap) => void;
   collapsing?: boolean;
-  getExtraContextMenuButtons?: GetExtraContextMenuButtonsFunction;
-
-  selectedView: SelectedView;
-  search: string;
 };
 
 const FlameGraphCanvas = ({
@@ -65,9 +61,6 @@ const FlameGraphCanvas = ({
   collapsedMap,
   setCollapsedMap,
   collapsing,
-  getExtraContextMenuButtons,
-  selectedView,
-  search,
 }: Props) => {
   const styles = getStyles();
 
@@ -193,7 +186,6 @@ const FlameGraphCanvas = ({
       />
       {!showFlameGraphOnly && clickedItemData && (
         <FlameGraphContextMenu
-          data={data}
           itemData={clickedItemData}
           collapsing={collapsing}
           collapseConfig={collapsedMap.get(clickedItemData.item)}
@@ -222,9 +214,6 @@ const FlameGraphCanvas = ({
           }}
           allGroupsCollapsed={Array.from(collapsedMap.values()).every((i) => i.collapsed)}
           allGroupsExpanded={Array.from(collapsedMap.values()).every((i) => !i.collapsed)}
-          getExtraContextMenuButtons={getExtraContextMenuButtons}
-          selectedView={selectedView}
-          search={search}
         />
       )}
     </div>

@@ -36,14 +36,12 @@ export class MockDataSourceApi extends DataSourceApi {
   result: DataQueryResponse = { data: [] };
 
   constructor(
-    datasource: string | DataSourceInstanceSettings = 'MockDataSourceApi',
+    name?: string,
     result?: DataQueryResponse,
     meta?: DataSourcePluginMeta,
     public error: string | null = null
   ) {
-    const instaceSettings =
-      typeof datasource === 'string' ? ({ name: datasource } as DataSourceInstanceSettings) : datasource;
-    super(instaceSettings);
+    super({ name: name ? name : 'MockDataSourceApi' } as DataSourceInstanceSettings);
     if (result) {
       this.result = result;
     }
@@ -51,7 +49,7 @@ export class MockDataSourceApi extends DataSourceApi {
     this.meta = meta || ({} as DataSourcePluginMeta);
   }
 
-  query(request: DataQueryRequest): Promise<DataQueryResponse> | Observable<DataQueryResponse> {
+  query(request: DataQueryRequest): Promise<DataQueryResponse> {
     if (this.error) {
       return Promise.reject(this.error);
     }

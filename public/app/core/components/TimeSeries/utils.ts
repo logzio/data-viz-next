@@ -4,6 +4,9 @@ import uPlot from 'uplot';
 import {
   DashboardCursorSync,
   DataFrame,
+  DataHoverClearEvent,
+  DataHoverEvent,
+  DataHoverPayload,
   FieldConfig,
   FieldType,
   formattedValueToString,
@@ -19,7 +22,7 @@ import {
   AxisPlacement,
   GraphDrawStyle,
   GraphFieldConfig,
-  GraphThresholdsStyleMode,
+  GraphTresholdsStyleMode,
   VisibilityMode,
   ScaleDirection,
   ScaleOrientation,
@@ -27,7 +30,6 @@ import {
   GraphTransform,
   AxisColorMode,
   GraphGradientMode,
-  VizOrientation,
 } from '@grafana/schema';
 
 // unit lookup needed to determine if we want power-of-2 or power-of-10 axis ticks
@@ -80,17 +82,14 @@ export const preparePlotConfigBuilder: UPlotConfigPrepFn<{
   theme,
   timeZones,
   getTimeRange,
+  eventBus,
   sync,
   allFrames,
   renderers,
   tweakScale = (opts) => opts,
   tweakAxis = (opts) => opts,
   eventsScope = '__global_',
-  hoverProximity,
-  orientation = VizOrientation.Horizontal,
 }) => {
-  // we want the Auto and Horizontal orientation to default to Horizontal
-  const isHorizontal = orientation !== VizOrientation.Vertical;
   const builder = new UPlotConfigBuilder(timeZones[0]);
 
   let alignedFrame: DataFrame;
@@ -109,21 +108,19 @@ export const preparePlotConfigBuilder: UPlotConfigPrepFn<{
   }
 
   const xScaleKey = 'x';
+  let xScaleUnit = '_x';
   let yScaleKey = '';
 
   const xFieldAxisPlacement =
-    xField.config.custom?.axisPlacement === AxisPlacement.Hidden
-      ? AxisPlacement.Hidden
-      : isHorizontal
-        ? AxisPlacement.Bottom
-        : AxisPlacement.Left;
+    xField.config.custom?.axisPlacement !== AxisPlacement.Hidden ? AxisPlacement.Bottom : AxisPlacement.Hidden;
   const xFieldAxisShow = xField.config.custom?.axisPlacement !== AxisPlacement.Hidden;
 
   if (xField.type === FieldType.time) {
+    xScaleUnit = 'time';
     builder.addScale({
       scaleKey: xScaleKey,
-      orientation: isHorizontal ? ScaleOrientation.Horizontal : ScaleOrientation.Vertical,
-      direction: isHorizontal ? ScaleDirection.Right : ScaleDirection.Up,
+      orientation: ScaleOrientation.Horizontal,
+      direction: ScaleDirection.Right,
       isTime: true,
       range: () => {
         const r = getTimeRange();
@@ -135,10 +132,7 @@ export const preparePlotConfigBuilder: UPlotConfigPrepFn<{
     const filterTicks: uPlot.Axis.Filter | undefined =
       timeZones.length > 1
         ? (u, splits) => {
-            if (isHorizontal) {
-              return splits.map((v, i) => (i < 2 ? null : v));
-            }
-            return splits;
+            return splits.map((v, i) => (i < 2 ? null : v));
           }
         : undefined;
 
@@ -162,12 +156,13 @@ export const preparePlotConfigBuilder: UPlotConfigPrepFn<{
       builder.addHook('drawAxes', (u: uPlot) => {
         u.ctx.save();
 
+        u.ctx.fillStyle = theme.colors.text.primary;
+        u.ctx.textAlign = 'left';
+        u.ctx.textBaseline = 'bottom';
+
         let i = 0;
         u.axes.forEach((a) => {
-          if (isHorizontal && a.side === 2) {
-            u.ctx.fillStyle = theme.colors.text.primary;
-            u.ctx.textAlign = 'left';
-            u.ctx.textBaseline = 'bottom';
+          if (a.side === 2) {
             //@ts-ignore
             let cssBaseline: number = a._pos + a._size;
             u.ctx.fillText(timeZones[i], u.bbox.left, cssBaseline * uPlot.pxRatio);
@@ -179,10 +174,15 @@ export const preparePlotConfigBuilder: UPlotConfigPrepFn<{
       });
     }
   } else {
+    // Not time!
+    if (xField.config.unit) {
+      xScaleUnit = xField.config.unit;
+    }
+
     builder.addScale({
       scaleKey: xScaleKey,
-      orientation: isHorizontal ? ScaleOrientation.Horizontal : ScaleOrientation.Vertical,
-      direction: isHorizontal ? ScaleDirection.Right : ScaleDirection.Up,
+      orientation: ScaleOrientation.Horizontal,
+      direction: ScaleDirection.Right,
       range: (u, dataMin, dataMax) => [xField.config.min ?? dataMin, xField.config.max ?? dataMax],
     });
 
@@ -242,8 +242,8 @@ export const preparePlotConfigBuilder: UPlotConfigPrepFn<{
       tweakScale(
         {
           scaleKey,
-          orientation: isHorizontal ? ScaleOrientation.Vertical : ScaleOrientation.Horizontal,
-          direction: isHorizontal ? ScaleDirection.Up : ScaleDirection.Right,
+          orientation: ScaleOrientation.Vertical,
+          direction: ScaleDirection.Up,
           distribution: customConfig.scaleDistribution?.type,
           log: customConfig.scaleDistribution?.log,
           linearThreshold: customConfig.scaleDistribution?.linearThreshold,
@@ -260,16 +260,16 @@ export const preparePlotConfigBuilder: UPlotConfigPrepFn<{
                   return [dataMin, dataMax];
                 }
               : field.type === FieldType.enum
-                ? (u: uPlot, dataMin: number, dataMax: number) => {
-                    // this is the exhaustive enum (stable)
-                    let len = field.config.type!.enum!.text!.length;
+              ? (u: uPlot, dataMin: number, dataMax: number) => {
+                  // this is the exhaustive enum (stable)
+                  let len = field.config.type!.enum!.text!.length;
 
-                    return [-1, len];
+                  return [-1, len];
 
-                    // these are only values that are present
-                    // return [dataMin - 1, dataMax + 1]
-                  }
-                : undefined,
+                  // these are only values that are present
+                  // return [dataMin - 1, dataMax + 1]
+                }
+              : undefined,
           decimals: field.config.decimals,
         },
         field
@@ -328,7 +328,7 @@ export const preparePlotConfigBuilder: UPlotConfigPrepFn<{
             scaleKey,
             label: customConfig.axisLabel,
             size: customConfig.axisWidth,
-            placement: isHorizontal ? customConfig.axisPlacement ?? AxisPlacement.Auto : AxisPlacement.Bottom,
+            placement: customConfig.axisPlacement ?? AxisPlacement.Auto,
             formatValue: (v, decimals) => formattedValueToString(fmt(v, decimals)),
             theme,
             grid: { show: customConfig.axisGridShow },
@@ -520,8 +520,8 @@ export const preparePlotConfigBuilder: UPlotConfigPrepFn<{
 
     // Render thresholds in graph
     if (customConfig.thresholdsStyle && config.thresholds) {
-      const thresholdDisplay = customConfig.thresholdsStyle.mode ?? GraphThresholdsStyleMode.Off;
-      if (thresholdDisplay !== GraphThresholdsStyleMode.Off) {
+      const thresholdDisplay = customConfig.thresholdsStyle.mode ?? GraphTresholdsStyleMode.Off;
+      if (thresholdDisplay !== GraphTresholdsStyleMode.Off) {
         builder.addThresholds({
           config: customConfig.thresholdsStyle,
           thresholds: config.thresholds,
@@ -558,39 +558,93 @@ export const preparePlotConfigBuilder: UPlotConfigPrepFn<{
   builder.scaleKeys = [xScaleKey, yScaleKey];
 
   // if hovered value is null, how far we may scan left/right to hover nearest non-null
-  const DEFAULT_HOVER_NULL_PROXIMITY = 15;
-  const DEFAULT_FOCUS_PROXIMITY = 30;
+  const hoverProximityPx = 15;
 
   let cursor: Partial<uPlot.Cursor> = {
-    // horizontal proximity / point hover behavior
-    hover: {
-      prox: (self, seriesIdx, hoveredIdx) => {
-        if (hoverProximity != null) {
-          return hoverProximity;
+    // this scans left and right from cursor position to find nearest data index with value != null
+    // TODO: do we want to only scan past undefined values, but halt at explicit null values?
+    dataIdx: (self, seriesIdx, hoveredIdx, cursorXVal) => {
+      let seriesData = self.data[seriesIdx];
+
+      if (seriesData[hoveredIdx] == null) {
+        let nonNullLft = null,
+          nonNullRgt = null,
+          i;
+
+        i = hoveredIdx;
+        while (nonNullLft == null && i-- > 0) {
+          if (seriesData[i] != null) {
+            nonNullLft = i;
+          }
         }
 
-        // when hovering null values, scan data left/right up to 15px
-        const yVal = self.data[seriesIdx][hoveredIdx];
-        if (yVal === null) {
-          return DEFAULT_HOVER_NULL_PROXIMITY;
+        i = hoveredIdx;
+        while (nonNullRgt == null && i++ < seriesData.length) {
+          if (seriesData[i] != null) {
+            nonNullRgt = i;
+          }
         }
 
-        // no proximity limit
-        return null;
-      },
-      skip: [null],
-    },
-    // vertical proximity / series focus behavior
-    focus: {
-      prox: hoverProximity ?? DEFAULT_FOCUS_PROXIMITY,
+        let xVals = self.data[0];
+
+        let curPos = self.valToPos(cursorXVal, 'x');
+        let rgtPos = nonNullRgt == null ? Infinity : self.valToPos(xVals[nonNullRgt], 'x');
+        let lftPos = nonNullLft == null ? -Infinity : self.valToPos(xVals[nonNullLft], 'x');
+
+        let lftDelta = curPos - lftPos;
+        let rgtDelta = rgtPos - curPos;
+
+        if (lftDelta <= rgtDelta) {
+          if (lftDelta <= hoverProximityPx) {
+            hoveredIdx = nonNullLft!;
+          }
+        } else {
+          if (rgtDelta <= hoverProximityPx) {
+            hoveredIdx = nonNullRgt!;
+          }
+        }
+      }
+
+      return hoveredIdx;
     },
   };
 
-  if (xField.type === FieldType.time && sync && sync() !== DashboardCursorSync.Off) {
+  if (sync && sync() !== DashboardCursorSync.Off && xField.type === FieldType.time) {
+    const payload: DataHoverPayload = {
+      point: {
+        [xScaleKey]: null,
+        [yScaleKey]: null,
+      },
+      data: frame,
+    };
+
+    const hoverEvent = new DataHoverEvent(payload);
     cursor.sync = {
       key: eventsScope,
-      scales: [xScaleKey, null],
-      // match: [() => true, () => false],
+      filters: {
+        pub: (type: string, src: uPlot, x: number, y: number, w: number, h: number, dataIdx: number) => {
+          if (sync && sync() === DashboardCursorSync.Off) {
+            return false;
+          }
+
+          payload.rowIndex = dataIdx;
+          if (x < 0 && y < 0) {
+            payload.point[xScaleUnit] = null;
+            payload.point[yScaleKey] = null;
+            eventBus.publish(new DataHoverClearEvent());
+          } else {
+            // convert the points
+            payload.point[xScaleUnit] = src.posToVal(x, xScaleKey);
+            payload.point[yScaleKey] = src.posToVal(y, yScaleKey);
+            payload.point.panelRelY = y > 0 ? y / h : 1; // used by old graph panel to position tooltip
+            eventBus.publish(hoverEvent);
+            hoverEvent.payload.down = undefined;
+          }
+          return true;
+        },
+      },
+      scales: [xScaleKey, yScaleKey],
+      // match: [() => true, (a, b) => a === b],
     };
   }
 

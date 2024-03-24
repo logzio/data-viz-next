@@ -7,24 +7,22 @@ import (
 	"github.com/grafana/grafana/pkg/plugins"
 )
 
-const defaultKeepPluginAliveTickerDuration = time.Second
+var (
+	keepPluginAliveTickerDuration = time.Second * 1
+)
 
-type Service struct {
-	keepPluginAliveTickerDuration time.Duration
-}
+type Service struct{}
 
 func ProvideService() *Service {
-	return &Service{
-		keepPluginAliveTickerDuration: defaultKeepPluginAliveTickerDuration,
-	}
+	return &Service{}
 }
 
-func (s *Service) Start(ctx context.Context, p *plugins.Plugin) error {
+func (*Service) Start(ctx context.Context, p *plugins.Plugin) error {
 	if !p.IsManaged() || !p.Backend || p.SignatureError != nil {
 		return nil
 	}
 
-	if err := s.startPluginAndKeepItAlive(ctx, p); err != nil {
+	if err := startPluginAndKeepItAlive(ctx, p); err != nil {
 		return err
 	}
 
@@ -45,7 +43,7 @@ func (*Service) Stop(ctx context.Context, p *plugins.Plugin) error {
 	return nil
 }
 
-func (s *Service) startPluginAndKeepItAlive(ctx context.Context, p *plugins.Plugin) error {
+func startPluginAndKeepItAlive(ctx context.Context, p *plugins.Plugin) error {
 	if err := p.Start(ctx); err != nil {
 		return err
 	}
@@ -55,7 +53,7 @@ func (s *Service) startPluginAndKeepItAlive(ctx context.Context, p *plugins.Plug
 	}
 
 	go func(p *plugins.Plugin) {
-		if err := s.keepPluginAlive(p); err != nil {
+		if err := keepPluginAlive(p); err != nil {
 			p.Logger().Error("Attempt to restart killed plugin process failed", "error", err)
 		}
 	}(p)
@@ -64,8 +62,8 @@ func (s *Service) startPluginAndKeepItAlive(ctx context.Context, p *plugins.Plug
 }
 
 // keepPluginAlive will restart the plugin if the process is killed or exits
-func (s *Service) keepPluginAlive(p *plugins.Plugin) error {
-	ticker := time.NewTicker(s.keepPluginAliveTickerDuration)
+func keepPluginAlive(p *plugins.Plugin) error {
+	ticker := time.NewTicker(keepPluginAliveTickerDuration)
 
 	for {
 		<-ticker.C

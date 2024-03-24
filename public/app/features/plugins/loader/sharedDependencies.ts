@@ -1,6 +1,5 @@
 import * as emotion from '@emotion/css';
 import * as emotionReact from '@emotion/react';
-import * as kusto from '@kusto/monaco-kusto';
 import * as d3 from 'd3';
 import * as i18next from 'i18next';
 import jquery from 'jquery';
@@ -72,7 +71,6 @@ export const sharedDependenciesMap: Record<string, System.Module> = {
   '@grafana/runtime': grafanaRuntime,
   '@grafana/slate-react': slateReact, // for backwards compatibility with older plugins
   '@grafana/ui': grafanaUI,
-  '@kusto/monaco-kusto': kusto,
   'app/core/app_events': {
     default: appEvents,
     __useDefault: true,

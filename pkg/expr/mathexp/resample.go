@@ -7,23 +7,8 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 )
 
-// The upsample function
-// +enum
-type Upsampler string
-
-const (
-	// Use the last seen value
-	UpsamplerPad Upsampler = "pad"
-
-	// backfill
-	UpsamplerBackfill Upsampler = "backfilling"
-
-	// Do not fill values (nill)
-	UpsamplerFillNA Upsampler = "fillna"
-)
-
 // Resample turns the Series into a Number based on the given reduction function
-func (s Series) Resample(refID string, interval time.Duration, downsampler ReducerID, upsampler Upsampler, from, to time.Time) (Series, error) {
+func (s Series) Resample(refID string, interval time.Duration, downsampler string, upsampler string, from, to time.Time) (Series, error) {
 	newSeriesLength := int(float64(to.Sub(from).Nanoseconds()) / float64(interval.Nanoseconds()))
 	if newSeriesLength <= 0 {
 		return s, fmt.Errorf("the series cannot be sampled further; the time range is shorter than the interval")
@@ -52,19 +37,19 @@ func (s Series) Resample(refID string, interval time.Duration, downsampler Reduc
 		var value *float64
 		if len(vals) == 0 { // upsampling
 			switch upsampler {
-			case UpsamplerPad:
+			case "pad":
 				if lastSeen != nil {
 					value = lastSeen
 				} else {
 					value = nil
 				}
-			case UpsamplerBackfill:
+			case "backfilling":
 				if sIdx == s.Len() { // no vals left
 					value = nil
 				} else {
 					_, value = s.GetPoint(sIdx)
 				}
-			case UpsamplerFillNA:
+			case "fillna":
 				value = nil
 			default:
 				return s, fmt.Errorf("upsampling %v not implemented", upsampler)
@@ -76,15 +61,15 @@ func (s Series) Resample(refID string, interval time.Duration, downsampler Reduc
 			ff := Float64Field(*fVec)
 			var tmp *float64
 			switch downsampler {
-			case ReducerSum:
+			case "sum":
 				tmp = Sum(&ff)
-			case ReducerMean:
+			case "mean":
 				tmp = Avg(&ff)
-			case ReducerMin:
+			case "min":
 				tmp = Min(&ff)
-			case ReducerMax:
+			case "max":
 				tmp = Max(&ff)
-			case ReducerLast:
+			case "last":
 				tmp = Last(&ff)
 			default:
 				return s, fmt.Errorf("downsampling %v not implemented", downsampler)

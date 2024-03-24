@@ -8,7 +8,6 @@ import {
   getFieldColorModeForField,
   getFieldSeriesColor,
   GrafanaTheme2,
-  roundDecimals,
 } from '@grafana/data';
 import {
   histogramBucketSizes,
@@ -38,7 +37,6 @@ function incrRoundUp(num: number, incr: number) {
 export interface HistogramProps extends Themeable2 {
   options: Options; // used for diff
   alignedFrame: DataFrame; // This could take HistogramFields
-  bucketCount?: number;
   bucketSize: number;
   width: number;
   height: number;
@@ -50,16 +48,12 @@ export interface HistogramProps extends Themeable2 {
 
 export function getBucketSize(frame: DataFrame) {
   // assumes BucketMin is fields[0] and BucktMax is fields[1]
-  return frame.fields[0].type === FieldType.string
-    ? 1
-    : roundDecimals(frame.fields[1].values[0] - frame.fields[0].values[0], 9);
+  return frame.fields[0].type === FieldType.string ? 1 : frame.fields[1].values[0] - frame.fields[0].values[0];
 }
 
 export function getBucketSize1(frame: DataFrame) {
   // assumes BucketMin is fields[0] and BucktMax is fields[1]
-  return frame.fields[0].type === FieldType.string
-    ? 1
-    : roundDecimals(frame.fields[1].values[1] - frame.fields[0].values[1], 9);
+  return frame.fields[0].type === FieldType.string ? 1 : frame.fields[1].values[1] - frame.fields[0].values[1];
 }
 
 const prepConfig = (frame: DataFrame, theme: GrafanaTheme2) => {
@@ -106,8 +100,8 @@ const prepConfig = (frame: DataFrame, theme: GrafanaTheme2) => {
     distribution: isOrdinalX
       ? ScaleDistribution.Ordinal
       : useLogScale
-        ? ScaleDistribution.Log
-        : ScaleDistribution.Linear,
+      ? ScaleDistribution.Log
+      : ScaleDistribution.Linear,
     log: 2,
     orientation: ScaleOrientation.Horizontal,
     direction: ScaleDirection.Right,
@@ -124,13 +118,20 @@ const prepConfig = (frame: DataFrame, theme: GrafanaTheme2) => {
             wantedMax = xScaleMax;
           }
 
+          let fullRangeMin = u.data[0][0];
           let fullRangeMax = u.data[0][u.data[0].length - 1];
 
-          // isOrdinalX is when we have classic histograms, which are LE, ordinal X, and already have 0 dummy bucket prepended
-          // else we have calculated histograms which are GE and cardinal+linear X, and have no next dummy bucket appended
-          wantedMin = incrRoundUp(wantedMin, bucketSize);
-          wantedMax =
-            !isOrdinalX && wantedMax === fullRangeMax ? wantedMax + bucketSize : incrRoundDn(wantedMax, bucketSize);
+          // snap to bucket divisors...
+
+          if (wantedMax === fullRangeMax) {
+            wantedMax += bucketSize;
+          } else {
+            wantedMax = incrRoundUp(wantedMax, bucketSize);
+          }
+
+          if (wantedMin > fullRangeMin) {
+            wantedMin = incrRoundDn(wantedMin, bucketSize);
+          }
 
           return [wantedMin, wantedMax];
         },
@@ -142,7 +143,6 @@ const prepConfig = (frame: DataFrame, theme: GrafanaTheme2) => {
     distribution: ScaleDistribution.Linear,
     orientation: ScaleOrientation.Vertical,
     direction: ScaleDirection.Up,
-    softMin: 0,
   });
 
   const fmt = frame.fields[0].display!;
@@ -312,20 +312,17 @@ export class Histogram extends React.Component<HistogramProps, State> {
       return null;
     }
 
-    const frames = this.props.options.combine ? [this.props.alignedFrame] : this.props.rawSeries!;
-
-    return <PlotLegend data={frames} config={config} maxHeight="35%" maxWidth="60%" {...legend} />;
+    return <PlotLegend data={this.props.rawSeries!} config={config} maxHeight="35%" maxWidth="60%" {...legend} />;
   }
 
   componentDidUpdate(prevProps: HistogramProps) {
-    const { structureRev, alignedFrame, bucketSize, bucketCount } = this.props;
+    const { structureRev, alignedFrame, bucketSize } = this.props;
 
     if (alignedFrame !== prevProps.alignedFrame) {
       let newState = this.prepState(this.props, false);
 
       if (newState) {
         const shouldReconfig =
-          bucketCount !== prevProps.bucketCount ||
           bucketSize !== prevProps.bucketSize ||
           this.props.options !== prevProps.options ||
           this.state.config === undefined ||

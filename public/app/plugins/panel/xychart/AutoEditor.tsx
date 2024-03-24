@@ -65,9 +65,6 @@ export const AutoEditor = ({ value, onChange, context }: StandardEditorProps<XYD
           }
         }
       }
-      if (!v.xAxis) {
-        v.xAxis = { label: xName, value: xName };
-      }
     }
 
     return v;
@@ -85,13 +82,12 @@ export const AutoEditor = ({ value, onChange, context }: StandardEditorProps<XYD
         <Select
           isClearable={true}
           options={frameNames}
-          placeholder={'Change filter'}
+          placeholder={frameNames[0].label}
           value={frameNames.find((v) => v.value === value?.frame)}
           onChange={(v) => {
             onChange({
               ...value,
               frame: v?.value!,
-              x: undefined,
             });
           }}
         />

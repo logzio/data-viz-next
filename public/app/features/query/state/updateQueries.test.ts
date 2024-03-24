@@ -577,7 +577,7 @@ describe('updateQueries with import', () => {
         importQueries: (queries, origin) => {
           return Promise.resolve([] as DataQuery[]);
         },
-      } as DataSourceApi;
+      } as DataSourceApi<any>;
 
       const oldUidDS = {
         uid: 'old-uid',

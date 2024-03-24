@@ -19,6 +19,7 @@ import (
 	glog "github.com/grafana/grafana/pkg/infra/log"
 	"github.com/grafana/grafana/pkg/infra/tracing"
 	"github.com/grafana/grafana/pkg/plugins"
+	"github.com/grafana/grafana/pkg/services/auth"
 	contextmodel "github.com/grafana/grafana/pkg/services/contexthandler/model"
 	"github.com/grafana/grafana/pkg/services/datasources"
 	"github.com/grafana/grafana/pkg/services/featuremgmt"
@@ -252,7 +253,6 @@ func (proxy *DataSourceProxy) director(req *http.Request) {
 
 		ApplyRoute(req.Context(), req, proxy.proxyPath, proxy.matchedRoute, DSInfo{
 			ID:                      proxy.ds.ID,
-			URL:                     proxy.ds.URL,
 			Updated:                 proxy.ds.Updated,
 			JSONData:                jsonData,
 			DecryptedSecureJSONData: decryptedValues,
@@ -270,13 +270,13 @@ func (proxy *DataSourceProxy) director(req *http.Request) {
 		}
 	}
 
-	if proxy.features.IsEnabled(req.Context(), featuremgmt.FlagIdForwarding) {
+	if proxy.features.IsEnabled(req.Context(), featuremgmt.FlagIdForwarding) && auth.IsIDForwardingEnabledForDataSource(proxy.ds) {
 		proxyutil.ApplyForwardIDHeader(req, proxy.ctx.SignedInUser)
 	}
 }
 
 func (proxy *DataSourceProxy) validateRequest() error {
-	if !proxy.checkWhiteList() {
+	if !checkWhiteList(proxy.ctx, proxy.targetUrl.Host) {
 		return errors.New("target URL is not a valid target")
 	}
 
@@ -344,8 +344,6 @@ func (proxy *DataSourceProxy) logRequest() {
 		}
 	}
 
-	panelPluginId := proxy.ctx.Req.Header.Get("X-Panel-Plugin-Id")
-
 	ctxLogger := logger.FromContext(proxy.ctx.Req.Context())
 	ctxLogger.Info("Proxying incoming request",
 		"userid", proxy.ctx.UserID,
@@ -354,14 +352,13 @@ func (proxy *DataSourceProxy) logRequest() {
 		"datasource", proxy.ds.Type,
 		"uri", proxy.ctx.Req.RequestURI,
 		"method", proxy.ctx.Req.Method,
-		"panelPluginId", panelPluginId,
 		"body", body)
 }
 
-func (proxy *DataSourceProxy) checkWhiteList() bool {
-	if proxy.targetUrl.Host != "" && len(proxy.cfg.DataProxyWhiteList) > 0 {
-		if _, exists := proxy.cfg.DataProxyWhiteList[proxy.targetUrl.Host]; !exists {
-			proxy.ctx.JsonApiErr(403, "Data proxy hostname and ip are not included in whitelist", nil)
+func checkWhiteList(c *contextmodel.ReqContext, host string) bool {
+	if host != "" && len(setting.DataProxyWhiteList) > 0 {
+		if _, exists := setting.DataProxyWhiteList[host]; !exists {
+			c.JsonApiErr(403, "Data proxy hostname and ip are not included in whitelist", nil)
 			return false
 		}
 	}

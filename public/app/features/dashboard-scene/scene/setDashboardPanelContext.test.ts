@@ -5,7 +5,7 @@ import { PanelContext } from '@grafana/ui';
 import { transformSaveModelToScene } from '../serialization/transformSaveModelToScene';
 import { findVizPanelByKey } from '../utils/utils';
 
-import { getAdHocFilterVariableFor, setDashboardPanelContext } from './setDashboardPanelContext';
+import { getAdHocFilterSetFor, setDashboardPanelContext } from './setDashboardPanelContext';
 
 const postFn = jest.fn();
 const putFn = jest.fn();
@@ -15,7 +15,7 @@ setBackendSrv({
   post: postFn,
   put: putFn,
   delete: deleteFn,
-} as unknown as BackendSrv);
+} as any as BackendSrv);
 
 describe('setDashboardPanelContext', () => {
   describe('canAddAnnotations', () => {
@@ -132,26 +132,26 @@ describe('setDashboardPanelContext', () => {
 
       context.onAddAdHocFilter!({ key: 'hello', value: 'world', operator: '=' });
 
-      const variable = getAdHocFilterVariableFor(scene, { uid: 'my-ds-uid' });
+      const set = getAdHocFilterSetFor(scene, { uid: 'my-ds-uid' });
 
-      expect(variable.state.filters).toEqual([{ key: 'hello', value: 'world', operator: '=' }]);
+      expect(set.state.filters).toEqual([{ key: 'hello', value: 'world', operator: '=' }]);
     });
 
     it('Should update and add filter to existing set', () => {
-      const { scene, context } = buildTestScene({ existingFilterVariable: true });
+      const { scene, context } = buildTestScene({ existingFilterSet: true });
 
-      const variable = getAdHocFilterVariableFor(scene, { uid: 'my-ds-uid' });
+      const set = getAdHocFilterSetFor(scene, { uid: 'my-ds-uid' });
 
-      variable.setState({ filters: [{ key: 'existing', value: 'world', operator: '=' }] });
+      set.setState({ filters: [{ key: 'existing', value: 'world', operator: '=' }] });
 
       context.onAddAdHocFilter!({ key: 'hello', value: 'world', operator: '=' });
 
-      expect(variable.state.filters.length).toBe(2);
+      expect(set.state.filters.length).toBe(2);
 
       // Can update existing filter value without adding a new filter
       context.onAddAdHocFilter!({ key: 'hello', value: 'world2', operator: '=' });
       // Verify existing filter value updated
-      expect(variable.state.filters[1].value).toBe('world2');
+      expect(set.state.filters[1].value).toBe('world2');
     });
   });
 });
@@ -163,7 +163,7 @@ interface SceneOptions {
   canEdit?: boolean;
   canDelete?: boolean;
   orgCanEdit?: boolean;
-  existingFilterVariable?: boolean;
+  existingFilterSet?: boolean;
 }
 
 function buildTestScene(options: SceneOptions) {
@@ -198,7 +198,7 @@ function buildTestScene(options: SceneOptions) {
         },
       ],
       templating: {
-        list: options.existingFilterVariable
+        list: options.existingFilterSet
           ? [
               {
                 type: 'adhoc',

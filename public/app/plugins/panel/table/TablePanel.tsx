@@ -63,7 +63,6 @@ export function TablePanel(props: Props) {
       cellHeight={options.cellHeight}
       timeRange={timeRange}
       enableSharedCrosshair={config.featureToggles.tableSharedCrosshair && enableSharedCrosshair}
-      fieldConfig={fieldConfig}
     />
   );
 

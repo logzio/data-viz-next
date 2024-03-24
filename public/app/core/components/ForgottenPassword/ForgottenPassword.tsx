@@ -1,10 +1,9 @@
 import { css } from '@emotion/css';
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
 
 import { GrafanaTheme2 } from '@grafana/data';
 import { getBackendSrv } from '@grafana/runtime';
-import { Field, Input, Button, Legend, Container, useStyles2, HorizontalGroup, LinkButton } from '@grafana/ui';
+import { Form, Field, Input, Button, Legend, Container, useStyles2, HorizontalGroup, LinkButton } from '@grafana/ui';
 import config from 'app/core/config';
 
 interface EmailDTO {
@@ -24,11 +23,6 @@ export const ForgottenPassword = () => {
   const [emailSent, setEmailSent] = useState(false);
   const styles = useStyles2(paragraphStyles);
   const loginHref = `${config.appSubUrl}/login`;
-  const {
-    handleSubmit,
-    register,
-    formState: { errors },
-  } = useForm<EmailDTO>();
 
   const sendEmail = async (formModel: EmailDTO) => {
     const res = await getBackendSrv().post('/api/user/password/send-reset-email', formModel);
@@ -49,28 +43,32 @@ export const ForgottenPassword = () => {
     );
   }
   return (
-    <form onSubmit={handleSubmit(sendEmail)}>
-      <Legend>Reset password</Legend>
-      <Field
-        label="User"
-        description="Enter your information to get a reset link sent to you"
-        invalid={!!errors.userOrEmail}
-        error={errors?.userOrEmail?.message}
-      >
-        <Input
-          id="user-input"
-          placeholder="Email or username"
-          {...register('userOrEmail', { required: 'Email or username is required' })}
-        />
-      </Field>
-      <HorizontalGroup>
-        <Button type="submit">Send reset email</Button>
-        <LinkButton fill="text" href={loginHref}>
-          Back to login
-        </LinkButton>
-      </HorizontalGroup>
+    <Form onSubmit={sendEmail}>
+      {({ register, errors }) => (
+        <>
+          <Legend>Reset password</Legend>
+          <Field
+            label="User"
+            description="Enter your information to get a reset link sent to you"
+            invalid={!!errors.userOrEmail}
+            error={errors?.userOrEmail?.message}
+          >
+            <Input
+              id="user-input"
+              placeholder="Email or username"
+              {...register('userOrEmail', { required: 'Email or username is required' })}
+            />
+          </Field>
+          <HorizontalGroup>
+            <Button type="submit">Send reset email</Button>
+            <LinkButton fill="text" href={loginHref}>
+              Back to login
+            </LinkButton>
+          </HorizontalGroup>
 
-      <p className={styles}>Did you forget your username or email? Contact your Grafana administrator.</p>
-    </form>
+          <p className={styles}>Did you forget your username or email? Contact your Grafana administrator.</p>
+        </>
+      )}
+    </Form>
   );
 };

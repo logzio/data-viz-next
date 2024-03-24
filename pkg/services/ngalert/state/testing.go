@@ -2,7 +2,6 @@ package state
 
 import (
 	"context"
-	"slices"
 	"sync"
 
 	"github.com/grafana/grafana/pkg/services/ngalert/models"
@@ -14,7 +13,7 @@ var _ InstanceStore = &FakeInstanceStore{}
 
 type FakeInstanceStore struct {
 	mtx         sync.Mutex
-	recordedOps []any
+	RecordedOps []any
 }
 
 type FakeInstanceStoreOp struct {
@@ -22,23 +21,17 @@ type FakeInstanceStoreOp struct {
 	Args []any
 }
 
-func (f *FakeInstanceStore) RecordedOps() []any {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-	return slices.Clone(f.recordedOps)
-}
-
 func (f *FakeInstanceStore) ListAlertInstances(_ context.Context, q *models.ListAlertInstancesQuery) ([]*models.AlertInstance, error) {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
-	f.recordedOps = append(f.recordedOps, *q)
+	f.RecordedOps = append(f.RecordedOps, *q)
 	return nil, nil
 }
 
 func (f *FakeInstanceStore) SaveAlertInstance(_ context.Context, q models.AlertInstance) error {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
-	f.recordedOps = append(f.recordedOps, q)
+	f.RecordedOps = append(f.RecordedOps, q)
 	return nil
 }
 
@@ -47,7 +40,7 @@ func (f *FakeInstanceStore) FetchOrgIds(_ context.Context) ([]int64, error) { re
 func (f *FakeInstanceStore) DeleteAlertInstances(ctx context.Context, q ...models.AlertInstanceKey) error {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
-	f.recordedOps = append(f.recordedOps, FakeInstanceStoreOp{
+	f.RecordedOps = append(f.RecordedOps, FakeInstanceStoreOp{
 		Name: "DeleteAlertInstances", Args: []any{
 			ctx,
 			q,
@@ -57,16 +50,6 @@ func (f *FakeInstanceStore) DeleteAlertInstances(ctx context.Context, q ...model
 }
 
 func (f *FakeInstanceStore) DeleteAlertInstancesByRule(ctx context.Context, key models.AlertRuleKey) error {
-	return nil
-}
-
-func (f *FakeInstanceStore) FullSync(ctx context.Context, instances []models.AlertInstance) error {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-	f.recordedOps = []any{}
-	for _, instance := range instances {
-		f.recordedOps = append(f.recordedOps, instance)
-	}
 	return nil
 }
 

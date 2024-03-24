@@ -10,7 +10,7 @@ import {
 } from 'react-table';
 import { VariableSizeList } from 'react-window';
 
-import { FieldType, ReducerID, getRowUniqueId } from '@grafana/data';
+import { FieldType, ReducerID } from '@grafana/data';
 import { selectors } from '@grafana/e2e-selectors';
 import { TableCellHeight } from '@grafana/schema';
 
@@ -29,7 +29,6 @@ import { getColumns, sortCaseInsensitive, sortNumber, getFooterItems, createFoot
 
 const COLUMN_MIN_WIDTH = 150;
 const FOOTER_ROW_HEIGHT = 36;
-const NO_DATA_TEXT = 'No data';
 
 export const Table = memo((props: Props) => {
   const {
@@ -49,8 +48,6 @@ export const Table = memo((props: Props) => {
     cellHeight = TableCellHeight.Sm,
     timeRange,
     enableSharedCrosshair = false,
-    initialRowIndex = undefined,
-    fieldConfig,
   } = props;
 
   const listRef = useRef<VariableSizeList>(null);
@@ -60,7 +57,6 @@ export const Table = memo((props: Props) => {
   const tableStyles = useTableStyles(theme, cellHeight);
   const headerHeight = noHeader ? 0 : tableStyles.rowHeight;
   const [footerItems, setFooterItems] = useState<FooterItem[] | undefined>(footerValues);
-  const noValuesDisplayText = fieldConfig?.defaults?.noValue ?? NO_DATA_TEXT;
 
   const footerHeight = useMemo(() => {
     const EXTENDED_ROW_HEIGHT = FOOTER_ROW_HEIGHT;
@@ -133,12 +129,8 @@ export const Table = memo((props: Props) => {
     },
   });
 
-  const hasUniqueId = !!data.meta?.uniqueRowIdFields?.length;
-
-  const options: any = useMemo(() => {
-    // This is a bit hard to type with the react-table types here, the reducer does not actually match with the
-    // TableOptions.
-    const options: any = {
+  const options: any = useMemo(
+    () => ({
       columns: memoizedColumns,
       data: memoizedData,
       disableResizing: !resizable,
@@ -147,24 +139,12 @@ export const Table = memo((props: Props) => {
       initialState: getInitialState(initialSortBy, memoizedColumns),
       autoResetFilters: false,
       sortTypes: {
-        // the builtin number type on react-table does not handle NaN values
-        number: sortNumber,
-        // should be replaced with the builtin string when react-table is upgraded,
-        // see https://github.com/tannerlinsley/react-table/pull/3235
-        'alphanumeric-insensitive': sortCaseInsensitive,
+        number: sortNumber, // the builtin number type on react-table does not handle NaN values
+        'alphanumeric-insensitive': sortCaseInsensitive, // should be replace with the builtin string when react-table is upgraded, see https://github.com/tannerlinsley/react-table/pull/3235
       },
-    };
-    if (hasUniqueId) {
-      // row here is just always 0 because here we don't use real data but just a dummy array filled with 0.
-      // See memoizedData variable above.
-      options.getRowId = (row: Record<string, unknown>, relativeIndex: number) => getRowUniqueId(data, relativeIndex);
-
-      // If we have unique field we assume we can count on it as being globally unique, and we don't need to reset when
-      // data changes.
-      options.autoResetExpanded = false;
-    }
-    return options;
-  }, [initialSortBy, memoizedColumns, memoizedData, resizable, stateReducer, hasUniqueId, data]);
+    }),
+    [initialSortBy, memoizedColumns, memoizedData, resizable, stateReducer]
+  );
 
   const {
     getTableProps,
@@ -183,6 +163,12 @@ export const Table = memo((props: Props) => {
 
   const extendedState = state as GrafanaTableState;
   toggleAllRowsExpandedRef.current = toggleAllRowsExpanded;
+
+  const expandedRowsRepr = JSON.stringify(Object.keys(state.expanded));
+  useEffect(() => {
+    // Reset the list size cache when the expanded rows change
+    listRef.current?.resetAfterIndex(0);
+  }, [expandedRowsRepr]);
 
   /*
     Footer value calculation is being moved in the Table component and the footerValues prop will be deprecated.
@@ -240,18 +226,7 @@ export const Table = memo((props: Props) => {
     setPageSize(pageSize);
   }, [pageSize, setPageSize]);
 
-  useEffect(() => {
-    // Reset page index when data changes
-    // This is needed because react-table does not do this automatically
-    // autoResetPage is set to false because setting it to true causes the issue described in
-    // https://github.com/grafana/grafana/pull/67477
-    if (data.length / pageSize < state.pageIndex) {
-      gotoPage(0);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data]);
-
-  useResetVariableListSizeCache(extendedState, listRef, data, hasUniqueId);
+  useResetVariableListSizeCache(extendedState, listRef, data);
   useFixScrollbarContainer(variableSizeListScrollbarRef, tableDivRef);
 
   const onNavigate = useCallback(
@@ -322,12 +297,11 @@ export const Table = memo((props: Props) => {
                 tableStyles={tableStyles}
                 footerPaginationEnabled={Boolean(enablePagination)}
                 enableSharedCrosshair={enableSharedCrosshair}
-                initialRowIndex={initialRowIndex}
               />
             </div>
           ) : (
             <div style={{ height: height - headerHeight, width }} className={tableStyles.noData}>
-              {noValuesDisplayText}
+              No data
             </div>
           )}
           {footerItems && (

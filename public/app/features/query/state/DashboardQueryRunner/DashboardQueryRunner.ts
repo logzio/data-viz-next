@@ -3,11 +3,13 @@ import { finalize, map, mapTo, mergeAll, reduce, share, takeUntil } from 'rxjs/o
 
 import { AnnotationQuery } from '@grafana/data';
 import { RefreshEvent } from '@grafana/runtime';
+import { config } from 'app/core/config';
 import { dedupAnnotations } from 'app/features/annotations/events_processing';
 
 import { getTimeSrv, TimeSrv } from '../../../dashboard/services/TimeSrv';
 import { DashboardModel } from '../../../dashboard/state';
 
+import { AlertStatesWorker } from './AlertStatesWorker';
 import { AnnotationsWorker } from './AnnotationsWorker';
 import { SnapshotWorker } from './SnapshotWorker';
 import { UnifiedAlertStatesWorker } from './UnifiedAlertStatesWorker';
@@ -31,7 +33,7 @@ class DashboardQueryRunnerImpl implements DashboardQueryRunner {
     private readonly dashboard: DashboardModel,
     private readonly timeSrv: TimeSrv = getTimeSrv(),
     private readonly workers: DashboardQueryRunnerWorker[] = [
-      new UnifiedAlertStatesWorker(),
+      config.unifiedAlertingEnabled ? new UnifiedAlertStatesWorker() : new AlertStatesWorker(),
       new SnapshotWorker(),
       new AnnotationsWorker(),
     ]

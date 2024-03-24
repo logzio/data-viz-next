@@ -1,23 +1,16 @@
 package models
 
 import (
-	"context"
 	"testing"
 	"time"
 
 	"github.com/grafana/grafana-aws-sdk/pkg/awsds"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
-	"github.com/grafana/grafana-plugin-sdk-go/backend/proxy"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func Test_Settings_LoadCloudWatchSettings(t *testing.T) {
-	settingCtx := backend.WithGrafanaConfig(context.Background(), backend.NewGrafanaCfg(map[string]string{
-		awsds.AllowedAuthProvidersEnvVarKeyName: "default,keys,credentials",
-		awsds.AssumeRoleEnabledEnvVarKeyName:    "false",
-		awsds.SessionDurationEnvVarKeyName:      "10m",
-	}))
 	t.Run("Should return error for invalid json", func(t *testing.T) {
 		settings := backend.DataSourceInstanceSettings{
 			ID: 33,
@@ -32,7 +25,7 @@ func Test_Settings_LoadCloudWatchSettings(t *testing.T) {
 			},
 		}
 
-		_, err := LoadCloudWatchSettings(settingCtx, settings)
+		_, err := LoadCloudWatchSettings(settings)
 
 		assert.Error(t, err)
 	})
@@ -54,7 +47,7 @@ func Test_Settings_LoadCloudWatchSettings(t *testing.T) {
 			},
 		}
 
-		s, err := LoadCloudWatchSettings(settingCtx, settings)
+		s, err := LoadCloudWatchSettings(settings)
 		require.NoError(t, err)
 		assert.Equal(t, awsds.AuthTypeKeys, s.AuthType)
 		assert.Equal(t, "arn:aws:iam::123456789012:role/grafana", s.AssumeRoleARN)
@@ -85,7 +78,7 @@ func Test_Settings_LoadCloudWatchSettings(t *testing.T) {
 			},
 		}
 
-		s, err := LoadCloudWatchSettings(settingCtx, settings)
+		s, err := LoadCloudWatchSettings(settings)
 		require.NoError(t, err)
 		assert.Equal(t, awsds.AuthTypeDefault, s.AuthType)
 		assert.Equal(t, "arn:aws:iam::123456789012:role/grafana", s.AssumeRoleARN)
@@ -110,7 +103,7 @@ func Test_Settings_LoadCloudWatchSettings(t *testing.T) {
 			},
 		}
 
-		s, err := LoadCloudWatchSettings(settingCtx, settings)
+		s, err := LoadCloudWatchSettings(settings)
 		require.NoError(t, err)
 		assert.Equal(t, time.Minute*30, s.LogsTimeout.Duration)
 	})
@@ -128,7 +121,7 @@ func Test_Settings_LoadCloudWatchSettings(t *testing.T) {
 			},
 		}
 
-		s, err := LoadCloudWatchSettings(settingCtx, settings)
+		s, err := LoadCloudWatchSettings(settings)
 		require.NoError(t, err)
 		assert.Equal(t, time.Minute*10, s.LogsTimeout.Duration)
 	})
@@ -146,7 +139,7 @@ func Test_Settings_LoadCloudWatchSettings(t *testing.T) {
 			},
 		}
 
-		s, err := LoadCloudWatchSettings(settingCtx, settings)
+		s, err := LoadCloudWatchSettings(settings)
 		require.NoError(t, err)
 		assert.Equal(t, time.Duration(1500000000), s.LogsTimeout.Duration)
 	})
@@ -164,7 +157,7 @@ func Test_Settings_LoadCloudWatchSettings(t *testing.T) {
 			},
 		}
 
-		s, err := LoadCloudWatchSettings(settingCtx, settings)
+		s, err := LoadCloudWatchSettings(settings)
 		require.NoError(t, err)
 		assert.Equal(t, 1500*time.Millisecond, s.LogsTimeout.Duration)
 	})
@@ -182,7 +175,7 @@ func Test_Settings_LoadCloudWatchSettings(t *testing.T) {
 			},
 		}
 
-		_, err := LoadCloudWatchSettings(context.Background(), settings)
+		_, err := LoadCloudWatchSettings(settings)
 		require.Error(t, err)
 	})
 	t.Run("Should throw error if logsTimeout is an invalid type", func(t *testing.T) {
@@ -199,42 +192,7 @@ func Test_Settings_LoadCloudWatchSettings(t *testing.T) {
 			},
 		}
 
-		_, err := LoadCloudWatchSettings(settingCtx, settings)
+		_, err := LoadCloudWatchSettings(settings)
 		require.Error(t, err)
-	})
-
-	t.Run("Should load settings from context", func(t *testing.T) {
-		settingCtx := backend.WithGrafanaConfig(context.Background(), backend.NewGrafanaCfg(map[string]string{
-			awsds.AllowedAuthProvidersEnvVarKeyName:  "foo , bar,baz",
-			awsds.AssumeRoleEnabledEnvVarKeyName:     "false",
-			awsds.SessionDurationEnvVarKeyName:       "10m",
-			awsds.GrafanaAssumeRoleExternalIdKeyName: "mock_id",
-			awsds.ListMetricsPageLimitKeyName:        "50",
-			proxy.PluginSecureSocksProxyEnabled:      "true",
-		}))
-		settings := backend.DataSourceInstanceSettings{
-			ID: 33,
-			JSONData: []byte(`{
-			"authType": "arn",
-			"assumeRoleArn": "arn:aws:iam::123456789012:role/grafana"
-		  }`),
-			DecryptedSecureJSONData: map[string]string{
-				"accessKey": "AKIAIOSFODNN7EXAMPLE",
-				"secretKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
-			},
-		}
-		s, err := LoadCloudWatchSettings(settingCtx, settings)
-		require.NoError(t, err)
-
-		ctxDuration := 10 * time.Minute
-		expectedGrafanaSettings := awsds.AuthSettings{
-			AllowedAuthProviders:      []string{"foo", "bar", "baz"},
-			AssumeRoleEnabled:         false,
-			SessionDuration:           &ctxDuration,
-			ExternalID:                "mock_id",
-			ListMetricsPageLimit:      50,
-			SecureSocksDSProxyEnabled: true,
-		}
-		assert.Equal(t, expectedGrafanaSettings, s.GrafanaSettings)
 	})
 }

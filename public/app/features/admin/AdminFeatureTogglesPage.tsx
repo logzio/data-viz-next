@@ -1,22 +1,26 @@
 import { css } from '@emotion/css';
 import React, { useState } from 'react';
-import { useAsync } from 'react-use';
 
 import { GrafanaTheme2 } from '@grafana/data';
 import { useStyles2, Icon } from '@grafana/ui';
 import { Page } from 'app/core/components/Page/Page';
 
-import { getTogglesAPI } from './AdminFeatureTogglesAPI';
+import { useGetFeatureTogglesQuery, useGetManagerStateQuery } from './AdminFeatureTogglesAPI';
 import { AdminFeatureTogglesTable } from './AdminFeatureTogglesTable';
 
 export default function AdminFeatureTogglesPage() {
-  const [reload, setReload] = useState(1);
-  const togglesApi = getTogglesAPI();
-  const featureState = useAsync(() => togglesApi.getFeatureToggles(), [reload]);
+  const { data: featureToggles, isLoading, isError } = useGetFeatureTogglesQuery();
+  const { data: featureMgmtState } = useGetManagerStateQuery();
+  const [updateSuccessful, setUpdateSuccessful] = useState(false);
+
   const styles = useStyles2(getStyles);
 
+  const getErrorMessage = () => {
+    return 'Error fetching feature toggles';
+  };
+
   const handleUpdateSuccess = () => {
-    setReload(reload + 1);
+    setUpdateSuccessful(true);
   };
 
   const EditingAlert = () => {
@@ -26,7 +30,7 @@ export default function AdminFeatureTogglesPage() {
           <Icon name="exclamation-triangle" />
         </div>
         <span className={styles.message}>
-          {featureState.value?.restartRequired
+          {featureMgmtState?.restartRequired || updateSuccessful
             ? 'A restart is pending for your Grafana instance to apply the latest feature toggle changes'
             : 'Saving feature toggle changes will prompt a restart of the instance, which may take a few minutes'}
         </span>
@@ -50,16 +54,15 @@ export default function AdminFeatureTogglesPage() {
 
   return (
     <Page navId="feature-toggles" subTitle={subTitle}>
-      <Page.Contents isLoading={featureState.loading}>
+      <Page.Contents>
         <>
-          {featureState.error}
-          {featureState.loading && 'Fetching feature toggles'}
-
-          <EditingAlert />
-          {featureState.value && (
+          {isError && getErrorMessage()}
+          {isLoading && 'Fetching feature toggles'}
+          {featureMgmtState?.allowEditing && <EditingAlert />}
+          {featureToggles && (
             <AdminFeatureTogglesTable
-              featureToggles={featureState.value.toggles}
-              allowEditing={featureState.value.allowEditing || false}
+              featureToggles={featureToggles}
+              allowEditing={featureMgmtState?.allowEditing || false}
               onUpdateSuccess={handleUpdateSuccess}
             />
           )}

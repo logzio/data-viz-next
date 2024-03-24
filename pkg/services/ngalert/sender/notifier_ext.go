@@ -24,7 +24,7 @@ import (
 
 // ApplyConfig updates the status state as the new config requires.
 // Extension: add new parameter headers.
-func (n *Manager) ApplyConfig(conf *config.Config, headers map[string]http.Header) error {
+func (n *Manager) ApplyConfig(conf *config.Config, headers map[string]map[string]string) error {
 	n.mtx.Lock()
 	defer n.mtx.Unlock()
 
@@ -57,7 +57,7 @@ type alertmanagerSet struct {
 	client *http.Client
 
 	// Extension: headers that should be used for the http requests to the alertmanagers.
-	headers http.Header
+	headers map[string]string
 
 	metrics *alertMetrics
 
@@ -144,7 +144,7 @@ func (n *Manager) sendAll(alerts ...*Alert) bool {
 			defer cancel()
 
 			// Extension: added headers parameter.
-			go func(client *http.Client, url string, headers http.Header) {
+			go func(client *http.Client, url string, headers map[string]string) {
 				if err := n.sendOne(ctx, client, url, payload, headers); err != nil {
 					level.Error(n.logger).Log("alertmanager", url, "count", len(alerts), "msg", "Error sending alert", "err", err)
 					n.metrics.errors.WithLabelValues(url).Inc()
@@ -167,7 +167,7 @@ func (n *Manager) sendAll(alerts ...*Alert) bool {
 }
 
 // Extension: added headers parameter.
-func (n *Manager) sendOne(ctx context.Context, c *http.Client, url string, b []byte, headers http.Header) error {
+func (n *Manager) sendOne(ctx context.Context, c *http.Client, url string, b []byte, headers map[string]string) error {
 	req, err := http.NewRequest("POST", url, bytes.NewReader(b))
 	if err != nil {
 		return err
@@ -176,9 +176,7 @@ func (n *Manager) sendOne(ctx context.Context, c *http.Client, url string, b []b
 	req.Header.Set("Content-Type", contentTypeJSON)
 	// Extension: set headers.
 	for k, v := range headers {
-		for _, vv := range v {
-			req.Header.Set(k, vv)
-		}
+		req.Header.Set(k, v)
 	}
 	resp, err := n.opts.Do(ctx, c, req)
 	if err != nil {

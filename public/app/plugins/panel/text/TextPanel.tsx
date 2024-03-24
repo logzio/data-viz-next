@@ -53,7 +53,6 @@ export function TextPanel(props: Props) {
   return (
     <CustomScrollbar autoHeightMin="100%" className={styles.containStrict}>
       <DangerouslySetHtmlContent
-        allowRerender
         html={processed.content}
         className={styles.markdown}
         data-testid="TextPanel-converted-content"
@@ -65,7 +64,7 @@ export function TextPanel(props: Props) {
 function processContent(options: Options, interpolate: InterpolateFunction, disableSanitizeHtml: boolean): string {
   let { mode, content } = options;
   if (!content) {
-    return ' ';
+    return '';
   }
 
   // Variables must be interpolated before content is converted to markdown so using variables

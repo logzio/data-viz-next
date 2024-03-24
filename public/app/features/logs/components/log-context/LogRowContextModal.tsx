@@ -26,10 +26,11 @@ import { useDispatch } from 'app/types';
 
 import { dataFrameToLogsModel } from '../../logsModel';
 import { sortLogRows } from '../../utils';
-import { LoadingIndicator } from '../LoadingIndicator';
 import { LogRows } from '../LogRows';
 
+import { LoadingIndicator } from './LoadingIndicator';
 import { LogContextButtons } from './LogContextButtons';
+import { Place } from './types';
 
 const getStyles = (theme: GrafanaTheme2) => {
   return {
@@ -142,7 +143,6 @@ type Section = {
   loadingState: LoadingState;
   rows: LogRowModel[];
 };
-type Place = 'above' | 'below';
 type Context = Record<Place, Section>;
 
 const makeEmptyContext = (): Context => ({
@@ -518,7 +518,7 @@ export const LogRowContextModal: React.FunctionComponent<LogRowContextModalProps
               <td className={styles.loadingCell}>
                 {loadingStateAbove !== LoadingState.Done && loadingStateAbove !== LoadingState.Error && (
                   <div ref={aboveLoadingElement}>
-                    <LoadingIndicator adjective="newer" />
+                    <LoadingIndicator place="above" />
                   </div>
                 )}
                 {loadingStateAbove === LoadingState.Error && <div>Error loading log more logs.</div>}
@@ -587,7 +587,7 @@ export const LogRowContextModal: React.FunctionComponent<LogRowContextModalProps
               <td className={styles.loadingCell}>
                 {loadingStateBelow !== LoadingState.Done && loadingStateBelow !== LoadingState.Error && (
                   <div ref={belowLoadingElement}>
-                    <LoadingIndicator adjective="older" />
+                    <LoadingIndicator place="below" />
                   </div>
                 )}
                 {loadingStateBelow === LoadingState.Error && <div>Error loading log more logs.</div>}

@@ -3,8 +3,6 @@ package es
 import (
 	"encoding/json"
 	"time"
-
-	"github.com/grafana/grafana-plugin-sdk-go/backend"
 )
 
 // SearchRequest represents a search request
@@ -16,7 +14,6 @@ type SearchRequest struct {
 	Query       *Query
 	Aggs        AggArray
 	CustomProps map[string]interface{}
-	TimeRange   backend.TimeRange
 }
 
 // MarshalJSON returns the JSON encoding of the request.

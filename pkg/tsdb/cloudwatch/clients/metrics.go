@@ -5,19 +5,20 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/grafana/grafana/pkg/infra/metrics"
+	"github.com/grafana/grafana/pkg/setting"
 	"github.com/grafana/grafana/pkg/tsdb/cloudwatch/models"
 	"github.com/grafana/grafana/pkg/tsdb/cloudwatch/models/resources"
-	"github.com/grafana/grafana/pkg/tsdb/cloudwatch/utils"
 )
 
 // this client wraps the CloudWatch API and handles pagination and the composition of the MetricResponse DTO
 type metricsClient struct {
 	models.CloudWatchMetricsAPIProvider
-	listMetricsPageLimit int
+	config *setting.Cfg
 }
 
-func NewMetricsClient(api models.CloudWatchMetricsAPIProvider, pageLimit int) *metricsClient {
-	return &metricsClient{CloudWatchMetricsAPIProvider: api, listMetricsPageLimit: pageLimit}
+func NewMetricsClient(api models.CloudWatchMetricsAPIProvider, config *setting.Cfg) *metricsClient {
+	return &metricsClient{CloudWatchMetricsAPIProvider: api, config: config}
 }
 
 func (l *metricsClient) ListMetricsWithPageLimit(ctx context.Context, params *cloudwatch.ListMetricsInput) ([]resources.MetricResponse, error) {
@@ -25,7 +26,7 @@ func (l *metricsClient) ListMetricsWithPageLimit(ctx context.Context, params *cl
 	pageNum := 0
 	err := l.ListMetricsPagesWithContext(ctx, params, func(page *cloudwatch.ListMetricsOutput, lastPage bool) bool {
 		pageNum++
-		utils.QueriesTotalCounter.WithLabelValues(utils.ListMetricsLabel).Inc()
+		metrics.MAwsCloudWatchListMetrics.Inc()
 		metrics, err := awsutil.ValuesAtPath(page, "Metrics")
 		if err == nil {
 			for idx, metric := range metrics {
@@ -36,7 +37,7 @@ func (l *metricsClient) ListMetricsWithPageLimit(ctx context.Context, params *cl
 				cloudWatchMetrics = append(cloudWatchMetrics, metric)
 			}
 		}
-		return !lastPage && pageNum < l.listMetricsPageLimit
+		return !lastPage && pageNum < l.config.AWSListMetricsPageLimit
 	})
 
 	return cloudWatchMetrics, err

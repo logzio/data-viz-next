@@ -8,29 +8,18 @@ import (
 	"github.com/grafana/grafana/pkg/services/user"
 )
 
-func writeStarredSQL(query SearchInQueryHistoryQuery, sqlStore db.DB, builder *db.SQLBuilder, isCount bool) {
-	var sql bytes.Buffer
-	if isCount {
-		sql.WriteString(`COUNT(`)
-	}
+func writeStarredSQL(query SearchInQueryHistoryQuery, sqlStore db.DB, builder *db.SQLBuilder) {
 	if query.OnlyStarred {
-		sql.WriteString(sqlStore.GetDialect().BooleanStr(true))
+		builder.Write(sqlStore.GetDialect().BooleanStr(true) + ` AS starred
+				FROM query_history
+				INNER JOIN query_history_star ON query_history_star.query_uid = query_history.uid 
+				`)
 	} else {
-		sql.WriteString(`CASE WHEN query_history_star.query_uid IS NULL THEN ` + sqlStore.GetDialect().BooleanStr(false) + ` ELSE ` + sqlStore.GetDialect().BooleanStr(true) + ` END`)
+		builder.Write(` CASE WHEN query_history_star.query_uid IS NULL THEN ` + sqlStore.GetDialect().BooleanStr(false) + ` ELSE ` + sqlStore.GetDialect().BooleanStr(true) + ` END AS starred
+				FROM query_history
+				LEFT JOIN query_history_star ON query_history_star.query_uid = query_history.uid 
+				`)
 	}
-	if isCount {
-		sql.WriteString(`)`)
-	}
-	sql.WriteString(` AS starred FROM query_history `)
-
-	if query.OnlyStarred {
-		sql.WriteString(`INNER`)
-	} else {
-		sql.WriteString(`LEFT`)
-	}
-
-	sql.WriteString(` JOIN query_history_star ON query_history_star.query_uid = query_history.uid `)
-	builder.Write(sql.String())
 }
 
 func writeFiltersSQL(query SearchInQueryHistoryQuery, user *user.SignedInUser, sqlStore db.DB, builder *db.SQLBuilder) {

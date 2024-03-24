@@ -38,10 +38,8 @@ const AnnotationHeaderField = ({
               switch (annotationField.key) {
                 case Annotation.dashboardUID:
                   label = 'Dashboard and panel';
-                  break;
                 case Annotation.panelID:
                   label = '';
-                  break;
                 default:
                   label = annotationLabels[annotation] && annotationLabels[annotation] + ' (optional)';
               }

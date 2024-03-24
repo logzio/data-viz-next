@@ -46,12 +46,10 @@ func (r *subResourceREST) NewConnectOptions() (runtime.Object, bool, string) {
 }
 
 func (r *subResourceREST) Connect(ctx context.Context, name string, opts runtime.Object, responder rest.Responder) (http.Handler, error) {
-	pluginCtx, err := r.builder.getPluginContext(ctx, name)
+	pluginCtx, err := r.builder.getDataSourcePluginContext(ctx, name)
 	if err != nil {
 		return nil, err
 	}
-	ctx = backend.WithGrafanaConfig(ctx, pluginCtx.GrafanaConfig)
-	ctx = contextualMiddlewares(ctx)
 
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		body, err := io.ReadAll(req.Body)
@@ -68,7 +66,7 @@ func (r *subResourceREST) Connect(ctx context.Context, name string, opts runtime
 
 		path := req.URL.Path[idx+len("/resource"):]
 		err = r.builder.client.CallResource(ctx, &backend.CallResourceRequest{
-			PluginContext: pluginCtx,
+			PluginContext: *pluginCtx,
 			Path:          path,
 			Method:        req.Method,
 			Body:          body,

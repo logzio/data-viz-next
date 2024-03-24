@@ -190,6 +190,8 @@ export function LabelFilterItem({
 const operators = [
   { label: '=', value: '=', isMultiValue: false },
   { label: '!=', value: '!=', isMultiValue: false },
+  { label: '<', value: '<', isMultiValue: false },
+  { label: '>', value: '>', isMultiValue: false },
   { label: '=~', value: '=~', isMultiValue: true },
   { label: '!~', value: '!~', isMultiValue: true },
 ];

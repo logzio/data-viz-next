@@ -1,15 +1,19 @@
 import { CloudMonitoringQuery as CloudMonitoringQueryBase, QueryType } from '../dataquery.gen';
 
 export { QueryType };
-export { PreprocessorType, MetricKind, AlignmentTypes, ValueTypes, MetricFindQueryTypes } from '../dataquery.gen';
-export type {
+export {
+  TimeSeriesList,
+  PreprocessorType,
   TimeSeriesQuery,
   SLOQuery,
-  TimeSeriesList,
   MetricQuery,
-  PromQLQuery,
+  MetricKind,
   LegacyCloudMonitoringAnnotationQuery,
   Filter,
+  AlignmentTypes,
+  ValueTypes,
+  MetricFindQueryTypes,
+  PromQLQuery,
 } from '../dataquery.gen';
 
 /**

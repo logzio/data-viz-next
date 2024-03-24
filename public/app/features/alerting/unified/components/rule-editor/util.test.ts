@@ -245,12 +245,12 @@ describe('checkForPathSeparator', () => {
 
 describe('getThresholdsForQueries', () => {
   it('should work for threshold condition', () => {
-    const [queries, condition] = createThresholdExample('gt');
-    expect(getThresholdsForQueries(queries, condition)).toMatchSnapshot();
+    const queries = createThresholdExample('gt');
+    expect(getThresholdsForQueries(queries)).toMatchSnapshot();
   });
 
   it('should work for classic_condition', () => {
-    const [[dataQuery]] = createThresholdExample('gt');
+    const [dataQuery] = createThresholdExample('gt');
 
     const classicCondition = {
       refId: 'B',
@@ -282,7 +282,7 @@ describe('getThresholdsForQueries', () => {
       },
     };
 
-    const thresholdsClassic = getThresholdsForQueries([dataQuery, classicCondition], classicCondition.refId);
+    const thresholdsClassic = getThresholdsForQueries([dataQuery, classicCondition]);
     expect(thresholdsClassic).toMatchSnapshot();
   });
 
@@ -331,32 +331,30 @@ describe('getThresholdsForQueries', () => {
     };
 
     expect(() => {
-      const thresholds = getThresholdsForQueries([dataQuery, classicCondition], classicCondition.refId);
+      const thresholds = getThresholdsForQueries([dataQuery, classicCondition]);
       expect(thresholds).toStrictEqual({});
     }).not.toThrowError();
   });
 
   it('should work for within_range', () => {
-    const [queries, condition] = createThresholdExample('within_range');
-    const thresholds = getThresholdsForQueries(queries, condition);
+    const queries = createThresholdExample('within_range');
+    const thresholds = getThresholdsForQueries(queries);
     expect(thresholds).toMatchSnapshot();
   });
 
   it('should work for lt and gt', () => {
-    const [gtQueries, qtCondition] = createThresholdExample('gt');
-    const [ltQueries, ltCondition] = createThresholdExample('lt');
-    expect(getThresholdsForQueries(gtQueries, qtCondition)).toMatchSnapshot();
-    expect(getThresholdsForQueries(ltQueries, ltCondition)).toMatchSnapshot();
+    expect(getThresholdsForQueries(createThresholdExample('gt'))).toMatchSnapshot();
+    expect(getThresholdsForQueries(createThresholdExample('lt'))).toMatchSnapshot();
   });
 
   it('should work for outside_range', () => {
-    const [queries, condition] = createThresholdExample('outside_range');
-    const thresholds = getThresholdsForQueries(queries, condition);
+    const queries = createThresholdExample('outside_range');
+    const thresholds = getThresholdsForQueries(queries);
     expect(thresholds).toMatchSnapshot();
   });
 });
 
-function createThresholdExample(thresholdType: string): [AlertQuery[], string] {
+function createThresholdExample(thresholdType: string): AlertQuery[] {
   const dataQuery: AlertQuery = {
     refId: 'A',
     datasourceUid: 'abc123',
@@ -405,7 +403,7 @@ function createThresholdExample(thresholdType: string): [AlertQuery[], string] {
     },
   };
 
-  return [[dataQuery, reduceExpression, thresholdExpression], thresholdExpression.refId];
+  return [dataQuery, reduceExpression, thresholdExpression];
 }
 
 describe('findRenamedReferences', () => {

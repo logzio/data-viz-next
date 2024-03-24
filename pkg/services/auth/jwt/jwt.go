@@ -2,11 +2,9 @@ package jwt
 
 import (
 	"context"
-
-	"github.com/grafana/grafana/pkg/util"
 )
 
-type JWTClaims util.DynMap
+type JWTClaims map[string]any
 
 type JWTService interface {
 	Verify(ctx context.Context, strToken string) (JWTClaims, error)

@@ -89,7 +89,7 @@ export const SaveDashboardForm = ({
               />
             )}
             <div className={styles.message}>
-              {config.featureToggles.aiGeneratedDashboardChanges && (
+              {config.featureToggles.dashgpt && (
                 <GenAIDashboardChangesButton
                   dashboard={dashboard}
                   onGenerate={(text) => {

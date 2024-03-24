@@ -1,5 +1,5 @@
 import { css } from '@emotion/css';
-import React from 'react';
+import React, { useState } from 'react';
 
 import { DashboardCursorSync, GrafanaTheme2 } from '@grafana/data';
 import {
@@ -17,16 +17,13 @@ import {
 } from '@grafana/scenes';
 import { ToolbarButton, Box, Stack, Icon, TabsBar, Tab, useStyles2 } from '@grafana/ui';
 
-import { getExploreUrl } from '../../core/utils/explore';
-
 import { buildBreakdownActionScene } from './ActionTabs/BreakdownScene';
+import { buildLogsScene } from './ActionTabs/LogsScene';
 import { buildMetricOverviewScene } from './ActionTabs/MetricOverviewScene';
 import { buildRelatedMetricsScene } from './ActionTabs/RelatedMetricsScene';
 import { getAutoQueriesForMetric } from './AutomaticMetricQueries/AutoQueryEngine';
 import { AutoVizPanel } from './AutomaticMetricQueries/AutoVizPanel';
-import { AutoQueryDef, AutoQueryInfo } from './AutomaticMetricQueries/types';
-import { ShareTrailButton } from './ShareTrailButton';
-import { useBookmarkState } from './TrailStore/useBookmarkState';
+import { getTrailStore } from './TrailStore/TrailStore';
 import {
   ActionViewDefinition,
   ActionViewType,
@@ -37,37 +34,23 @@ import {
   VAR_GROUP_BY,
   VAR_METRIC_EXPR,
 } from './shared';
-import { getDataSource, getTrailFor } from './utils';
+import { getTrailFor } from './utils';
 
 export interface MetricSceneState extends SceneObjectState {
   body: SceneFlexLayout;
   metric: string;
   actionView?: string;
-
-  autoQuery: AutoQueryInfo;
-  queryDef?: AutoQueryDef;
 }
 
 export class MetricScene extends SceneObjectBase<MetricSceneState> {
   protected _urlSync = new SceneObjectUrlSyncConfig(this, { keys: ['actionView'] });
 
-  public constructor(state: MakeOptional<MetricSceneState, 'body' | 'autoQuery'>) {
-    const autoQuery = state.autoQuery ?? getAutoQueriesForMetric(state.metric);
+  public constructor(state: MakeOptional<MetricSceneState, 'body'>) {
     super({
       $variables: state.$variables ?? getVariableSet(state.metric),
-      body: state.body ?? buildGraphScene(),
-      autoQuery,
-      queryDef: state.queryDef ?? autoQuery.main,
+      body: state.body ?? buildGraphScene(state.metric),
       ...state,
     });
-
-    this.addActivationHandler(this._onActivate.bind(this));
-  }
-
-  private _onActivate() {
-    if (this.state.actionView === undefined) {
-      this.setActionView('overview');
-    }
   }
 
   getUrlState() {
@@ -113,6 +96,7 @@ export class MetricScene extends SceneObjectBase<MetricSceneState> {
 const actionViewsDefinitions: ActionViewDefinition[] = [
   { displayName: 'Overview', value: 'overview', getScene: buildMetricOverviewScene },
   { displayName: 'Breakdown', value: 'breakdown', getScene: buildBreakdownActionScene },
+  { displayName: 'Logs', value: 'logs', getScene: buildLogsScene },
   { displayName: 'Related metrics', value: 'related', getScene: buildRelatedMetricsScene },
 ];
 
@@ -123,48 +107,31 @@ export class MetricActionBar extends SceneObjectBase<MetricActionBarState> {
     this.publishEvent(new OpenEmbeddedTrailEvent(), true);
   };
 
-  public getLinkToExplore = async () => {
-    const metricScene = sceneGraph.getAncestor(this, MetricScene);
-    const trail = getTrailFor(this);
-    const dsValue = getDataSource(trail);
-
-    const queries = metricScene.state.queryDef?.queries || [];
-    const timeRange = sceneGraph.getTimeRange(this);
-
-    return getExploreUrl({
-      queries,
-      dsRef: { uid: dsValue },
-      timeRange: timeRange.state.value,
-      scopedVars: { __sceneObject: { value: metricScene } },
-    });
-  };
-
-  public openExploreLink = async () => {
-    this.getLinkToExplore().then((link) => {
-      // We use window.open instead of a Link or <a> because we want to compute the explore link when clicking,
-      // if we precompute it we have to keep track of a lot of dependencies
-      window.open(link, '_blank');
-    });
-  };
-
   public static Component = ({ model }: SceneComponentProps<MetricActionBar>) => {
     const metricScene = sceneGraph.getAncestor(model, MetricScene);
     const styles = useStyles2(getStyles);
     const trail = getTrailFor(model);
-    const [isBookmarked, toggleBookmark] = useBookmarkState(trail);
+    const [isBookmarked, setBookmarked] = useState(false);
     const { actionView } = metricScene.useState();
+
+    const onBookmarkTrail = () => {
+      getTrailStore().addBookmark(trail);
+      setBookmarked(!isBookmarked);
+    };
+
+    if (!actionView) {
+      metricScene.setActionView('overview');
+    }
 
     return (
       <Box paddingY={1}>
         <div className={styles.actions}>
-          <Stack gap={1}>
-            <ToolbarButton
-              variant={'canvas'}
-              icon="compass"
-              tooltip="Open in explore"
-              onClick={model.openExploreLink}
-            ></ToolbarButton>
-            <ShareTrailButton trail={trail} />
+          <Stack gap={2}>
+            <ToolbarButton variant={'canvas'} icon="compass" tooltip="Open in explore (todo)" disabled>
+              Explore
+            </ToolbarButton>
+            <ToolbarButton variant={'canvas'}>Add to dashboard</ToolbarButton>
+            <ToolbarButton variant={'canvas'} icon="share-alt" tooltip="Copy url (todo)" disabled />
             <ToolbarButton
               variant={'canvas'}
               icon={
@@ -175,7 +142,7 @@ export class MetricActionBar extends SceneObjectBase<MetricActionBarState> {
                 )
               }
               tooltip={'Bookmark'}
-              onClick={toggleBookmark}
+              onClick={onBookmarkTrail}
             />
             {trail.state.embedded && (
               <ToolbarButton variant={'canvas'} onClick={model.onOpenTrail}>
@@ -235,8 +202,9 @@ function getVariableSet(metric: string) {
 const MAIN_PANEL_MIN_HEIGHT = 280;
 const MAIN_PANEL_MAX_HEIGHT = '40%';
 
-function buildGraphScene() {
-  const bodyAutoVizPanel = new AutoVizPanel({});
+function buildGraphScene(metric: string) {
+  const autoQuery = getAutoQueriesForMetric(metric);
+  const bodyAutoVizPanel = new AutoVizPanel({ autoQuery });
 
   return new SceneFlexLayout({
     direction: 'column',

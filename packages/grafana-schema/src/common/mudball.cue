@@ -122,11 +122,11 @@ HideableFieldConfig: {
 } @cuetsy(kind="interface")
 
 // TODO docs
-GraphThresholdsStyleMode: "off" | "line" | "dashed" | "area" | "line+area" | "dashed+area" | "series" @cuetsy(kind="enum",memberNames="Off|Line|Dashed|Area|LineAndArea|DashedAndArea|Series")
+GraphTresholdsStyleMode: "off" | "line" | "dashed" | "area" | "line+area" | "dashed+area" | "series" @cuetsy(kind="enum",memberNames="Off|Line|Dashed|Area|LineAndArea|DashedAndArea|Series")
 
 // TODO docs
 GraphThresholdsStyleConfig: {
-	mode: GraphThresholdsStyleMode
+	mode: GraphTresholdsStyleMode
 } @cuetsy(kind="interface")
 
 // TODO docs

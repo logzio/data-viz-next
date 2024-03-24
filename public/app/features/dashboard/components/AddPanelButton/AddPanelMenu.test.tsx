@@ -27,6 +27,7 @@ jest.mock('@grafana/runtime', () => ({
     partial: jest.fn(),
   },
   reportInteraction: jest.fn(),
+  config: {},
 }));
 
 jest.mock('app/features/dashboard/utils/dashboard', () => ({

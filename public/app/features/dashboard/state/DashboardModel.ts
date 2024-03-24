@@ -44,7 +44,7 @@ import { getTimeSrv } from '../services/TimeSrv';
 import { mergePanels, PanelMergeInfo } from '../utils/panelMerge';
 
 import { DashboardMigrator } from './DashboardMigrator';
-import { PanelModel } from './PanelModel';
+import { PanelModel, autoMigrateAngular } from './PanelModel';
 import { TimeModel } from './TimeModel';
 import { deleteScopeVars, isOnTheSameGridRow } from './utils';
 
@@ -70,13 +70,13 @@ export class DashboardModel implements TimeModel {
   editable: any;
   graphTooltip: DashboardCursorSync;
   time: any;
-  liveNow?: boolean;
+  liveNow: boolean;
   private originalTime: any;
   timepicker: any;
   templating: { list: any[] };
   private originalTemplating: any;
   annotations: { list: AnnotationQuery[] };
-  refresh?: string;
+  refresh: string;
   snapshot: any;
   schemaVersion: number;
   version: number;
@@ -90,7 +90,7 @@ export class DashboardModel implements TimeModel {
   private panelsAffectedByVariableChange: number[] | null;
   private appEventsSubscription: Subscription;
   private lastRefresh: number;
-  private timeRangeUpdatedDuringEditOrView = false;
+  private timeRangeUpdatedDuringEdit = false;
   private originalDashboard: Dashboard | null = null;
 
   // ------------------
@@ -127,6 +127,9 @@ export class DashboardModel implements TimeModel {
     options?: {
       // By default this uses variables from redux state
       getVariablesFromState?: GetVariables;
+
+      // Force the loader to migrate panels
+      autoMigrateOldPanels?: boolean;
     }
   ) {
     this.getVariablesFromState = options?.getVariablesFromState ?? getVariablesByKey;
@@ -144,10 +147,10 @@ export class DashboardModel implements TimeModel {
     this.graphTooltip = data.graphTooltip || 0;
     this.time = data.time ?? { from: 'now-6h', to: 'now' };
     this.timepicker = data.timepicker ?? {};
-    this.liveNow = data.liveNow;
+    this.liveNow = Boolean(data.liveNow);
     this.templating = this.ensureListExist(data.templating);
     this.annotations = this.ensureListExist(data.annotations);
-    this.refresh = data.refresh;
+    this.refresh = data.refresh || '';
     this.snapshot = data.snapshot;
     this.schemaVersion = data.schemaVersion ?? 0;
     this.fiscalYearStartMonth = data.fiscalYearStartMonth ?? 0;
@@ -165,6 +168,17 @@ export class DashboardModel implements TimeModel {
 
     this.initMeta(meta);
     this.updateSchema(data);
+
+    // Auto-migrate old angular panels
+    if (options?.autoMigrateOldPanels || !config.angularSupportEnabled || config.featureToggles.autoMigrateOldPanels) {
+      for (const p of this.panelIterator()) {
+        const newType = autoMigrateAngular[p.type];
+        if (!p.autoMigrateFrom && newType) {
+          p.autoMigrateFrom = p.type;
+          p.type = newType;
+        }
+      }
+    }
 
     this.addBuiltInAnnotationQuery();
     this.sortPanelsByGridPos();
@@ -288,8 +302,12 @@ export class DashboardModel implements TimeModel {
   }
 
   private getPanelSaveModels() {
+    // Todo: Remove panel.type === 'add-panel' when we remove the emptyDashboardPage toggle
     return this.panels
-      .filter((panel) => this.isSnapshotTruthy() || !(panel.repeatPanelId || panel.repeatedByRow))
+      .filter(
+        (panel) =>
+          this.isSnapshotTruthy() || !(panel.type === 'add-panel' || panel.repeatPanelId || panel.repeatedByRow)
+      )
       .map((panel) => {
         // Clean libarary panels on save
         if (panel.libraryPanel) {
@@ -370,8 +388,8 @@ export class DashboardModel implements TimeModel {
     this.events.publish(new TimeRangeUpdatedEvent(timeRange));
     dispatch(onTimeRangeUpdated(this.uid, timeRange));
 
-    if (this.panelInEdit || this.panelInView) {
-      this.timeRangeUpdatedDuringEditOrView = true;
+    if (this.panelInEdit) {
+      this.timeRangeUpdatedDuringEdit = true;
     }
   }
 
@@ -384,21 +402,10 @@ export class DashboardModel implements TimeModel {
       return;
     }
 
-    const panelsToRefresh = this.panels.filter(
-      (panel) => !this.otherPanelInFullscreen(panel) && (event.refreshAll || event.panelIds.includes(panel.id))
-    );
-
-    // We have to mark every panel as refreshWhenInView /before/ we actually refresh any
-    // in case there is a shared query, as otherwise that might refresh before the source panel is
-    // marked for refresh, preventing the panel from updating
-    if (!this.isSnapshot()) {
-      for (const panel of panelsToRefresh) {
-        panel.refreshWhenInView = true;
+    for (const panel of this.panels) {
+      if (!this.otherPanelInFullscreen(panel) && (event.refreshAll || event.panelIds.includes(panel.id))) {
+        panel.refresh();
       }
-    }
-
-    for (const panel of panelsToRefresh) {
-      panel.refresh();
     }
   }
 
@@ -424,7 +431,7 @@ export class DashboardModel implements TimeModel {
   initEditPanel(sourcePanel: PanelModel): PanelModel {
     getTimeSrv().stopAutoRefresh();
     this.panelInEdit = sourcePanel.getEditClone();
-    this.timeRangeUpdatedDuringEditOrView = false;
+    this.timeRangeUpdatedDuringEdit = false;
     return this.panelInEdit;
   }
 
@@ -434,30 +441,34 @@ export class DashboardModel implements TimeModel {
 
     getTimeSrv().resumeAutoRefresh();
 
-    this.refreshIfPanelsAffectedByVariableChangeOrTimeRangeChanged();
+    if (this.panelsAffectedByVariableChange || this.timeRangeUpdatedDuringEdit) {
+      this.startRefresh({
+        panelIds: this.panelsAffectedByVariableChange ?? [],
+        refreshAll: this.timeRangeUpdatedDuringEdit,
+      });
+      this.panelsAffectedByVariableChange = null;
+      this.timeRangeUpdatedDuringEdit = false;
+    }
   }
 
   initViewPanel(panel: PanelModel) {
     this.panelInView = panel;
-    this.timeRangeUpdatedDuringEditOrView = false;
     panel.setIsViewing(true);
   }
 
   exitViewPanel(panel: PanelModel) {
     this.panelInView = undefined;
     panel.setIsViewing(false);
-    this.refreshIfPanelsAffectedByVariableChangeOrTimeRangeChanged();
+    this.refreshIfPanelsAffectedByVariableChange();
   }
 
-  private refreshIfPanelsAffectedByVariableChangeOrTimeRangeChanged() {
-    if (this.panelsAffectedByVariableChange || this.timeRangeUpdatedDuringEditOrView) {
-      this.startRefresh({
-        panelIds: this.panelsAffectedByVariableChange ?? [],
-        refreshAll: this.timeRangeUpdatedDuringEditOrView,
-      });
-      this.panelsAffectedByVariableChange = null;
-      this.timeRangeUpdatedDuringEditOrView = false;
+  private refreshIfPanelsAffectedByVariableChange() {
+    if (!this.panelsAffectedByVariableChange) {
+      return;
     }
+
+    this.startRefresh({ panelIds: this.panelsAffectedByVariableChange, refreshAll: false });
+    this.panelsAffectedByVariableChange = null;
   }
 
   private ensurePanelsHaveUniqueIds() {
@@ -1293,9 +1304,7 @@ export class DashboardModel implements TimeModel {
   hasAngularPlugins(): boolean {
     return this.panels.some((panel) => {
       // Return false for plugins that are angular but have angular.hideDeprecation = false
-      // We cannot use panel.plugin.isAngularPlugin() because panel.plugin may not be initialized at this stage.
-      const isAngularPanel =
-        config.panels[panel.type]?.angular?.detected && !config.panels[panel.type]?.angular?.hideDeprecation;
+      const isAngularPanel = panel.isAngularPlugin() && !panel.plugin?.meta.angular?.hideDeprecation;
       let isAngularDs = false;
       if (panel.datasource?.uid) {
         isAngularDs = isAngularDatasourcePluginAndNotHidden(panel.datasource?.uid);

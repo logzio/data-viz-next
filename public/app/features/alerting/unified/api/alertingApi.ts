@@ -3,7 +3,7 @@ import { lastValueFrom } from 'rxjs';
 
 import { BackendSrvRequest, getBackendSrv } from '@grafana/runtime';
 
-import { logMeasurement } from '../Analytics';
+import { logInfo } from '../Analytics';
 
 export const backendSrvBaseQuery = (): BaseQueryFn<BackendSrvRequest> => async (requestOptions) => {
   try {
@@ -11,17 +11,12 @@ export const backendSrvBaseQuery = (): BaseQueryFn<BackendSrvRequest> => async (
 
     const { data, ...meta } = await lastValueFrom(getBackendSrv().fetch(requestOptions));
 
-    logMeasurement(
-      'backendSrvBaseQuery',
-      {
-        loadTimeMs: performance.now() - requestStartTs,
-      },
-      {
-        url: requestOptions.url,
-        method: requestOptions.method ?? 'GET',
-        responseStatus: meta.statusText,
-      }
-    );
+    logInfo('Request finished', {
+      loadTimeMs: (performance.now() - requestStartTs).toFixed(0),
+      url: requestOptions.url,
+      method: requestOptions.method ?? '',
+      responseStatus: meta.statusText,
+    });
 
     return { data, meta };
   } catch (error) {
@@ -32,12 +27,6 @@ export const backendSrvBaseQuery = (): BaseQueryFn<BackendSrvRequest> => async (
 export const alertingApi = createApi({
   reducerPath: 'alertingApi',
   baseQuery: backendSrvBaseQuery(),
-  tagTypes: [
-    'AlertmanagerChoice',
-    'AlertmanagerConfiguration',
-    'OnCallIntegrations',
-    'OrgMigrationState',
-    'DataSourceSettings',
-  ],
+  tagTypes: ['AlertmanagerChoice', 'AlertmanagerConfiguration', 'OnCallIntegrations', 'OrgMigrationState'],
   endpoints: () => ({}),
 });

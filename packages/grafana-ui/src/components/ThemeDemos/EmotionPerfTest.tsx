@@ -126,7 +126,14 @@ function NoStyles({ index }: TestComponentProps) {
 }
 
 function MeasureRender({ children, id }: { children: React.ReactNode; id: string }) {
-  const onRender: ProfilerOnRenderCallback = (id, phase, actualDuration, baseDuration, startTime, commitTime) => {
+  const onRender: ProfilerOnRenderCallback = (
+    id: string,
+    phase: 'mount' | 'update',
+    actualDuration: number,
+    baseDuration: number,
+    startTime: number,
+    commitTime: number
+  ) => {
     console.log('Profile ' + id, actualDuration);
   };
 

@@ -14,7 +14,6 @@ import (
 	contextmodel "github.com/grafana/grafana/pkg/services/contexthandler/model"
 	"github.com/grafana/grafana/pkg/services/dashboards"
 	"github.com/grafana/grafana/pkg/services/featuremgmt"
-	"github.com/grafana/grafana/pkg/services/licensing"
 	"github.com/grafana/grafana/pkg/services/publicdashboards"
 	. "github.com/grafana/grafana/pkg/services/publicdashboards/models"
 	"github.com/grafana/grafana/pkg/services/publicdashboards/validation"
@@ -29,7 +28,6 @@ type Api struct {
 	accessControl accesscontrol.AccessControl
 	cfg           *setting.Cfg
 	features      featuremgmt.FeatureToggles
-	license       licensing.Licensing
 	log           log.Logger
 	routeRegister routing.RouteRegister
 }
@@ -41,7 +39,6 @@ func ProvideApi(
 	features featuremgmt.FeatureToggles,
 	md publicdashboards.Middleware,
 	cfg *setting.Cfg,
-	license licensing.Licensing,
 ) *Api {
 	api := &Api{
 		PublicDashboardService: pd,
@@ -49,7 +46,6 @@ func ProvideApi(
 		accessControl:          ac,
 		cfg:                    cfg,
 		features:               features,
-		license:                license,
 		log:                    log.New("publicdashboards.api"),
 		routeRegister:          rr,
 	}
@@ -162,8 +158,8 @@ func (api *Api) GetPublicDashboard(c *contextmodel.ReqContext) response.Response
 		return response.Err(err)
 	}
 
-	if pd == nil || (!api.license.FeatureEnabled(FeaturePublicDashboardsEmailSharing) && pd.Share == EmailShareType) {
-		return response.Err(ErrPublicDashboardNotFound.Errorf("GetPublicDashboard: public dashboard not found"))
+	if pd == nil {
+		response.Err(ErrPublicDashboardNotFound.Errorf("GetPublicDashboard: public dashboard not found"))
 	}
 
 	return response.JSON(http.StatusOK, pd)

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/grafana/grafana/pkg/components/simplejson"
-	"github.com/grafana/grafana/pkg/infra/metrics"
 	"github.com/grafana/grafana/pkg/services/dashboards"
 	"github.com/grafana/grafana/pkg/services/provisioning/values"
 )
@@ -64,7 +63,6 @@ func createDashboardJSON(data *simplejson.Json, lastModified time.Time, cfg *con
 	dash.Overwrite = true
 	dash.OrgID = cfg.OrgID
 	dash.Dashboard.OrgID = cfg.OrgID
-	metrics.MFolderIDsServiceCount.WithLabelValues(metrics.Provisioning).Inc()
 	// nolint:staticcheck
 	dash.Dashboard.FolderID = folderID
 	dash.Dashboard.FolderUID = folderUID

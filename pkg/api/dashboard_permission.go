@@ -8,7 +8,6 @@ import (
 
 	"github.com/grafana/grafana/pkg/api/dtos"
 	"github.com/grafana/grafana/pkg/api/response"
-	"github.com/grafana/grafana/pkg/infra/metrics"
 	"github.com/grafana/grafana/pkg/services/accesscontrol"
 	"github.com/grafana/grafana/pkg/services/auth/identity"
 	contextmodel "github.com/grafana/grafana/pkg/services/contexthandler/model"
@@ -61,7 +60,7 @@ func (hs *HTTPServer) GetDashboardPermissionList(c *contextmodel.ReqContext) res
 
 	acl, err := hs.getDashboardACL(c.Req.Context(), c.SignedInUser, dash)
 	if err != nil {
-		return response.Error(http.StatusInternalServerError, "Failed to get dashboard permissions", err)
+		return response.Error(500, "Failed to get dashboard permissions", err)
 	}
 
 	filteredACLs := make([]*dashboards.DashboardACLInfoDTO, 0, len(acl))
@@ -70,10 +69,10 @@ func (hs *HTTPServer) GetDashboardPermissionList(c *contextmodel.ReqContext) res
 			continue
 		}
 
-		perm.UserAvatarURL = dtos.GetGravatarUrl(hs.Cfg, perm.UserEmail)
+		perm.UserAvatarURL = dtos.GetGravatarUrl(perm.UserEmail)
 
 		if perm.TeamID > 0 {
-			perm.TeamAvatarURL = dtos.GetGravatarUrlWithDefault(hs.Cfg, perm.TeamEmail, perm.Team)
+			perm.TeamAvatarURL = dtos.GetGravatarUrlWithDefault(perm.TeamEmail, perm.Team)
 		}
 		if perm.Slug != "" {
 			perm.URL = dashboards.GetDashboardFolderURL(perm.IsFolder, perm.UID, perm.Slug)
@@ -124,7 +123,7 @@ func (hs *HTTPServer) UpdateDashboardPermissions(c *contextmodel.ReqContext) res
 		return response.Error(http.StatusBadRequest, "bad request data", err)
 	}
 	if err := validatePermissionsUpdate(apiCmd); err != nil {
-		return response.Error(http.StatusBadRequest, err.Error(), err)
+		return response.Error(400, err.Error(), err)
 	}
 
 	dashUID := web.Params(c.Req)[":uid"]
@@ -194,7 +193,6 @@ func (hs *HTTPServer) getDashboardACL(ctx context.Context, user identity.Request
 
 		permission := dashboardPermissionMap[hs.dashboardPermissionsService.MapActions(p)]
 
-		metrics.MFolderIDsAPICount.WithLabelValues(metrics.GetDashboardACL).Inc()
 		acl = append(acl, &dashboards.DashboardACLInfoDTO{
 			OrgID:          dashboard.OrgID,
 			DashboardID:    dashboard.ID,

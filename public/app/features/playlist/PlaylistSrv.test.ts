@@ -124,7 +124,7 @@ describe('PlaylistSrv', () => {
 
     locationService.push('/datasources');
 
-    expect(srv.state.isPlaying).toBe(false);
+    expect(srv.isPlaying).toBe(false);
   });
 
   it('storeUpdated should not stop playlist when navigating to next dashboard', async () => {
@@ -137,6 +137,6 @@ describe('PlaylistSrv', () => {
 
     // eslint-disable-next-line
     expect((srv as any).validPlaylistUrl).toBe('/url/to/bbb');
-    expect(srv.state.isPlaying).toBe(true);
+    expect(srv.isPlaying).toBe(true);
   });
 });

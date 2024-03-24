@@ -2,10 +2,9 @@ package idimpl
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
-	"github.com/go-jose/go-jose/v3"
-	"github.com/go-jose/go-jose/v3/jwt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -54,14 +53,11 @@ func Test_ProvideService(t *testing.T) {
 func TestService_SignIdentity(t *testing.T) {
 	signer := &idtest.MockSigner{
 		SignIDTokenFn: func(_ context.Context, claims *auth.IDClaims) (string, error) {
-			key := []byte("key")
-			s, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.HS256, Key: key}, nil)
-			require.NoError(t, err)
-
-			token, err := jwt.Signed(s).Claims(claims).CompactSerialize()
-			require.NoError(t, err)
-
-			return token, nil
+			data, err := json.Marshal(claims)
+			if err != nil {
+				return "", err
+			}
+			return string(data), nil
 		},
 	}
 
@@ -85,11 +81,8 @@ func TestService_SignIdentity(t *testing.T) {
 		token, err := s.SignIdentity(context.Background(), &authn.Identity{ID: "user:1"})
 		require.NoError(t, err)
 
-		parsed, err := jwt.ParseSigned(token)
-		require.NoError(t, err)
-
 		claims := &auth.IDClaims{}
-		require.NoError(t, parsed.UnsafeClaimsWithoutVerification(&claims))
+		require.NoError(t, json.Unmarshal([]byte(token), claims))
 		assert.Equal(t, login.AzureADAuthModule, claims.AuthenticatedBy)
 	})
 }

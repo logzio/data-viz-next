@@ -7,7 +7,7 @@
 //          0
 //      ]
 //  }
-//  Name: Min float
+//  Name: 
 //  Dimensions: 2 Fields by 3 Rows
 //  +-------------------------------+---------------------+
 //  | Name: Time                    | Name: Value         |
@@ -26,7 +26,6 @@
   "frames": [
     {
       "schema": {
-        "name": "Min float",
         "meta": {
           "type": "timeseries-multi",
           "typeVersion": [
@@ -48,6 +47,10 @@
             "typeInfo": {
               "frame": "float64",
               "nullable": true
+            },
+            "labels": {},
+            "config": {
+              "displayNameFromDS": "Min float"
             }
           }
         ]

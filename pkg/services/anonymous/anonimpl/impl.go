@@ -88,7 +88,7 @@ func (a *AnonDeviceService) tagDeviceUI(ctx context.Context, httpReq *http.Reque
 
 	a.localCache.SetDefault(key, struct{}{})
 
-	if a.cfg.Env == setting.Dev {
+	if setting.Env == setting.Dev {
 		a.log.Debug("Tagging device for UI", "deviceID", device.DeviceID, "device", device, "key", key)
 	}
 

@@ -3,7 +3,7 @@ package v0alpha1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	common "github.com/grafana/grafana/pkg/apimachinery/apis/common/v0alpha1"
+	common "github.com/grafana/grafana/pkg/apis/common/v0alpha1"
 )
 
 // Feature represents a feature in development and information about that feature
@@ -78,11 +78,8 @@ type FeatureTogglesList struct {
 type ResolvedToggleState struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// The user is allowed to edit feature toggles on this system
-	AllowEditing bool `json:"allowEditing,omitempty"`
-
-	// The system has changes that require still require a restart
-	RestartRequired bool `json:"restartRequired,omitempty"`
+	// Can any flag be updated
+	Writeable bool `json:"writeable,omitempty"`
 
 	// The currently enabled flags
 	Enabled map[string]bool `json:"enabled,omitempty"`
@@ -98,14 +95,11 @@ type ToggleStatus struct {
 	// The flag description
 	Description string `json:"description,omitempty"`
 
-	// The feature toggle stage
-	Stage string `json:"stage"`
-
 	// Is the flag enabled
 	Enabled bool `json:"enabled"`
 
 	// Can this flag be updated
-	Writeable bool `json:"writeable"`
+	Writeable bool `json:"writeable,omitempty"`
 
 	// Where was the value configured
 	// eg: startup | tenant|org | user | browser

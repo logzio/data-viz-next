@@ -20,10 +20,7 @@ func (uss *UsageStats) registerAPIEndpoints() {
 }
 
 func (uss *UsageStats) getUsageReportPreview(ctx *contextmodel.ReqContext) response.Response {
-	ctxTracer, span := uss.tracer.Start(ctx.Req.Context(), "usageStats.getUsageReportPreview")
-	defer span.End()
-
-	usageReport, err := uss.GetUsageReport(ctxTracer)
+	usageReport, err := uss.GetUsageReport(ctx.Req.Context())
 	if err != nil {
 		return response.Error(http.StatusInternalServerError, "failed to get usage report", err)
 	}

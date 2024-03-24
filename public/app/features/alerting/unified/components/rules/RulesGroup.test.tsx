@@ -108,12 +108,10 @@ describe('Rules group tests', () => {
       groups: [group],
     };
 
-    it('Should hide delete and edit group buttons', async () => {
+    it('Should hide delete and edit group buttons', () => {
       // Act
       mockUseHasRuler(true, true);
-      mockFolderApi(server).folder('cpu-usage', mockFolder({ uid: 'cpu-usage', canSave: false }));
       renderRulesGroup(namespace, group);
-      expect(await screen.findByTestId('rule-group')).toBeInTheDocument();
 
       // Assert
       expect(ui.deleteGroupButton.query()).not.toBeInTheDocument();

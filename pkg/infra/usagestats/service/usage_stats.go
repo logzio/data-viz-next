@@ -9,7 +9,6 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -18,11 +17,6 @@ import (
 
 	"github.com/grafana/grafana/pkg/infra/tracing"
 	"github.com/grafana/grafana/pkg/infra/usagestats"
-)
-
-const (
-	maxConcurrentCollectors  = 5
-	collectorTimeoutDuration = 5 * time.Minute
 )
 
 var usageStatsURL = "https://stats.grafana.org/grafana-usage-report"
@@ -60,38 +54,21 @@ func (uss *UsageStats) GetUsageReport(ctx context.Context) (usagestats.Report, e
 }
 
 func (uss *UsageStats) gatherMetrics(ctx context.Context, metrics map[string]any) {
-	ctxTracer, span := uss.tracer.Start(ctx, "UsageStats.GatherLoop")
+	ctx, span := uss.tracer.Start(ctx, "UsageStats.GatherLoop")
 	defer span.End()
 	totC, errC := 0, 0
-
-	sem := make(chan struct{}, maxConcurrentCollectors) // create a semaphore with a capacity of 5
-	var wg sync.WaitGroup
-
 	for _, fn := range uss.externalMetrics {
-		wg.Add(1)
-		go func(fn func(context.Context) (map[string]any, error)) {
-			defer wg.Done()
+		fnMetrics, err := uss.runMetricsFunc(ctx, fn)
+		totC++
+		if err != nil {
+			errC++
+			continue
+		}
 
-			sem <- struct{}{}        // acquire a token
-			defer func() { <-sem }() // release the token when done
-
-			ctxWithTimeout, cancel := context.WithTimeout(ctxTracer, collectorTimeoutDuration)
-			defer cancel()
-
-			fnMetrics, err := uss.runMetricsFunc(ctxWithTimeout, fn)
-			totC++
-			if err != nil {
-				errC++
-				return
-			}
-
-			for name, value := range fnMetrics {
-				metrics[name] = value
-			}
-		}(fn)
+		for name, value := range fnMetrics {
+			metrics[name] = value
+		}
 	}
-
-	wg.Wait()
 	metrics["stats.usagestats.debug.collect.total.count"] = totC
 	metrics["stats.usagestats.debug.collect.error.count"] = errC
 }

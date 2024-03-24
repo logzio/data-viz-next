@@ -5,7 +5,6 @@ import { TestProvider } from 'test/helpers/TestProvider';
 import { byLabelText, byPlaceholderText, byRole, byTestId, byText } from 'testing-library-selector';
 
 import { dateTime } from '@grafana/data';
-import { selectors } from '@grafana/e2e-selectors';
 import { config, locationService, setDataSourceSrv } from '@grafana/runtime';
 import { contextSrv } from 'app/core/services/context_srv';
 import { AlertState, MatcherOperator } from 'app/plugins/datasource/alertmanager/types';
@@ -63,7 +62,7 @@ const ui = {
   addSilenceButton: byRole('link', { name: /add silence/i }),
   queryBar: byPlaceholderText('Search'),
   editor: {
-    timeRange: byTestId(selectors.components.TimePicker.openButton),
+    timeRange: byLabelText('Timepicker', { exact: false }),
     durationField: byLabelText('Duration'),
     durationInput: byRole('textbox', { name: /duration/i }),
     matchersField: byTestId('matcher'),

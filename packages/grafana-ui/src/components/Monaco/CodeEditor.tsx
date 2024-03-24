@@ -119,12 +119,14 @@ class UnthemedCodeEditor extends PureComponent<Props> {
       }
     });
 
+    const languagePromise = this.loadCustomLanguage();
+
     if (onChange) {
       editor.getModel()?.onDidChangeContent(() => onChange(editor.getValue()));
     }
 
     if (onEditorDidMount) {
-      onEditorDidMount(editor, monaco);
+      languagePromise.then(() => onEditorDidMount(editor, monaco));
     }
   };
 

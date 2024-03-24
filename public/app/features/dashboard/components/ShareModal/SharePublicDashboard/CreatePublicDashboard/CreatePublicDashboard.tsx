@@ -1,18 +1,18 @@
 import { css } from '@emotion/css';
 import React from 'react';
-import { useForm } from 'react-hook-form';
+import { FormState, UseFormRegister } from 'react-hook-form';
 
-import { GrafanaTheme2 } from '@grafana/data';
-import { selectors as e2eSelectors } from '@grafana/e2e-selectors';
-import { Button, Spinner, useStyles2 } from '@grafana/ui';
+import { GrafanaTheme2 } from '@grafana/data/src';
+import { selectors as e2eSelectors } from '@grafana/e2e-selectors/src';
+import { Button, Form, Spinner, useStyles2 } from '@grafana/ui/src';
 import { Trans } from 'app/core/internationalization';
-import { contextSrv } from 'app/core/services/context_srv';
 import { useCreatePublicDashboardMutation } from 'app/features/dashboard/api/publicDashboardApi';
 import { DashboardModel } from 'app/features/dashboard/state';
 import { DashboardScene } from 'app/features/dashboard-scene/scene/DashboardScene';
 import { DashboardInteractions } from 'app/features/dashboard-scene/utils/interactions';
-import { AccessControlAction, useSelector } from 'app/types';
 
+import { contextSrv } from '../../../../../../core/services/context_srv';
+import { AccessControlAction, useSelector } from '../../../../../../types';
 import { NoUpsertPermissionsAlert } from '../ModalAlerts/NoUpsertPermissionsAlert';
 import { UnsupportedDataSourcesAlert } from '../ModalAlerts/UnsupportedDataSourcesAlert';
 import { UnsupportedTemplateVariablesAlert } from '../ModalAlerts/UnsupportedTemplateVariablesAlert';
@@ -49,11 +49,6 @@ export const CreatePublicDashboardBase = ({
     createPublicDashboard({ dashboard, payload: { isEnabled: true } });
     DashboardInteractions.generatePublicDashboardUrlClicked({});
   };
-  const {
-    handleSubmit,
-    register,
-    formState: { isValid },
-  } = useForm<SharePublicDashboardAcknowledgmentInputs>({ mode: 'onChange' });
 
   const disableInputs = !hasWritePermissions || isLoading || isError || hasError;
 
@@ -78,17 +73,27 @@ export const CreatePublicDashboardBase = ({
         <UnsupportedDataSourcesAlert unsupportedDataSources={unsupportedDatasources.join(', ')} />
       )}
 
-      <form onSubmit={handleSubmit(onCreate)}>
-        <div className={styles.checkboxes}>
-          <AcknowledgeCheckboxes disabled={disableInputs} register={register} />
-        </div>
-        <div className={styles.buttonContainer}>
-          <Button type="submit" disabled={disableInputs || !isValid} data-testid={selectors.CreateButton}>
-            <Trans i18nKey="public-dashboard.create-page.generate-public-url-button">Generate public URL</Trans>
-            {isLoading && <Spinner className={styles.loadingSpinner} />}
-          </Button>
-        </div>
-      </form>
+      <Form onSubmit={onCreate} validateOn="onChange" maxWidth="none">
+        {({
+          register,
+          formState: { isValid },
+        }: {
+          register: UseFormRegister<SharePublicDashboardAcknowledgmentInputs>;
+          formState: FormState<SharePublicDashboardAcknowledgmentInputs>;
+        }) => (
+          <>
+            <div className={styles.checkboxes}>
+              <AcknowledgeCheckboxes disabled={disableInputs} register={register} />
+            </div>
+            <div className={styles.buttonContainer}>
+              <Button type="submit" disabled={disableInputs || !isValid} data-testid={selectors.CreateButton}>
+                <Trans i18nKey="public-dashboard.create-page.generate-public-url-button">Generate public URL</Trans>
+                {isLoading && <Spinner className={styles.loadingSpinner} />}
+              </Button>
+            </div>
+          </>
+        )}
+      </Form>
     </div>
   );
 };

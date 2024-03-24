@@ -51,6 +51,10 @@ class SubMenuUnConnected extends PureComponent<Props> {
 
     const styles = getStyles(theme);
 
+    if (!dashboard.isSubMenuVisible()) {
+      return null;
+    }
+
     const readOnlyVariables = dashboard.meta.isSnapshot ?? false;
 
     return (

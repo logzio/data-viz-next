@@ -3,7 +3,7 @@ import React, { useEffect, useRef } from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { BehaviorSubject } from 'rxjs';
 
-import { DataFrame, InterpolateFunction, TimeRange } from '@grafana/data';
+import { DataFrame, TimeRange } from '@grafana/data';
 import { VisibilityMode } from '@grafana/schema';
 import { LegendDisplayMode, UPlotConfigBuilder, useTheme2 } from '@grafana/ui';
 import { TimelineChart } from 'app/core/components/TimelineChart/TimelineChart';
@@ -14,9 +14,6 @@ interface LogTimelineViewerProps {
   timeRange: TimeRange;
   onPointerMove?: (seriesIdx: number, pointerIdx: number) => void;
 }
-
-// noop
-const replaceVariables: InterpolateFunction = (v) => v;
 
 export const LogTimelineViewer = React.memo(({ frames, timeRange, onPointerMove = noop }: LogTimelineViewerProps) => {
   const theme = useTheme2();
@@ -48,7 +45,6 @@ export const LogTimelineViewer = React.memo(({ frames, timeRange, onPointerMove 
             { label: 'NoData', color: theme.colors.info.main, yAxis: 1 },
             { label: 'Mixed', color: theme.colors.text.secondary, yAxis: 1 },
           ]}
-          replaceVariables={replaceVariables}
         >
           {(builder) => {
             setupCursorTracking(builder);

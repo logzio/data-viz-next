@@ -26,7 +26,7 @@ func ProvideService(store dashboardsnapshots.Store, secretsService secrets.Servi
 }
 
 func (s *ServiceImpl) CreateDashboardSnapshot(ctx context.Context, cmd *dashboardsnapshots.CreateDashboardSnapshotCommand) (*dashboardsnapshots.DashboardSnapshot, error) {
-	marshalledData, err := cmd.Dashboard.MarshalJSON()
+	marshalledData, err := cmd.Dashboard.Encode()
 	if err != nil {
 		return nil, err
 	}

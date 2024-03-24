@@ -3,7 +3,6 @@ import debounce from 'debounce-promise';
 import React, { useCallback, useEffect, useMemo, useReducer } from 'react';
 
 import { SelectableValue } from '@grafana/data';
-import { selectors } from '@grafana/e2e-selectors';
 import {
   Input,
   Modal,
@@ -205,10 +204,7 @@ export const MetricsModal = (props: MetricsModalProps) => {
       className={styles.modal}
     >
       <FeedbackLink feedbackUrl="https://forms.gle/DEMAJHoAMpe3e54CA" />
-      <div
-        className={styles.inputWrapper}
-        data-testid={selectors.components.DataSource.Prometheus.queryEditor.builder.metricsExplorer}
-      >
+      <div className={styles.inputWrapper}>
         <div className={cx(styles.inputItem, styles.inputItemFirst)}>
           <Input
             autoFocus={true}

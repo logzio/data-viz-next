@@ -9,7 +9,6 @@ import { createRootReducer } from './root';
 jest.mock('@grafana/runtime', () => ({
   ...jest.requireActual('@grafana/runtime'),
   config: {
-    ...jest.requireActual('@grafana/runtime').config,
     bootData: {
       navTree: [],
       user: {},

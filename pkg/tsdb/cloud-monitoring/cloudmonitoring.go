@@ -17,13 +17,18 @@ import (
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
-	"github.com/grafana/grafana-plugin-sdk-go/backend/httpclient"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
-	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/resource/httpadapter"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 
+	"github.com/grafana/grafana/pkg/infra/httpclient"
+	"github.com/grafana/grafana/pkg/infra/log"
+	"github.com/grafana/grafana/pkg/infra/tracing"
 	"github.com/grafana/grafana/pkg/tsdb/cloud-monitoring/kinds/dataquery"
+)
+
+var (
+	slog = log.New("tsdb.cloudMonitoring")
 )
 
 var (
@@ -60,11 +65,11 @@ const (
 	perSeriesAlignerDefault   = "ALIGN_MEAN"
 )
 
-func ProvideService(httpClientProvider *httpclient.Provider) *Service {
+func ProvideService(httpClientProvider httpclient.Provider, tracer tracing.Tracer) *Service {
 	s := &Service{
-		httpClientProvider: *httpClientProvider,
-		im:                 datasource.NewInstanceManager(newInstanceSettings(*httpClientProvider)),
-		logger:             backend.NewLoggerWith("logger", "tsdb.cloudmonitoring"),
+		tracer:             tracer,
+		httpClientProvider: httpClientProvider,
+		im:                 datasource.NewInstanceManager(newInstanceSettings(httpClientProvider)),
 
 		gceDefaultProjectGetter: utils.GCEDefaultProject,
 	}
@@ -104,7 +109,7 @@ func (s *Service) CheckHealth(ctx context.Context, req *backend.CheckHealthReque
 	}
 	defer func() {
 		if err := res.Body.Close(); err != nil {
-			s.logger.Warn("Failed to close response body", "err", err)
+			slog.Warn("Failed to close response body", "err", err)
 		}
 	}()
 
@@ -123,7 +128,7 @@ func (s *Service) CheckHealth(ctx context.Context, req *backend.CheckHealthReque
 type Service struct {
 	httpClientProvider httpclient.Provider
 	im                 instancemgmt.InstanceManager
-	logger             log.Logger
+	tracer             tracing.Tracer
 
 	resourceHandler backend.CallResourceHandler
 
@@ -189,7 +194,7 @@ func newInstanceSettings(httpClientProvider httpclient.Provider) datasource.Inst
 		}
 
 		for name, info := range routes {
-			client, err := newHTTPClient(dsInfo, opts, &httpClientProvider, name)
+			client, err := newHTTPClient(dsInfo, opts, httpClientProvider, name)
 			if err != nil {
 				return nil, err
 			}
@@ -327,7 +332,7 @@ func migrateRequest(req *backend.QueryDataRequest) error {
 // QueryData takes in the frontend queries, parses them into the CloudMonitoring query format
 // executes the queries against the CloudMonitoring API and parses the response into data frames
 func (s *Service) QueryData(ctx context.Context, req *backend.QueryDataRequest) (*backend.QueryDataResponse, error) {
-	logger := s.logger.FromContext(ctx)
+	logger := slog.FromContext(ctx)
 	if len(req.Queries) == 0 {
 		return nil, fmt.Errorf("query contains no queries")
 	}
@@ -349,21 +354,21 @@ func (s *Service) QueryData(ctx context.Context, req *backend.QueryDataRequest) 
 
 	switch req.Queries[0].QueryType {
 	case string(dataquery.QueryTypeAnnotation):
-		return s.executeAnnotationQuery(ctx, req, *dsInfo, queries, logger)
+		return s.executeAnnotationQuery(ctx, req, *dsInfo, queries)
 	default:
-		return s.executeTimeSeriesQuery(ctx, req, *dsInfo, queries, logger)
+		return s.executeTimeSeriesQuery(ctx, req, *dsInfo, queries)
 	}
 }
 
-func (s *Service) executeTimeSeriesQuery(ctx context.Context, req *backend.QueryDataRequest, dsInfo datasourceInfo, queries []cloudMonitoringQueryExecutor, logger log.Logger) (
+func (s *Service) executeTimeSeriesQuery(ctx context.Context, req *backend.QueryDataRequest, dsInfo datasourceInfo, queries []cloudMonitoringQueryExecutor) (
 	*backend.QueryDataResponse, error) {
 	resp := backend.NewQueryDataResponse()
 	for _, queryExecutor := range queries {
-		queryRes, dr, executedQueryString, err := queryExecutor.run(ctx, req, s, dsInfo, logger)
+		queryRes, dr, executedQueryString, err := queryExecutor.run(ctx, req, s, dsInfo, s.tracer)
 		if err != nil {
 			return resp, err
 		}
-		err = queryExecutor.parseResponse(queryRes, dr, executedQueryString, logger)
+		err = queryExecutor.parseResponse(queryRes, dr, executedQueryString)
 		if err != nil {
 			queryRes.Error = err
 		}
@@ -400,6 +405,7 @@ func (s *Service) buildQueryExecutors(logger log.Logger, req *backend.QueryDataR
 		case string(dataquery.QueryTypeTimeSeriesList), string(dataquery.QueryTypeAnnotation):
 			cmtsf := &cloudMonitoringTimeSeriesList{
 				refID:   query.RefID,
+				logger:  logger,
 				aliasBy: q.AliasBy,
 			}
 			if q.TimeSeriesList.View == nil || *q.TimeSeriesList.View == "" {
@@ -421,6 +427,7 @@ func (s *Service) buildQueryExecutors(logger log.Logger, req *backend.QueryDataR
 		case string(dataquery.QueryTypeSlo):
 			cmslo := &cloudMonitoringSLO{
 				refID:      query.RefID,
+				logger:     logger,
 				aliasBy:    q.AliasBy,
 				parameters: q.SloQuery,
 			}
@@ -429,10 +436,10 @@ func (s *Service) buildQueryExecutors(logger log.Logger, req *backend.QueryDataR
 		case string(dataquery.QueryTypePromQL):
 			cmp := &cloudMonitoringProm{
 				refID:      query.RefID,
+				logger:     logger,
 				aliasBy:    q.AliasBy,
 				parameters: q.PromQLQuery,
 				timeRange:  req.Queries[0].TimeRange,
-				logger:     logger,
 			}
 			queryInterface = cmp
 		default:
@@ -588,7 +595,7 @@ func (s *Service) getDefaultProject(ctx context.Context, dsInfo datasourceInfo) 
 	return dsInfo.defaultProject, nil
 }
 
-func unmarshalResponse(res *http.Response, logger log.Logger) (cloudMonitoringResponse, error) {
+func unmarshalResponse(logger log.Logger, res *http.Response) (cloudMonitoringResponse, error) {
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return cloudMonitoringResponse{}, err
@@ -639,7 +646,7 @@ func addConfigData(frames data.Frames, dl string, unit string, period *string) d
 		if period != nil && *period != "" {
 			err := addInterval(*period, frames[i].Fields[0])
 			if err != nil {
-				backend.Logger.Error("Failed to add interval", "error", err)
+				slog.Error("Failed to add interval", "error", err)
 			}
 		}
 	}

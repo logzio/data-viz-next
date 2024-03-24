@@ -17,7 +17,7 @@ import {
   calculateStats,
   checkLogsError,
   escapeUnescapedString,
-  createLogRowsMap,
+  findMatchingRow,
   getLogLevel,
   getLogLevelFromKey,
   getLogsVolumeMaximumRange,
@@ -485,46 +485,41 @@ describe('escapeUnescapedString', () => {
 
 describe('findMatchingRow', () => {
   function setup(frames: DataFrame[]) {
-    const logsModel = logSeriesToLogsModel(frames);
-    const rows = logsModel?.rows || [];
-    const findMatchingRow = createLogRowsMap();
-    for (const row of rows) {
-      expect(findMatchingRow(row)).toBeFalsy();
-    }
-    return { rows, findMatchingRow };
+    return logSeriesToLogsModel(frames);
   }
 
   it('ignores rows from different queries', () => {
     const { logFrameA, logFrameB } = getMockFrames();
     logFrameA.refId = 'A';
     logFrameB.refId = 'B';
-    const { rows, findMatchingRow } = setup([logFrameA, logFrameB]);
+    const logsModel = setup([logFrameA, logFrameB]);
+    const rows = logsModel?.rows || [];
 
     for (const row of rows) {
       const targetRow = { ...row, dataFrame: { ...logFrameA, refId: 'Z' } };
-      expect(findMatchingRow(targetRow)).toBeFalsy();
+      expect(findMatchingRow(targetRow, rows)).toBe(undefined);
     }
   });
 
   it('matches rows by rowId', () => {
     const { logFrameA, logFrameB } = getMockFrames();
-    const { rows, findMatchingRow } = setup([logFrameA, logFrameB]);
+    const logsModel = setup([logFrameA, logFrameB]);
+    const rows = logsModel?.rows || [];
 
     for (const row of rows) {
       const targetRow = { ...row, entry: `${Math.random()}`, timeEpochNs: `${Math.ceil(Math.random() * 1000000)}` };
-      expect(findMatchingRow(targetRow)).toBeTruthy();
+      expect(findMatchingRow(targetRow, rows)).toBeDefined();
     }
   });
 
   it('matches rows by entry and nanosecond time', () => {
     const { logFrameA, logFrameB } = getMockFrames();
-    logFrameA.fields[4].values = [];
-    logFrameB.fields[4].values = [];
-    const { rows, findMatchingRow } = setup([logFrameA, logFrameB]);
+    const logsModel = setup([logFrameA, logFrameB]);
+    const rows = logsModel?.rows || [];
 
     for (const row of rows) {
       const targetRow = { ...row, rowId: undefined };
-      expect(findMatchingRow(targetRow)).toBeTruthy();
+      expect(findMatchingRow(targetRow, rows)).toBeDefined();
     }
   });
 });

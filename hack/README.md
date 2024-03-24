@@ -14,16 +14,14 @@ total 0
 lrwxr-xr-x  1 ryan  staff  37 Oct  5 09:34 grafana -> /Users/ryan/workspace/grafana/grafana
 ```
 
-The current workflow is to run the following:
+You can clone k8s [code-generator](https://github.com/kubernetes/code-generator) here and use `CODEGEN_PKG=<CODE-GENERATOR-GIT-ROOT>` when running the `update-codegen.sh` script.
 
-```shell
-# ensure k8s.io/code-generator pkg is up to date
-go mod download
+The current workflow (sorry!) is to:
 
-# the happy path
-./hack/update-codegen.sh
+1. update the script to point to the group+version you want
+2. run the `update-codegen.sh` script. This will produce a bunch of new files
+3. move `pkg/generated/openapi/zz_generated.openapi.go` to `pkg/apis/{group/version}/zz_generated.openapi.go`.
+4. edit the package name so it is {version} and remove the boilerplate k8s kinds
+5. `rm -rf pkg/generated` -- we are not yet using most of the generated client stuff
 
-
-Note that the script deletes existing openapi go code and regenerates in place so that you will temporarily see
-deleted files in your `git status`. After a successful run, you should see them restored.
-```
+Once we are more comfortable with the outputs and process, we will build these steps into a more standard codegen pattern, but until then... happy hacking!

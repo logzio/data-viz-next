@@ -41,7 +41,7 @@ func newConfig(cfg *setting.Cfg) *config {
 	host := fmt.Sprintf("%s:%d", ip, port)
 
 	return &config{
-		enabled:  true,
+		enabled:  true, // cfg.IsFeatureToggleEnabled(featuremgmt.FlagGrafanaStorageServer),
 		devMode:  cfg.Env == setting.Dev,
 		ip:       ip,
 		port:     port,

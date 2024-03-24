@@ -135,9 +135,7 @@ export const DashboardInteractions = {
   toolbarSaveClick: () => {
     reportDashboardInteraction('toolbar_actions_clicked', { item: 'save' });
   },
-  toolbarSaveAsClick: () => {
-    reportDashboardInteraction('toolbar_actions_clicked', { item: 'save_as' });
-  },
+
   toolbarAddClick: () => {
     reportDashboardInteraction('toolbar_actions_clicked', { item: 'add' });
   },

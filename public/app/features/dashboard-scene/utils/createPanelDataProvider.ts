@@ -20,8 +20,6 @@ export function createPanelDataProvider(panel: PanelModel): SceneDataProvider | 
     queries: panel.targets,
     maxDataPoints: panel.maxDataPoints ?? undefined,
     maxDataPointsFromWidth: true,
-    cacheTimeout: panel.cacheTimeout,
-    queryCachingTTL: panel.queryCachingTTL,
     dataLayerFilter: {
       panelId: panel.id,
     },

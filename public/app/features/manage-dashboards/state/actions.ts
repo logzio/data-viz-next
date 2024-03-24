@@ -1,8 +1,7 @@
-import { DataSourceInstanceSettings } from '@grafana/data';
-import { getBackendSrv, getDataSourceSrv, isFetchError } from '@grafana/runtime';
+import { DataSourceInstanceSettings, locationUtil } from '@grafana/data';
+import { getBackendSrv, getDataSourceSrv, isFetchError, locationService } from '@grafana/runtime';
 import { notifyApp } from 'app/core/actions';
 import { createErrorNotification } from 'app/core/copy/appNotification';
-import { browseDashboardsAPI, ImportInputs } from 'app/features/browse-dashboards/api/browseDashboardsAPI';
 import { SaveDashboardCommand } from 'app/features/dashboard/components/SaveDashboard/types';
 import { dashboardWatcher } from 'app/features/live/dashboard/dashboardWatcher';
 import { FolderInfo, PermissionLevelString, SearchQueryType, ThunkResult } from 'app/types';
@@ -201,7 +200,7 @@ export function importDashboard(importDashboardForm: ImportDashboardDTO): ThunkR
     const dashboard = getState().importDashboard.dashboard;
     const inputs = getState().importDashboard.inputs;
 
-    const inputsToPersist: ImportInputs[] = [];
+    let inputsToPersist = [] as any[];
     importDashboardForm.dataSources?.forEach((dataSource: DataSourceInstanceSettings, index: number) => {
       const input = inputs.dataSources[index];
       inputsToPersist.push({
@@ -222,17 +221,18 @@ export function importDashboard(importDashboardForm: ImportDashboardDTO): ThunkR
       });
     });
 
-    dispatch(
-      browseDashboardsAPI.endpoints.importDashboard.initiate({
-        // uid: if user changed it, take the new uid from importDashboardForm,
-        // else read it from original dashboard
-        // by default the uid input is disabled, onSubmit ignores values from disabled inputs
-        dashboard: { ...dashboard, title: importDashboardForm.title, uid: importDashboardForm.uid || dashboard.uid },
-        overwrite: true,
-        inputs: inputsToPersist,
-        folderUid: importDashboardForm.folder.uid,
-      })
-    );
+    const result = await getBackendSrv().post('api/dashboards/import', {
+      // uid: if user changed it, take the new uid from importDashboardForm,
+      // else read it from original dashboard
+      // by default the uid input is disabled, onSubmit ignores values from disabled inputs
+      dashboard: { ...dashboard, title: importDashboardForm.title, uid: importDashboardForm.uid || dashboard.uid },
+      overwrite: true,
+      inputs: inputsToPersist,
+      folderUid: importDashboardForm.folder.uid,
+    });
+
+    const dashboardUrl = locationUtil.stripBaseFromUrl(result.importedUrl);
+    locationService.push(dashboardUrl);
   };
 }
 

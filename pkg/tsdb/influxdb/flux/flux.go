@@ -17,7 +17,8 @@ var (
 )
 
 // Query builds flux queries, executes them, and returns the results.
-func Query(ctx context.Context, dsInfo *models.DatasourceInfo, tsdbQuery backend.QueryDataRequest) (*backend.QueryDataResponse, error) {
+func Query(ctx context.Context, dsInfo *models.DatasourceInfo, tsdbQuery backend.QueryDataRequest) (
+	*backend.QueryDataResponse, error) {
 	logger := glog.FromContext(ctx)
 	tRes := backend.NewQueryDataResponse()
 	logger.Debug("Received a query", "query", tsdbQuery)
@@ -75,7 +76,6 @@ func runnerFromDataSource(dsInfo *models.DatasourceInfo) (*runner, error) {
 	}
 	opts := influxdb2.DefaultOptions()
 	opts.HTTPOptions().SetHTTPClient(dsInfo.HTTPClient)
-	opts.SetHTTPRequestTimeout(uint(dsInfo.Timeout.Seconds()))
 	return &runner{
 		client: influxdb2.NewClientWithOptions(url, dsInfo.Token, opts),
 		org:    org,

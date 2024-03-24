@@ -5,6 +5,7 @@ import (
 	"github.com/grafana/grafana/pkg/services/featuremgmt"
 	"github.com/grafana/grafana/pkg/services/sqlstore/migrations/accesscontrol"
 	"github.com/grafana/grafana/pkg/services/sqlstore/migrations/anonservice"
+	"github.com/grafana/grafana/pkg/services/sqlstore/migrations/oauthserver"
 	"github.com/grafana/grafana/pkg/services/sqlstore/migrations/signingkeys"
 	"github.com/grafana/grafana/pkg/services/sqlstore/migrations/ssosettings"
 	"github.com/grafana/grafana/pkg/services/sqlstore/migrations/ualert"
@@ -20,14 +21,13 @@ import (
 //    specifically added
 
 type OSSMigrations struct {
-	features featuremgmt.FeatureToggles
 }
 
-func ProvideOSSMigrations(features featuremgmt.FeatureToggles) *OSSMigrations {
-	return &OSSMigrations{features}
+func ProvideOSSMigrations() *OSSMigrations {
+	return &OSSMigrations{}
 }
 
-func (oss *OSSMigrations) AddMigration(mg *Migrator) {
+func (*OSSMigrations) AddMigration(mg *Migrator) {
 	mg.AddCreateMigration()
 	addUserMigrations(mg)
 	addTempUserMigrations(mg)
@@ -94,6 +94,13 @@ func (oss *OSSMigrations) AddMigration(mg *Migrator) {
 	AddExternalAlertmanagerToDatasourceMigration(mg)
 
 	addFolderMigrations(mg)
+	// nolint:staticcheck
+	if mg.Cfg != nil && mg.Cfg.IsFeatureToggleEnabled != nil {
+		// nolint:staticcheck
+		if mg.Cfg.IsFeatureToggleEnabled(featuremgmt.FlagExternalServiceAuth) {
+			oauthserver.AddMigration(mg)
+		}
+	}
 
 	anonservice.AddMigration(mg)
 	signingkeys.AddMigration(mg)
@@ -107,18 +114,7 @@ func (oss *OSSMigrations) AddMigration(mg *Migrator) {
 
 	ualert.CreateOrgMigratedKVStoreEntries(mg)
 
-	// https://github.com/grafana/identity-access-team/issues/546: tracks removal of the feature toggle from the annotation permission migration
-	if oss.features != nil && oss.features.IsEnabledGlobally(featuremgmt.FlagAnnotationPermissionUpdate) {
-		accesscontrol.AddManagedDashboardAnnotationActionsMigration(mg)
-	}
-
-	addCloudMigrationsMigrations(mg)
-
 	addKVStoreMySQLValueTypeLongTextMigration(mg)
-
-	ualert.AddRuleNotificationSettingsColumns(mg)
-
-	accesscontrol.AddAlertingScopeRemovalMigration(mg)
 }
 
 func addStarMigrations(mg *Migrator) {

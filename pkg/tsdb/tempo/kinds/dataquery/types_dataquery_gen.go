@@ -27,6 +27,7 @@ const (
 const (
 	TempoQueryTypeClear         TempoQueryType = "clear"
 	TempoQueryTypeNativeSearch  TempoQueryType = "nativeSearch"
+	TempoQueryTypeSearch        TempoQueryType = "search"
 	TempoQueryTypeServiceMap    TempoQueryType = "serviceMap"
 	TempoQueryTypeTraceId       TempoQueryType = "traceId"
 	TempoQueryTypeTraceql       TempoQueryType = "traceql"
@@ -125,8 +126,8 @@ type TempoQuery struct {
 	// Use service.namespace in addition to service.name to uniquely identify a service.
 	ServiceMapIncludeNamespace *bool `json:"serviceMapIncludeNamespace,omitempty"`
 
-	// Filters to be included in a PromQL query to select data for the service graph. Example: {client="app",service="app"}. Providing multiple values will produce union of results for each filter, using PromQL OR operator internally.
-	ServiceMapQuery *any `json:"serviceMapQuery,omitempty"`
+	// Filters to be included in a PromQL query to select data for the service graph. Example: {client="app",service="app"}
+	ServiceMapQuery *string `json:"serviceMapQuery,omitempty"`
 
 	// @deprecated Query traces by service name
 	ServiceName *string `json:"serviceName,omitempty"`
@@ -141,7 +142,7 @@ type TempoQuery struct {
 	TableType *SearchTableType `json:"tableType,omitempty"`
 }
 
-// TempoQueryType nativeSearch = Tempo search for backwards compatibility
+// TempoQueryType search = Loki search, nativeSearch = Tempo search for backwards compatibility
 type TempoQueryType string
 
 // TraceqlFilter defines model for TraceqlFilter.

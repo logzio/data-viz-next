@@ -17,7 +17,6 @@ import {
   FieldType,
   MetricFindValue,
   QueryResultMeta,
-  QueryVariableModel,
   RawTimeRange,
   ScopedVars,
   TIME_SERIES_TIME_FIELD_NAME,
@@ -32,9 +31,11 @@ import {
   frameToMetricFindValue,
   getBackendSrv,
 } from '@grafana/runtime';
-import { QueryFormat, SQLQuery } from '@grafana/sql';
+import { CustomFormatterVariable } from '@grafana/scenes';
 import config from 'app/core/config';
 import { getTemplateSrv, TemplateSrv } from 'app/features/templating/template_srv';
+
+import { QueryFormat, SQLQuery } from '../../../features/plugins/sql';
 
 import { AnnotationEditor } from './components/editor/annotation/AnnotationEditor';
 import { FluxQueryEditor } from './components/editor/query/flux/FluxQueryEditor';
@@ -213,12 +214,7 @@ export default class InfluxDatasource extends DataSourceWithBackend<InfluxQuery,
         return {
           ...query,
           datasource: this.getRef(),
-          query: this.templateSrv.replace(
-            query.query ?? '',
-            scopedVars,
-            (value: string | string[] = [], variable: QueryVariableModel) =>
-              this.interpolateQueryExpr(value, variable, query.query)
-          ), // The raw query text
+          query: this.templateSrv.replace(query.query ?? '', scopedVars, this.interpolateQueryExpr), // The raw query text
         };
       }
 
@@ -236,7 +232,9 @@ export default class InfluxDatasource extends DataSourceWithBackend<InfluxQuery,
       expandedQuery.groupBy = query.groupBy.map((groupBy) => {
         return {
           ...groupBy,
-          params: groupBy.params?.map((param) => this.templateSrv.replace(param.toString(), undefined)),
+          params: groupBy.params?.map((param) => {
+            return this.templateSrv.replace(param.toString(), undefined, this.interpolateQueryExpr);
+          }),
         };
       });
     }
@@ -246,7 +244,9 @@ export default class InfluxDatasource extends DataSourceWithBackend<InfluxQuery,
         return selects.map((select) => {
           return {
             ...select,
-            params: select.params?.map((param) => this.templateSrv.replace(param.toString(), undefined)),
+            params: select.params?.map((param) => {
+              return this.templateSrv.replace(param.toString(), undefined, this.interpolateQueryExpr);
+            }),
           };
         });
       });
@@ -256,13 +256,8 @@ export default class InfluxDatasource extends DataSourceWithBackend<InfluxQuery,
       expandedQuery.tags = query.tags.map((tag) => {
         return {
           ...tag,
-          key: this.templateSrv.replace(tag.key, scopedVars),
-          value: this.templateSrv.replace(
-            tag.value ?? '',
-            scopedVars,
-            (value: string | string[] = [], variable: QueryVariableModel) =>
-              this.interpolateQueryExpr(value, variable, tag.value)
-          ),
+          key: this.templateSrv.replace(tag.key, scopedVars, this.interpolateQueryExpr),
+          value: this.templateSrv.replace(tag.value, scopedVars, this.interpolateQueryExpr),
         };
       });
     }
@@ -270,66 +265,34 @@ export default class InfluxDatasource extends DataSourceWithBackend<InfluxQuery,
     return {
       ...expandedQuery,
       adhocFilters: this.templateSrv.getAdhocFilters(this.name) ?? [],
-      query: this.templateSrv.replace(
-        query.query ?? '',
-        scopedVars,
-        (value: string | string[] = [], variable: QueryVariableModel) =>
-          this.interpolateQueryExpr(value, variable, query.query)
-      ), // The raw sql query text
-      rawSql: this.templateSrv.replace(
-        query.rawSql ?? '',
-        scopedVars,
-        (value: string | string[] = [], variable: QueryVariableModel) =>
-          this.interpolateQueryExpr(value, variable, query.rawSql)
-      ), // The raw sql query text
+      query: this.templateSrv.replace(query.query ?? '', scopedVars, this.interpolateQueryExpr), // The raw query text
+      rawSql: this.templateSrv.replace(query.rawSql ?? '', scopedVars, this.interpolateQueryExpr), // The raw query text
       alias: this.templateSrv.replace(query.alias ?? '', scopedVars),
-      limit: this.templateSrv.replace(query.limit?.toString() ?? '', scopedVars),
-      measurement: this.templateSrv.replace(query.measurement ?? '', scopedVars),
-      policy: this.templateSrv.replace(query.policy ?? '', scopedVars),
-      slimit: this.templateSrv.replace(query.slimit?.toString() ?? '', scopedVars),
+      limit: this.templateSrv.replace(query.limit?.toString() ?? '', scopedVars, this.interpolateQueryExpr),
+      measurement: this.templateSrv.replace(query.measurement ?? '', scopedVars, this.interpolateQueryExpr),
+      policy: this.templateSrv.replace(query.policy ?? '', scopedVars, this.interpolateQueryExpr),
+      slimit: this.templateSrv.replace(query.slimit?.toString() ?? '', scopedVars, this.interpolateQueryExpr),
       tz: this.templateSrv.replace(query.tz ?? '', scopedVars),
     };
   }
 
-  interpolateQueryExpr(value: string | string[] = [], variable: QueryVariableModel, query?: string) {
-    // If there is no query just return the value directly
-    if (!query) {
-      return value;
+  interpolateQueryExpr(value: string | string[] = [], variable: Partial<CustomFormatterVariable>) {
+    // if no multi or include all do not regexEscape
+    if (!variable.multi && !variable.includeAll) {
+      return influxRegularEscape(value);
     }
 
-    // If template variable is a multi-value variable
-    // we always want to deal with special chars.
-    if (variable.multi) {
-      if (typeof value === 'string') {
-        // Check the value is a number. If not run to escape special characters
-        if (isNaN(parseFloat(value))) {
-          return escapeRegex(value);
-        }
-        return value;
-      }
-
-      // If the value is a string array first escape them then join them with pipe
-      // then put inside parenthesis.
-      return `(${value.map((v) => escapeRegex(v)).join('|')})`;
+    if (typeof value === 'string') {
+      return influxSpecialRegexEscape(value);
     }
 
-    // If the variable is not a multi-value variable
-    // we want to see how it's been used. If it is used in a regex expression
-    // we escape it. Otherwise, we return it directly.
-    // regex below checks if the variable inside /^...$/ (^ and $ is optional)
-    // i.e. /^$myVar$/ or /$myVar/ or /^($myVar)$/
-    const regex = new RegExp(`\\/(?:\\^)?(.*)(\\$${variable.name})(.*)(?:\\$)?\\/`, 'gm');
-    if (regex.test(query)) {
-      if (typeof value === 'string') {
-        return escapeRegex(value);
-      }
+    const escapedValues = value.map((val) => influxSpecialRegexEscape(val));
 
-      // If the value is a string array first escape them then join them with pipe
-      // then put inside parenthesis.
-      return `(${value.map((v) => escapeRegex(v)).join('|')})`;
+    if (escapedValues.length === 1) {
+      return escapedValues[0];
     }
 
-    return value;
+    return escapedValues.join('|');
   }
 
   async runMetadataQuery(target: InfluxQuery): Promise<MetricFindValue[]> {
@@ -360,11 +323,7 @@ export default class InfluxDatasource extends DataSourceWithBackend<InfluxQuery,
       ).then(this.toMetricFindValue);
     }
 
-    const interpolated = this.templateSrv.replace(
-      query,
-      options?.scopedVars,
-      (value: string | string[] = [], variable: QueryVariableModel) => this.interpolateQueryExpr(value, variable, query)
-    );
+    const interpolated = this.templateSrv.replace(query, options?.scopedVars, this.interpolateQueryExpr);
 
     return lastValueFrom(this._seriesQuery(interpolated, options)).then((resp) => {
       return this.responseParser.parse(query, resp);
@@ -381,7 +340,7 @@ export default class InfluxDatasource extends DataSourceWithBackend<InfluxQuery,
 
   // By implementing getTagKeys and getTagValues we add ad-hoc filters functionality
   // Used in public/app/features/variables/adhoc/picker/AdHocFilterKey.tsx::fetchFilterKeys
-  getTagKeys(options?: DataSourceGetTagKeysOptions<InfluxQuery>) {
+  getTagKeys(options?: DataSourceGetTagKeysOptions) {
     const query = buildMetadataQuery({
       type: 'TAG_KEYS',
       templateService: this.templateSrv,
@@ -710,12 +669,7 @@ export default class InfluxDatasource extends DataSourceWithBackend<InfluxQuery,
       const target: InfluxQuery = {
         refId: 'metricFindQuery',
         datasource: this.getRef(),
-        query: this.templateSrv.replace(
-          annotation.query,
-          undefined,
-          (value: string | string[] = [], variable: QueryVariableModel) =>
-            this.interpolateQueryExpr(value, variable, annotation.query)
-        ),
+        query: this.templateSrv.replace(annotation.query, undefined, this.interpolateQueryExpr),
         rawQuery: true,
       };
 
@@ -743,9 +697,7 @@ export default class InfluxDatasource extends DataSourceWithBackend<InfluxQuery,
 
     const timeFilter = this.getTimeFilter({ rangeRaw: options.range.raw, timezone: options.timezone });
     let query = annotation.query.replace('$timeFilter', timeFilter);
-    query = this.templateSrv.replace(query, undefined, (value: string | string[] = [], variable: QueryVariableModel) =>
-      this.interpolateQueryExpr(value, variable, query)
-    );
+    query = this.templateSrv.replace(query, undefined, this.interpolateQueryExpr);
 
     return lastValueFrom(this._seriesQuery(query, options)).then((data) => {
       if (!data || !data.results || !data.results[0]) {
@@ -828,4 +780,24 @@ function timeSeriesToDataFrame(timeSeries: TimeSeries): DataFrame {
     fields,
     length: values.length,
   };
+}
+
+export function influxRegularEscape(value: string | string[]) {
+  if (typeof value === 'string') {
+    // Check the value is a number. If not run to escape special characters
+    if (isNaN(parseFloat(value))) {
+      return escapeRegex(value);
+    }
+  }
+
+  return value;
+}
+
+export function influxSpecialRegexEscape(value: string | string[]) {
+  if (typeof value !== 'string') {
+    return value;
+  }
+  value = value.replace(/\\/g, '\\\\\\\\');
+  value = value.replace(/[$^*{}\[\]\'+?.()|]/g, '$&');
+  return value;
 }

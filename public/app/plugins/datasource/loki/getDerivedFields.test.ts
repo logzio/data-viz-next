@@ -3,6 +3,7 @@ import { createDataFrame } from '@grafana/data';
 import { getDerivedFields } from './getDerivedFields';
 
 jest.mock('@grafana/runtime', () => ({
+  // @ts-ignore
   ...jest.requireActual('@grafana/runtime'),
   getDataSourceSrv: () => {
     return {

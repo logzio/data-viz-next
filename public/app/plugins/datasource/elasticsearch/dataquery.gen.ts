@@ -4,7 +4,7 @@
 //     public/app/plugins/gen.go
 // Using jennies:
 //     TSTypesJenny
-//     PluginTsTypesJenny
+//     PluginTSTypesJenny
 //
 // Run 'make gen-cue' from repository root to regenerate.
 
@@ -376,7 +376,7 @@ export type PipelineMetricAggregation = (MovingAverage | Derivative | Cumulative
 
 export type MetricAggregationWithSettings = (BucketScript | CumulativeSum | Derivative | SerialDiff | RawData | RawDocument | UniqueCount | Percentiles | ExtendedStats | Min | Max | Sum | Average | MovingAverage | MovingFunction | Logs | Rate | TopMetrics);
 
-export interface ElasticsearchDataQuery extends common.DataQuery {
+export interface Elasticsearch extends common.DataQuery {
   /**
    * Alias pattern
    */
@@ -399,7 +399,7 @@ export interface ElasticsearchDataQuery extends common.DataQuery {
   timeField?: string;
 }
 
-export const defaultElasticsearchDataQuery: Partial<ElasticsearchDataQuery> = {
+export const defaultElasticsearch: Partial<Elasticsearch> = {
   bucketAggs: [],
   metrics: [],
 };

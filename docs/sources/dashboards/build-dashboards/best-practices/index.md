@@ -14,7 +14,7 @@ labels:
     - oss
 menuTitle: Best practices
 title: Grafana dashboard best practices
-weight: 800
+weight: 100
 ---
 
 # Grafana dashboard best practices

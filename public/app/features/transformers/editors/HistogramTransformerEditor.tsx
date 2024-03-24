@@ -28,20 +28,9 @@ export const HistogramTransformerEditor = ({
   const labelWidth = 18;
 
   const [isInvalid, setInvalid] = useState({
-    bucketCount: !numberOrVariableValidator(options.bucketCount || ''),
     bucketSize: !numberOrVariableValidator(options.bucketSize || ''),
     bucketOffset: !numberOrVariableValidator(options.bucketOffset || ''),
   });
-
-  const onBucketCountChanged = useCallback(
-    (val?: number) => {
-      onChange({
-        ...options,
-        bucketCount: val,
-      });
-    },
-    [onChange, options]
-  );
 
   const onBucketSizeChanged = useCallback(
     (val?: number) => {
@@ -61,18 +50,6 @@ export const HistogramTransformerEditor = ({
       });
     },
     [onChange, options]
-  );
-
-  const onVariableBucketCountChanged = useCallback(
-    (value: string) => {
-      setInvalid({ ...isInvalid, bucketCount: !numberOrVariableValidator(value) });
-
-      onChange({
-        ...options,
-        bucketCount: Number(value) === 0 ? undefined : Number(value),
-      });
-    },
-    [onChange, options, isInvalid]
   );
 
   const onVariableBucketSizeChanged = useCallback(
@@ -131,20 +108,6 @@ export const HistogramTransformerEditor = ({
         <InlineFieldRow>
           <InlineField
             labelWidth={labelWidth}
-            label={histogramFieldInfo.bucketCount.name}
-            tooltip={histogramFieldInfo.bucketCount.description}
-          >
-            <NumberInput
-              value={options.bucketCount}
-              placeholder="Default: 30"
-              onChange={onBucketCountChanged}
-              min={0}
-            />
-          </InlineField>
-        </InlineFieldRow>
-        <InlineFieldRow>
-          <InlineField
-            labelWidth={labelWidth}
             label={histogramFieldInfo.bucketSize.name}
             tooltip={histogramFieldInfo.bucketSize.description}
           >
@@ -175,22 +138,6 @@ export const HistogramTransformerEditor = ({
 
   return (
     <div>
-      <InlineFieldRow>
-        <InlineField
-          invalid={isInvalid.bucketCount}
-          error={'Value needs to be an integer or a variable'}
-          labelWidth={labelWidth}
-          label={histogramFieldInfo.bucketCount.name}
-          tooltip={histogramFieldInfo.bucketCount.description}
-        >
-          <SuggestionsInput
-            suggestions={variables}
-            value={options.bucketCount}
-            placeholder="Default: 30"
-            onChange={onVariableBucketCountChanged}
-          />
-        </InlineField>
-      </InlineFieldRow>
       <InlineFieldRow>
         <InlineField
           invalid={isInvalid.bucketSize}

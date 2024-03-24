@@ -3,7 +3,6 @@ import React, { useEffect, useRef, useState } from 'react';
 
 import { LogRowModel, dateTimeForTimeZone } from '@grafana/data';
 import { convertRawToRange } from '@grafana/data/src/datetime/rangeutil';
-import { config } from '@grafana/runtime';
 import { LogsSortOrder } from '@grafana/schema';
 
 import { InfiniteScroll, Props, SCROLLING_THRESHOLD } from './InfiniteScroll';
@@ -43,61 +42,13 @@ function ScrollWithWrapper({ children, ...props }: Props) {
   return (
     <div style={{ height: 40, overflowY: 'scroll' }} ref={scrollRef} data-testid="scroll-element">
       {initialized && (
-        <InfiniteScroll {...props} scrollElement={scrollRef.current!} topScrollEnabled>
+        <InfiniteScroll {...props} scrollElement={scrollRef.current!}>
           {children}
         </InfiniteScroll>
       )}
     </div>
   );
 }
-
-function setup(loadMoreMock: () => void, startPosition: number, rows: LogRowModel[], order: LogsSortOrder) {
-  const { element, events } = getMockElement(startPosition);
-
-  function scrollTo(position: number) {
-    element.scrollTop = position;
-
-    act(() => {
-      events['scroll'](new Event('scroll'));
-    });
-
-    // When scrolling top, we wait for the user to reach the top, and then for a new scrolling event
-    // in the same direction before triggering a new query.
-    if (position === 0) {
-      wheel(-1);
-    }
-  }
-  function wheel(deltaY: number) {
-    element.scrollTop += deltaY;
-
-    act(() => {
-      const event = new WheelEvent('wheel', { deltaY });
-      events['wheel'](event);
-    });
-  }
-
-  render(
-    <InfiniteScroll
-      {...defaultProps}
-      sortOrder={order}
-      rows={rows}
-      scrollElement={element as unknown as HTMLDivElement}
-      loadMoreLogs={loadMoreMock}
-      topScrollEnabled
-    >
-      <div data-testid="contents" style={{ height: 100 }} />
-    </InfiniteScroll>
-  );
-
-  return { element, events, scrollTo, wheel };
-}
-
-beforeAll(() => {
-  config.featureToggles.logsInfiniteScrolling = true;
-});
-afterAll(() => {
-  config.featureToggles.logsInfiniteScrolling = false;
-});
 
 describe('InfiniteScroll', () => {
   test('Wraps components without adding DOM elements', async () => {
@@ -130,29 +81,39 @@ describe('InfiniteScroll', () => {
         rows = createLogRows(absoluteRange.from + 2 * SCROLLING_THRESHOLD, absoluteRange.to - 2 * SCROLLING_THRESHOLD);
       });
 
+      function setup(loadMoreMock: () => void, startPosition: number) {
+        const { element, events } = getMockElement(startPosition);
+        render(
+          <InfiniteScroll
+            {...defaultProps}
+            sortOrder={order}
+            rows={rows}
+            scrollElement={element as unknown as HTMLDivElement}
+            loadMoreLogs={loadMoreMock}
+          >
+            <div data-testid="contents" style={{ height: 100 }} />
+          </InfiniteScroll>
+        );
+        return { element, events };
+      }
+
       test.each([
         ['top', 10, 0],
-        ['bottom', 50, 60],
-      ])(
-        'Requests more logs when scrolling %s',
-        async (direction: string, startPosition: number, endPosition: number) => {
-          const loadMoreMock = jest.fn();
-          const { scrollTo, element } = setup(loadMoreMock, startPosition, rows, order);
+        ['bottom', 90, 100],
+      ])('Requests more logs when scrolling %s', async (_: string, startPosition: number, endPosition: number) => {
+        const loadMoreMock = jest.fn();
+        const { element, events } = setup(loadMoreMock, startPosition);
 
-          expect(await screen.findByTestId('contents')).toBeInTheDocument();
+        expect(await screen.findByTestId('contents')).toBeInTheDocument();
+        element.scrollTop = endPosition;
 
-          scrollTo(endPosition);
+        act(() => {
+          events['scroll'](new Event('scroll'));
+        });
 
-          expect(loadMoreMock).toHaveBeenCalled();
-          expect(await screen.findByTestId('Spinner')).toBeInTheDocument();
-          if (direction === 'bottom') {
-            // Bottom loader visibility trick
-            expect(element.scrollTo).toHaveBeenCalled();
-          } else {
-            expect(element.scrollTo).not.toHaveBeenCalled();
-          }
-        }
-      );
+        expect(loadMoreMock).toHaveBeenCalled();
+        expect(await screen.findByTestId('Spinner')).toBeInTheDocument();
+      });
 
       test.each([
         ['up', -5, 0],
@@ -161,11 +122,14 @@ describe('InfiniteScroll', () => {
         'Requests more logs when moving the mousewheel %s',
         async (_: string, deltaY: number, startPosition: number) => {
           const loadMoreMock = jest.fn();
-          const { wheel } = setup(loadMoreMock, startPosition, rows, order);
+          const { events } = setup(loadMoreMock, startPosition);
 
           expect(await screen.findByTestId('contents')).toBeInTheDocument();
 
-          wheel(deltaY);
+          act(() => {
+            const event = new WheelEvent('wheel', { deltaY });
+            events['wheel'](event);
+          });
 
           expect(loadMoreMock).toHaveBeenCalled();
           expect(await screen.findByTestId('Spinner')).toBeInTheDocument();
@@ -174,28 +138,33 @@ describe('InfiniteScroll', () => {
 
       test('Does not request more logs when there is no scroll', async () => {
         const loadMoreMock = jest.fn();
-        const { scrollTo, element } = setup(loadMoreMock, 0, rows, order);
+        const { element, events } = setup(loadMoreMock, 0);
 
         expect(await screen.findByTestId('contents')).toBeInTheDocument();
         element.clientHeight = 40;
         element.scrollHeight = element.clientHeight;
 
-        scrollTo(40);
+        act(() => {
+          events['scroll'](new Event('scroll'));
+        });
 
         expect(loadMoreMock).not.toHaveBeenCalled();
         expect(screen.queryByTestId('Spinner')).not.toBeInTheDocument();
       });
 
       test('Requests newer logs from the most recent timestamp', async () => {
-        const startPosition = order === LogsSortOrder.Descending ? 10 : 50; // Scroll top
-        const endPosition = order === LogsSortOrder.Descending ? 0 : 60; // Scroll bottom
+        const startPosition = order === LogsSortOrder.Descending ? 10 : 90; // Scroll top
+        const endPosition = order === LogsSortOrder.Descending ? 0 : 100; // Scroll bottom
 
         const loadMoreMock = jest.fn();
-        const { scrollTo } = setup(loadMoreMock, startPosition, rows, order);
+        const { element, events } = setup(loadMoreMock, startPosition);
 
         expect(await screen.findByTestId('contents')).toBeInTheDocument();
+        element.scrollTop = endPosition;
 
-        scrollTo(endPosition);
+        act(() => {
+          events['scroll'](new Event('scroll'));
+        });
 
         expect(loadMoreMock).toHaveBeenCalledWith({
           from: rows[rows.length - 1].timeEpochMs,
@@ -204,15 +173,18 @@ describe('InfiniteScroll', () => {
       });
 
       test('Requests older logs from the oldest timestamp', async () => {
-        const startPosition = order === LogsSortOrder.Ascending ? 10 : 50; // Scroll top
-        const endPosition = order === LogsSortOrder.Ascending ? 0 : 60; // Scroll bottom
+        const startPosition = order === LogsSortOrder.Ascending ? 10 : 90; // Scroll top
+        const endPosition = order === LogsSortOrder.Ascending ? 0 : 100; // Scroll bottom
 
         const loadMoreMock = jest.fn();
-        const { scrollTo } = setup(loadMoreMock, startPosition, rows, order);
+        const { element, events } = setup(loadMoreMock, startPosition);
 
         expect(await screen.findByTestId('contents')).toBeInTheDocument();
+        element.scrollTop = endPosition;
 
-        scrollTo(endPosition);
+        act(() => {
+          events['scroll'](new Event('scroll'));
+        });
 
         expect(loadMoreMock).toHaveBeenCalledWith({
           from: absoluteRange.from,
@@ -221,20 +193,39 @@ describe('InfiniteScroll', () => {
       });
 
       describe('With absolute range matching visible range', () => {
+        function setup(loadMoreMock: () => void, startPosition: number, rows: LogRowModel[]) {
+          const { element, events } = getMockElement(startPosition);
+          render(
+            <InfiniteScroll
+              {...defaultProps}
+              sortOrder={order}
+              rows={rows}
+              scrollElement={element as unknown as HTMLDivElement}
+              loadMoreLogs={loadMoreMock}
+            >
+              <div data-testid="contents" style={{ height: 100 }} />
+            </InfiniteScroll>
+          );
+          return { element, events };
+        }
+
         test.each([
           ['top', 10, 0],
-          ['bottom', 50, 60],
+          ['bottom', 90, 100],
         ])(
           'It does not request more when scrolling %s',
           async (_: string, startPosition: number, endPosition: number) => {
             // Visible range matches the current range
             const rows = createLogRows(absoluteRange.from, absoluteRange.to);
             const loadMoreMock = jest.fn();
-            const { scrollTo } = setup(loadMoreMock, startPosition, rows, order);
+            const { element, events } = setup(loadMoreMock, startPosition, rows);
 
             expect(await screen.findByTestId('contents')).toBeInTheDocument();
+            element.scrollTop = endPosition;
 
-            scrollTo(endPosition);
+            act(() => {
+              events['scroll'](new Event('scroll'));
+            });
 
             expect(loadMoreMock).not.toHaveBeenCalled();
             expect(screen.queryByTestId('Spinner')).not.toBeInTheDocument();
@@ -244,20 +235,39 @@ describe('InfiniteScroll', () => {
       });
 
       describe('With relative range matching visible range', () => {
+        function setup(loadMoreMock: () => void, startPosition: number, rows: LogRowModel[]) {
+          const { element, events } = getMockElement(startPosition);
+          render(
+            <InfiniteScroll
+              {...defaultProps}
+              sortOrder={order}
+              rows={rows}
+              scrollElement={element as unknown as HTMLDivElement}
+              loadMoreLogs={loadMoreMock}
+            >
+              <div data-testid="contents" style={{ height: 100 }} />
+            </InfiniteScroll>
+          );
+          return { element, events };
+        }
+
         test.each([
           ['top', 10, 0],
-          ['bottom', 50, 60],
+          ['bottom', 90, 100],
         ])(
           'It does not request more when scrolling %s',
           async (_: string, startPosition: number, endPosition: number) => {
             // Visible range matches the current range
             const rows = createLogRows(absoluteRange.from, absoluteRange.to);
             const loadMoreMock = jest.fn();
-            const { scrollTo } = setup(loadMoreMock, startPosition, rows, order);
+            const { element, events } = setup(loadMoreMock, startPosition, rows);
 
             expect(await screen.findByTestId('contents')).toBeInTheDocument();
+            element.scrollTop = endPosition;
 
-            scrollTo(endPosition);
+            act(() => {
+              events['scroll'](new Event('scroll'));
+            });
 
             expect(loadMoreMock).not.toHaveBeenCalled();
             expect(screen.queryByTestId('Spinner')).not.toBeInTheDocument();
@@ -291,7 +301,6 @@ function getMockElement(scrollTop: number) {
     scrollHeight: 100,
     clientHeight: 40,
     scrollTop,
-    scrollTo: jest.fn(),
   };
 
   return { element, events };

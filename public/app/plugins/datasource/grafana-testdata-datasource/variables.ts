@@ -1,10 +1,10 @@
 import { StandardVariableQuery, StandardVariableSupport } from '@grafana/data';
 
-import { TestDataDataQuery, TestDataQueryType } from './dataquery.gen';
+import { TestData, TestDataQueryType } from './dataquery.gen';
 import { TestDataDataSource } from './datasource';
 
 export class TestDataVariableSupport extends StandardVariableSupport<TestDataDataSource> {
-  toDataQuery(query: StandardVariableQuery): TestDataDataQuery {
+  toDataQuery(query: StandardVariableQuery): TestData {
     return {
       refId: 'TestDataDataSource-QueryVariable',
       stringInput: query.query,

@@ -71,7 +71,7 @@ export type GrafanaManagedReceiverConfig = {
   disableResolveMessage: boolean;
   secureFields?: Record<string, boolean>;
   secureSettings?: Record<string, any>;
-  settings?: Record<string, any>; // sometimes settings are optional for security reasons (RBAC)
+  settings: Record<string, any>;
   type: string;
   name: string;
   updated?: string;
@@ -99,7 +99,7 @@ export type Receiver = GrafanaManagedContactPoint | AlertmanagerReceiver;
 export type ObjectMatcher = [name: string, operator: MatcherOperator, value: string];
 
 export type Route = {
-  receiver?: string | null;
+  receiver?: string;
   group_by?: string[];
   continue?: boolean;
   object_matchers?: ObjectMatcher[];
@@ -157,7 +157,6 @@ export type AlertmanagerConfig = {
   inhibit_rules?: InhibitRule[];
   receivers?: Receiver[];
   mute_time_intervals?: MuteTimeInterval[];
-  time_intervals?: MuteTimeInterval[];
   /** { [name]: provenance } */
   muteTimeProvenances?: Record<string, string>;
   last_applied?: boolean;

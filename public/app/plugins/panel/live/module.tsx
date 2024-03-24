@@ -2,7 +2,7 @@ import { PanelPlugin } from '@grafana/data';
 
 import { LiveChannelEditor } from './LiveChannelEditor';
 import { LivePanel } from './LivePanel';
-import { LivePanelOptions, MessageDisplayMode, MessagePublishMode } from './types';
+import { LivePanelOptions, MessageDisplayMode } from './types';
 
 export const plugin = new PanelPlugin<LivePanelOptions>(LivePanel).setPanelOptions((builder) => {
   builder.addCustomEditor({
@@ -16,7 +16,7 @@ export const plugin = new PanelPlugin<LivePanelOptions>(LivePanel).setPanelOptio
 
   builder
     .addRadio({
-      path: 'display',
+      path: 'message',
       name: 'Show Message',
       description: 'Display the last message received on this channel',
       settings: {
@@ -29,17 +29,10 @@ export const plugin = new PanelPlugin<LivePanelOptions>(LivePanel).setPanelOptio
       },
       defaultValue: MessageDisplayMode.JSON,
     })
-    .addRadio({
+    .addBooleanSwitch({
       path: 'publish',
-      name: 'Publish',
+      name: 'Show Publish',
       description: 'Display a form to publish values',
-      settings: {
-        options: [
-          { value: MessagePublishMode.None, label: 'None' },
-          { value: MessagePublishMode.JSON, label: 'JSON' },
-          { value: MessagePublishMode.Influx, label: 'Influx' },
-        ],
-      },
-      defaultValue: MessagePublishMode.None,
+      defaultValue: false,
     });
 });

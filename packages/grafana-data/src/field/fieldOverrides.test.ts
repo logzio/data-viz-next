@@ -124,7 +124,7 @@ describe('Global MinMax', () => {
     });
   });
 
-  describe('when values are zero', () => {
+  describe('when value values are zeo', () => {
     it('then global min max should be correct', () => {
       const frame = toDataFrame({
         fields: [

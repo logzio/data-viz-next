@@ -63,9 +63,6 @@ func (ss *sqlStore) Insert(ctx context.Context, cmd *user.User) (int64, error) {
 	var err error
 	err = ss.db.WithTransactionalDbSession(ctx, func(sess *db.Session) error {
 		sess.UseBool("is_admin")
-		if cmd.UID == "" {
-			cmd.UID = util.GenerateShortUID()
-		}
 
 		if _, err = sess.Insert(cmd); err != nil {
 			return err
@@ -396,7 +393,6 @@ func (ss *sqlStore) GetSignedInUser(ctx context.Context, query *user.GetSignedIn
 
 		var rawSQL = `SELECT
 		u.id                  as user_id,
-		u.uid                 as user_uid,
 		u.is_admin            as is_grafana_admin,
 		u.email               as email,
 		u.login               as login,
@@ -470,7 +466,6 @@ func (ss *sqlStore) GetProfile(ctx context.Context, query *user.GetUserProfileQu
 
 		userProfile = user.UserProfileDTO{
 			ID:             usr.ID,
-			UID:            usr.UID,
 			Name:           usr.Name,
 			Email:          usr.Email,
 			Login:          usr.Login,

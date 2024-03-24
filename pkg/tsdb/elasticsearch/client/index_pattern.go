@@ -18,11 +18,11 @@ const (
 	intervalYearly  = "yearly"
 )
 
-type IndexPattern interface {
+type indexPattern interface {
 	GetIndices(timeRange backend.TimeRange) ([]string, error)
 }
 
-var newIndexPattern = func(interval string, pattern string) (IndexPattern, error) {
+var newIndexPattern = func(interval string, pattern string) (indexPattern, error) {
 	if interval == noInterval {
 		return &staticIndexPattern{indexName: pattern}, nil
 	}

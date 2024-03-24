@@ -2,6 +2,7 @@ import React from 'react';
 
 import { sanitizeUrl } from '@grafana/data/src/text/sanitize';
 import { selectors } from '@grafana/e2e-selectors';
+import { SceneComponentProps, SceneObjectBase, SceneObjectState } from '@grafana/scenes';
 import { DashboardLink } from '@grafana/schema';
 import { Tooltip } from '@grafana/ui';
 import {
@@ -11,13 +12,17 @@ import {
 import { getLinkSrv } from 'app/features/panel/panellinks/link_srv';
 
 import { LINK_ICON_MAP } from '../settings/links/utils';
+import { getDashboardSceneFor } from '../utils/utils';
 
-export interface Props {
-  links: DashboardLink[];
-  uid?: string;
+interface DashboardLinksControlsState extends SceneObjectState {}
+
+export class DashboardLinksControls extends SceneObjectBase<DashboardLinksControlsState> {
+  static Component = DashboardLinksControlsRenderer;
 }
 
-export function DashboardLinksControls({ links, uid }: Props) {
+function DashboardLinksControlsRenderer({ model }: SceneComponentProps<DashboardLinksControls>) {
+  const { links, uid } = getDashboardSceneFor(model).useState();
+
   if (!links || !uid) {
     return null;
   }

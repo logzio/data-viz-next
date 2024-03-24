@@ -50,7 +50,6 @@ export interface QueryRunnerOptions<
   datasource: DataSourceRef | DataSourceApi<TQuery, TOptions> | null;
   queries: TQuery[];
   panelId?: number;
-  panelPluginId?: string;
   dashboardUID?: string;
   timezone: TimeZone;
   timeRange: TimeRange;
@@ -220,8 +219,7 @@ export class PanelQueryRunner {
   private applyTransformations(data: PanelData): Observable<PanelData> {
     const transformations = this.dataConfigSource.getTransformations();
 
-    const allTransformationsDisabled = transformations && transformations.every((t) => t.disabled);
-    if (allTransformationsDisabled || !transformations || transformations.length === 0) {
+    if (!transformations || transformations.length === 0) {
       return of(data);
     }
 
@@ -258,7 +256,6 @@ export class PanelQueryRunner {
       timezone,
       datasource,
       panelId,
-      panelPluginId,
       dashboardUID,
       timeRange,
       timeInfo,
@@ -280,7 +277,6 @@ export class PanelQueryRunner {
       requestId: getNextRequestId(),
       timezone,
       panelId,
-      panelPluginId,
       dashboardUID,
       range: timeRange,
       timeInfo,

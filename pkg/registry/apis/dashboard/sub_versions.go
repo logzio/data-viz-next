@@ -11,10 +11,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/rest"
 
-	common "github.com/grafana/grafana/pkg/apimachinery/apis/common/v0alpha1"
-	dashboard "github.com/grafana/grafana/pkg/apis/dashboard/v0alpha1"
-	"github.com/grafana/grafana/pkg/services/apiserver/endpoints/request"
+	common "github.com/grafana/grafana/pkg/apis/common/v0alpha1"
+	"github.com/grafana/grafana/pkg/apis/dashboard/v0alpha1"
 	dashver "github.com/grafana/grafana/pkg/services/dashboardversion"
+	"github.com/grafana/grafana/pkg/services/grafana-apiserver/endpoints/request"
 )
 
 type VersionsREST struct {
@@ -22,10 +22,9 @@ type VersionsREST struct {
 }
 
 var _ = rest.Connecter(&VersionsREST{})
-var _ = rest.StorageMetadata(&VersionsREST{})
 
 func (r *VersionsREST) New() runtime.Object {
-	return &dashboard.DashboardVersionList{}
+	return &v0alpha1.DashboardVersionsInfo{}
 }
 
 func (r *VersionsREST) Destroy() {
@@ -33,14 +32,6 @@ func (r *VersionsREST) Destroy() {
 
 func (r *VersionsREST) ConnectMethods() []string {
 	return []string{"GET"}
-}
-
-func (r *VersionsREST) ProducesMIMETypes(verb string) []string {
-	return nil
-}
-
-func (r *VersionsREST) ProducesObject(verb string) interface{} {
-	return &dashboard.DashboardVersionList{}
 }
 
 func (r *VersionsREST) NewConnectOptions() (runtime.Object, bool, string) {
@@ -77,7 +68,7 @@ func (r *VersionsREST) Connect(ctx context.Context, uid string, opts runtime.Obj
 			data, _ := dto.Data.Map()
 
 			// Convert the version to a regular dashboard
-			dash := &dashboard.Dashboard{
+			dash := &v0alpha1.Dashboard{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              uid,
 					CreationTimestamp: metav1.NewTime(dto.Created),
@@ -97,9 +88,9 @@ func (r *VersionsREST) Connect(ctx context.Context, uid string, opts runtime.Obj
 			responder.Error(err)
 			return
 		}
-		versions := &dashboard.DashboardVersionList{}
+		versions := &v0alpha1.DashboardVersionsInfo{}
 		for _, v := range rsp {
-			info := dashboard.DashboardVersionInfo{
+			info := v0alpha1.DashboardVersionInfo{
 				Version: v.Version,
 				Created: v.Created.UnixMilli(),
 				Message: v.Message,

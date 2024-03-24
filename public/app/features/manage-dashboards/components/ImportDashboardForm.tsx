@@ -1,9 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { Controller, FieldErrors, UseFormReturn } from 'react-hook-form';
 
 import { selectors } from '@grafana/e2e-selectors';
 import { ExpressionDatasourceRef } from '@grafana/runtime/src/utils/DataSourceWithBackend';
-import { Button, Field, FormFieldErrors, FormsOnSubmit, Stack, Input, Legend } from '@grafana/ui';
+import {
+  Button,
+  Field,
+  FormAPI,
+  FormFieldErrors,
+  FormsOnSubmit,
+  HorizontalGroup,
+  Input,
+  InputControl,
+  Legend,
+} from '@grafana/ui';
 import { OldFolderPicker } from 'app/core/components/Select/OldFolderPicker';
 import { DataSourcePicker } from 'app/features/datasources/components/picker/DataSourcePicker';
 
@@ -18,11 +27,11 @@ import { validateTitle, validateUid } from '../utils/validation';
 
 import { ImportDashboardLibraryPanelsList } from './ImportDashboardLibraryPanelsList';
 
-interface Props extends Pick<UseFormReturn<ImportDashboardDTO>, 'register' | 'control' | 'getValues' | 'watch'> {
+interface Props extends Pick<FormAPI<ImportDashboardDTO>, 'register' | 'errors' | 'control' | 'getValues' | 'watch'> {
   uidReset: boolean;
   inputs: DashboardInputs;
   initialFolderUid: string;
-  errors: FieldErrors<ImportDashboardDTO>;
+
   onCancel: () => void;
   onUidReset: () => void;
   onSubmit: FormsOnSubmit<ImportDashboardDTO>;
@@ -71,7 +80,7 @@ export const ImportDashboardForm = ({
         />
       </Field>
       <Field label="Folder">
-        <Controller
+        <InputControl
           render={({ field: { ref, ...field } }) => (
             <OldFolderPicker {...field} enableCreateNew initialFolderUid={initialFolderUid} />
           )}
@@ -114,7 +123,7 @@ export const ImportDashboardForm = ({
               invalid={errors.dataSources && !!errors.dataSources[index]}
               error={errors.dataSources && errors.dataSources[index] && 'A data source is required'}
             >
-              <Controller
+              <InputControl
                 name={dataSourceOption}
                 render={({ field: { ref, ...field } }) => (
                   <DataSourcePicker
@@ -157,7 +166,7 @@ export const ImportDashboardForm = ({
         description="List of existing library panels. These panels are not affected by the import."
         folderName={watchFolder.title}
       />
-      <Stack>
+      <HorizontalGroup>
         <Button
           type="submit"
           data-testid={selectors.components.ImportDashboardForm.submit}
@@ -171,7 +180,7 @@ export const ImportDashboardForm = ({
         <Button type="reset" variant="secondary" onClick={onCancel}>
           Cancel
         </Button>
-      </Stack>
+      </HorizontalGroup>
     </>
   );
 };

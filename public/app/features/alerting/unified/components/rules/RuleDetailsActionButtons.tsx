@@ -1,10 +1,22 @@
 import { css } from '@emotion/css';
 import { uniqueId } from 'lodash';
 import React, { Fragment, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 
-import { GrafanaTheme2, textUtil } from '@grafana/data';
-import { config, useReturnToPrevious } from '@grafana/runtime';
-import { Button, ConfirmModal, Dropdown, HorizontalGroup, Icon, LinkButton, Menu, useStyles2 } from '@grafana/ui';
+import { GrafanaTheme2, textUtil, urlUtil } from '@grafana/data';
+import { config } from '@grafana/runtime';
+import {
+  Button,
+  ClipboardButton,
+  ConfirmModal,
+  Dropdown,
+  HorizontalGroup,
+  Icon,
+  LinkButton,
+  Menu,
+  useStyles2,
+} from '@grafana/ui';
+import { useAppNotification } from 'app/core/copy/appNotification';
 import { useDispatch } from 'app/types';
 import { CombinedRule, RuleIdentifier, RulesSource } from 'app/types/unified-alerting';
 import { PromAlertingRuleState } from 'app/types/unified-alerting-dto';
@@ -24,6 +36,7 @@ import {
 } from '../../utils/misc';
 import * as ruleId from '../../utils/rule-id';
 import { isAlertingRule, isFederatedRuleGroup, isGrafanaRulerRule } from '../../utils/rules';
+import { createUrl } from '../../utils/url';
 import { DeclareIncidentButton } from '../bridges/DeclareIncidentButton';
 
 import { RedirectToCloneRule } from './CloneRule';
@@ -31,15 +44,16 @@ import { RedirectToCloneRule } from './CloneRule';
 interface Props {
   rule: CombinedRule;
   rulesSource: RulesSource;
+  isViewMode: boolean;
 }
 
-export const RuleDetailsActionButtons = ({ rule, rulesSource }: Props) => {
+export const RuleDetailsActionButtons = ({ rule, rulesSource, isViewMode }: Props) => {
   const style = useStyles2(getStyles);
-  const { group } = rule;
+  const { namespace, group, rulerRule } = rule;
   const { StateHistoryModal, showStateHistoryModal } = useStateHistoryModal();
   const dispatch = useDispatch();
-
-  const setReturnToPrevious = useReturnToPrevious();
+  const location = useLocation();
+  const notifyApp = useAppNotification();
 
   const [ruleToDelete, setRuleToDelete] = useState<CombinedRule>();
   const [redirectToClone, setRedirectToClone] = useState<
@@ -50,8 +64,11 @@ export const RuleDetailsActionButtons = ({ rule, rulesSource }: Props) => {
     ? rulesSource
     : getAlertmanagerByUid(rulesSource.jsonData.alertmanagerUid)?.name;
 
+  const [duplicateSupported, duplicateAllowed] = useAlertRuleAbility(rule, AlertRuleAction.Duplicate);
   const [silenceSupported, silenceAllowed] = useAlertRuleAbility(rule, AlertRuleAction.Silence);
   const [exploreSupported, exploreAllowed] = useAlertRuleAbility(rule, AlertRuleAction.Explore);
+  const [deleteSupported, deleteAllowed] = useAlertRuleAbility(rule, AlertRuleAction.Delete);
+  const [editSupported, editAllowed] = useAlertRuleAbility(rule, AlertRuleAction.Update);
 
   const buttons: JSX.Element[] = [];
   const rightButtons: JSX.Element[] = [];
@@ -66,19 +83,24 @@ export const RuleDetailsActionButtons = ({ rule, rulesSource }: Props) => {
         ruleToDelete.rulerRule
       );
 
-      dispatch(deleteRuleAction(identifier, { navigateTo: undefined }));
+      dispatch(deleteRuleAction(identifier, { navigateTo: isViewMode ? '/alerting/list' : undefined }));
       setRuleToDelete(undefined);
     }
   };
 
   const isFederated = isFederatedRuleGroup(group);
+  const isProvisioned = isGrafanaRulerRule(rule.rulerRule) && Boolean(rule.rulerRule.grafana_alert.provenance);
 
   const isFiringRule = isAlertingRule(rule.promRule) && rule.promRule.state === PromAlertingRuleState.Firing;
 
+  const canDelete = deleteSupported && deleteAllowed;
+  const canEdit = editSupported && editAllowed;
   const canSilence = silenceSupported && silenceAllowed && alertmanagerSourceName;
+  const canDuplicateRule = duplicateSupported && duplicateAllowed && !isFederated;
 
   const buildShareUrl = () => createShareLink(rulesSource, rule);
 
+  const returnTo = location.pathname + location.search;
   // explore does not support grafana rule queries atm
   // neither do "federated rules"
   if (isCloudRulesSource(rulesSource) && exploreSupported && exploreAllowed && !isFederated) {
@@ -111,7 +133,6 @@ export const RuleDetailsActionButtons = ({ rule, rulesSource }: Props) => {
   }
   if (rule.annotations[Annotation.dashboardUID]) {
     const dashboardUID = rule.annotations[Annotation.dashboardUID];
-    const isReturnToPreviousEnabled = config.featureToggles.returnToPrevious;
     if (dashboardUID) {
       buttons.push(
         <LinkButton
@@ -119,11 +140,8 @@ export const RuleDetailsActionButtons = ({ rule, rulesSource }: Props) => {
           key="dashboard"
           variant="primary"
           icon="apps"
-          target={isReturnToPreviousEnabled ? undefined : '_blank'}
+          target="_blank"
           href={`d/${encodeURIComponent(dashboardUID)}`}
-          onClick={() => {
-            setReturnToPrevious(rule.name);
-          }}
         >
           Go to dashboard
         </LinkButton>
@@ -136,11 +154,8 @@ export const RuleDetailsActionButtons = ({ rule, rulesSource }: Props) => {
             key="panel"
             variant="primary"
             icon="apps"
-            target={isReturnToPreviousEnabled ? undefined : '_blank'}
+            target="_blank"
             href={`d/${encodeURIComponent(dashboardUID)}?viewPanel=${encodeURIComponent(panelId)}`}
-            onClick={() => {
-              setReturnToPrevious(rule.name);
-            }}
           >
             Go to panel
           </LinkButton>
@@ -184,6 +199,63 @@ export const RuleDetailsActionButtons = ({ rule, rulesSource }: Props) => {
         <DeclareIncidentButton title={rule.name} url={buildShareUrl()} />
       </Fragment>
     );
+  }
+
+  if (isViewMode && rulerRule) {
+    const sourceName = getRulesSourceName(rulesSource);
+    const identifier = ruleId.fromRulerRule(sourceName, namespace.name, group.name, rulerRule);
+
+    if (canEdit) {
+      rightButtons.push(
+        <ClipboardButton
+          key="copy"
+          icon="copy"
+          onClipboardError={(copiedText) => {
+            notifyApp.error('Error while copying URL', copiedText);
+          }}
+          size="sm"
+          getText={buildShareUrl}
+        >
+          Copy link to rule
+        </ClipboardButton>
+      );
+
+      if (!isProvisioned) {
+        const editURL = urlUtil.renderUrl(
+          `${config.appSubUrl}/alerting/${encodeURIComponent(ruleId.stringifyIdentifier(identifier))}/edit`,
+          {
+            returnTo,
+          }
+        );
+
+        rightButtons.push(
+          <LinkButton size="sm" key="edit" variant="secondary" icon="pen" href={editURL}>
+            Edit
+          </LinkButton>
+        );
+      }
+    }
+
+    if (isGrafanaRulerRule(rulerRule)) {
+      const modifyUrl = createUrl(
+        `/alerting/${encodeURIComponent(ruleId.stringifyIdentifier(identifier))}/modify-export`
+      );
+
+      moreActionsButtons.push(<Menu.Item label="Modify export" icon="edit" url={modifyUrl} />);
+    }
+
+    if (canDuplicateRule) {
+      moreActionsButtons.push(
+        <Menu.Item label="Duplicate" icon="copy" onClick={() => setRedirectToClone({ identifier, isProvisioned })} />
+      );
+    }
+
+    if (canDelete) {
+      moreActionsButtons.push(<Menu.Divider />);
+      moreActionsButtons.push(
+        <Menu.Item key="delete" label="Delete" icon="trash-alt" onClick={() => setRuleToDelete(rule)} />
+      );
+    }
   }
 
   if (buttons.length || rightButtons.length || moreActionsButtons.length) {

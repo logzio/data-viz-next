@@ -5,8 +5,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/grafana/grafana-plugin-sdk-go/backend/gtime"
 )
 
 // TimeGrain handles conversions between
@@ -17,7 +15,7 @@ var (
 )
 
 func CreateISO8601DurationFromIntervalMS(it int64) (string, error) {
-	formatted := gtime.FormatInterval(time.Duration(it) * time.Millisecond)
+	formatted := FormatDuration(time.Duration(it) * time.Millisecond)
 
 	if strings.Contains(formatted, "ms") {
 		return "PT1M", nil

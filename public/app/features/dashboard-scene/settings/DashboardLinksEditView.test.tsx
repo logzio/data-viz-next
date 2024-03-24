@@ -2,12 +2,18 @@ import { render as RTLRender } from '@testing-library/react';
 import React from 'react';
 import { TestProvider } from 'test/helpers/TestProvider';
 
-import { getPanelPlugin } from '@grafana/data/test/__mocks__/pluginMocks';
-import { setPluginImportUtils } from '@grafana/runtime';
-import { SceneGridItem, SceneGridLayout, SceneTimeRange, VizPanel, behaviors } from '@grafana/scenes';
+import {
+  behaviors,
+  SceneGridLayout,
+  SceneGridItem,
+  SceneRefreshPicker,
+  SceneTimeRange,
+  SceneTimePicker,
+} from '@grafana/scenes';
 import { DashboardCursorSync } from '@grafana/schema';
 
 import { DashboardControls } from '../scene/DashboardControls';
+import { DashboardLinksControls } from '../scene/DashboardLinksControls';
 import { DashboardScene } from '../scene/DashboardScene';
 import { activateFullSceneTree } from '../utils/test-utils';
 
@@ -24,11 +30,6 @@ jest.mock('react-router-dom', () => ({
     key: '5nvxpbdafa',
   }),
 }));
-
-setPluginImportUtils({
-  importPanelPlugin: (id: string) => Promise.resolve(getPanelPlugin({})),
-  getPanelPluginFromCache: (id: string) => undefined,
-});
 
 function render(component: React.ReactNode) {
   return RTLRender(<TestProvider>{component}</TestProvider>);
@@ -214,7 +215,7 @@ describe('DashboardLinksEditView', () => {
       const { getByText } = render(<settings.Component model={settings} />);
 
       expect(getByText('Edit link')).toBeInTheDocument();
-      expect(getByText('Back to list')).toBeInTheDocument();
+      expect(getByText('Apply')).toBeInTheDocument();
     });
   });
 });
@@ -224,7 +225,18 @@ async function buildTestScene() {
   const dashboard = new DashboardScene({
     $timeRange: new SceneTimeRange({}),
     $behaviors: [new behaviors.CursorSync({ sync: DashboardCursorSync.Off })],
-    controls: new DashboardControls({}),
+    controls: [
+      new DashboardControls({
+        variableControls: [],
+        linkControls: new DashboardLinksControls({}),
+        timeControls: [
+          new SceneTimePicker({}),
+          new SceneRefreshPicker({
+            intervals: ['1s'],
+          }),
+        ],
+      }),
+    ],
     title: 'hello',
     uid: 'dash-1',
     meta: {
@@ -238,11 +250,7 @@ async function buildTestScene() {
           y: 0,
           width: 10,
           height: 12,
-          body: new VizPanel({
-            title: 'Panel A',
-            key: 'panel-1',
-            pluginId: 'table',
-          }),
+          body: undefined,
         }),
       ],
     }),

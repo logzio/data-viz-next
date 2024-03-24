@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/grafana/grafana-plugin-sdk-go/backend/gtime"
+	"github.com/grafana/grafana/pkg/tsdb/intervalv2"
 )
 
 // $__interval_ms is the exact value in milliseconds
@@ -15,7 +15,7 @@ import (
 
 func interpolateInterval(flux string, interval time.Duration) string {
 	intervalMs := int64(interval / time.Millisecond)
-	intervalText := gtime.FormatInterval(interval)
+	intervalText := intervalv2.FormatDuration(interval)
 
 	flux = strings.ReplaceAll(flux, "$__interval_ms", strconv.FormatInt(intervalMs, 10))
 	flux = strings.ReplaceAll(flux, "$__interval", intervalText)

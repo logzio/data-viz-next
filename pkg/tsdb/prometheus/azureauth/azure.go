@@ -8,11 +8,19 @@ import (
 	"github.com/grafana/grafana-azure-sdk-go/azcredentials"
 	"github.com/grafana/grafana-azure-sdk-go/azhttpclient"
 	"github.com/grafana/grafana-azure-sdk-go/azsettings"
+	"github.com/grafana/grafana-azure-sdk-go/util/maputil"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	sdkhttpclient "github.com/grafana/grafana-plugin-sdk-go/backend/httpclient"
-	"github.com/grafana/grafana-plugin-sdk-go/data/utils/maputil"
 
-	"github.com/grafana/grafana/pkg/promlib/utils"
+	"github.com/grafana/grafana/pkg/tsdb/prometheus/utils"
+)
+
+var (
+	azurePrometheusScopes = map[string][]string{
+		azsettings.AzurePublic:       {"https://prometheus.monitor.azure.com/.default"},
+		azsettings.AzureChina:        {"https://prometheus.monitor.azure.cn/.default"},
+		azsettings.AzureUSGovernment: {"https://prometheus.monitor.azure.us/.default"},
+	}
 )
 
 func ConfigureAzureAuthentication(settings backend.DataSourceInstanceSettings, azureSettings *azsettings.AzureSettings, clientOpts *sdkhttpclient.Options) error {
@@ -74,28 +82,11 @@ func getPrometheusScopes(settings *azsettings.AzureSettings, credentials azcrede
 		return nil, err
 	}
 
-	cloudSettings, err := settings.GetCloud(azureCloud)
-	if err != nil {
-		return nil, err
-	}
-
 	// Get scopes for the given cloud
-	resourceIdS, ok := cloudSettings.Properties["prometheusResourceId"]
-	if !ok {
-		err := fmt.Errorf("the Azure cloud '%s' doesn't have configuration for Prometheus", azureCloud)
+	if scopes, ok := azurePrometheusScopes[azureCloud]; !ok {
+		err := fmt.Errorf("the Azure cloud '%s' not supported by Prometheus datasource", azureCloud)
 		return nil, err
+	} else {
+		return scopes, nil
 	}
-	return audienceToScopes(resourceIdS)
-}
-
-func audienceToScopes(audience string) ([]string, error) {
-	resourceId, err := url.Parse(audience)
-	if err != nil || resourceId.Scheme == "" || resourceId.Host == "" {
-		err = fmt.Errorf("endpoint resource ID (audience) '%s' invalid", audience)
-		return nil, err
-	}
-
-	resourceId.Path = path.Join(resourceId.Path, ".default")
-	scopes := []string{resourceId.String()}
-	return scopes, nil
 }

@@ -4,6 +4,10 @@ import uPlot, { Cursor } from 'uplot';
 import {
   DashboardCursorSync,
   DataFrameType,
+  DataHoverClearEvent,
+  DataHoverEvent,
+  DataHoverPayload,
+  EventBus,
   formattedValueToString,
   getValueFormat,
   GrafanaTheme2,
@@ -56,6 +60,7 @@ export interface HeatmapZoomEvent {
 interface PrepConfigOpts {
   dataRef: RefObject<HeatmapData>;
   theme: GrafanaTheme2;
+  eventBus: EventBus;
   onhover?: null | ((evt?: HeatmapHoverEvent | null) => void);
   onclick?: null | ((evt?: Object) => void);
   onzoom?: null | ((evt: HeatmapZoomEvent) => void);
@@ -77,6 +82,7 @@ export function prepConfig(opts: PrepConfigOpts) {
   const {
     dataRef,
     theme,
+    eventBus,
     onhover,
     onclick,
     isToolTipOpen,
@@ -92,9 +98,11 @@ export function prepConfig(opts: PrepConfigOpts) {
   } = opts;
 
   const xScaleKey = 'x';
+  let xScaleUnit = 'time';
   let isTime = true;
 
   if (dataRef.current?.heatmap?.fields[0].type !== FieldType.time) {
+    xScaleUnit = dataRef.current?.heatmap?.fields[0].config?.unit ?? 'x';
     isTime = false;
   }
 
@@ -158,6 +166,14 @@ export function prepConfig(opts: PrepConfigOpts) {
     rect = r;
   });
 
+  const payload: DataHoverPayload = {
+    point: {
+      [xScaleUnit]: null,
+    },
+    data: dataRef.current?.heatmap,
+  };
+  const hoverEvent = new DataHoverEvent(payload);
+
   let pendingOnleave: ReturnType<typeof setTimeout> | 0;
 
   onhover &&
@@ -167,6 +183,9 @@ export function prepConfig(opts: PrepConfigOpts) {
           const sel = u.cursor.idxs[i];
           if (sel != null) {
             const { left, top } = u.cursor;
+            payload.rowIndex = sel;
+            payload.point[xScaleUnit] = u.posToVal(left!, xScaleKey);
+            eventBus.publish(hoverEvent);
 
             if (!isToolTipOpen?.current) {
               if (pendingOnleave) {
@@ -190,6 +209,9 @@ export function prepConfig(opts: PrepConfigOpts) {
         if (!pendingOnleave) {
           pendingOnleave = setTimeout(() => {
             onhover(null);
+            payload.rowIndex = undefined;
+            payload.point[xScaleUnit] = null;
+            eventBus.publish(hoverEvent);
           }, 100);
         }
       }
@@ -490,13 +512,13 @@ export function prepConfig(opts: PrepConfigOpts) {
         dataRef.current?.xLayout === HeatmapCellLayout.le
           ? -1
           : dataRef.current?.xLayout === HeatmapCellLayout.ge
-            ? 1
-            : 0,
+          ? 1
+          : 0,
       yAlign: ((dataRef.current?.yLayout === HeatmapCellLayout.le
         ? -1
         : dataRef.current?.yLayout === HeatmapCellLayout.ge
-          ? 1
-          : 0) * (yAxisReverse ? -1 : 1)) as -1 | 0 | 1,
+        ? 1
+        : 0) * (yAxisReverse ? -1 : 1)) as -1 | 0 | 1,
       ySizeDivisor,
       disp: {
         fill: {
@@ -535,8 +557,7 @@ export function prepConfig(opts: PrepConfigOpts) {
           });
         },
       },
-      exemplarFillColor,
-      dataRef.current.yLayout
+      exemplarFillColor
     ),
     theme,
     scaleKey: '', // facets' scales used (above)
@@ -564,10 +585,6 @@ export function prepConfig(opts: PrepConfigOpts) {
 
       return hRect && seriesIdx === hRect.sidx ? hRect.didx : null;
     },
-    focus: {
-      prox: 1e3,
-      dist: (u, seriesIdx) => (hRect?.sidx === seriesIdx ? 0 : Infinity),
-    },
     points: {
       fill: 'rgba(255,255,255, 0.3)',
       bbox: (u, seriesIdx) => {
@@ -586,7 +603,20 @@ export function prepConfig(opts: PrepConfigOpts) {
   if (sync && sync() !== DashboardCursorSync.Off) {
     cursor.sync = {
       key: eventsScope,
-      scales: [xScaleKey, null],
+      scales: [xScaleKey, yScaleKey],
+      filters: {
+        pub: (type: string, src: uPlot, x: number, y: number, w: number, h: number, dataIdx: number) => {
+          if (x < 0) {
+            payload.point[xScaleUnit] = null;
+            eventBus.publish(new DataHoverClearEvent());
+          } else {
+            payload.point[xScaleUnit] = src.posToVal(x, xScaleKey);
+            eventBus.publish(hoverEvent);
+          }
+
+          return true;
+        },
+      },
     };
 
     builder.setSync();
@@ -714,7 +744,7 @@ export function heatmapPathsDense(opts: PathbuilderOpts) {
   };
 }
 
-export function heatmapPathsPoints(opts: PointsBuilderOpts, exemplarColor: string, yLayout?: HeatmapCellLayout) {
+export function heatmapPathsPoints(opts: PointsBuilderOpts, exemplarColor: string) {
   return (u: uPlot, seriesIdx: number) => {
     uPlot.orient(
       u,
@@ -742,8 +772,6 @@ export function heatmapPathsPoints(opts: PointsBuilderOpts, exemplarColor: strin
         let fillPaths = [points];
         let fillPalette = [exemplarColor ?? 'rgba(255,0,255,0.7)'];
 
-        let yShift = yLayout === HeatmapCellLayout.le ? -0.5 : yLayout === HeatmapCellLayout.ge ? 0.5 : 0;
-
         for (let i = 0; i < dataX.length; i++) {
           let yVal = dataY[i]!;
 
@@ -754,7 +782,10 @@ export function heatmapPathsPoints(opts: PointsBuilderOpts, exemplarColor: strin
           let isSparseHeatmap = scaleY.distr === 3 && scaleY.log === 2;
 
           if (!isSparseHeatmap) {
-            yVal += yShift;
+            yVal -= 0.5; // center vertically in bucket (when tiles are le)
+            // y-randomize vertically to distribute exemplars in same bucket at same time
+            let randSign = Math.round(Math.random()) * 2 - 1;
+            yVal += randSign * 0.5 * Math.random();
           }
 
           let x = valToPosX(dataX[i], scaleX, xDim, xOff);
@@ -944,8 +975,8 @@ export const valuesToFills = (values: number[], palette: string[], minValue: num
       values[i] < minValue
         ? 0
         : values[i] > maxValue
-          ? paletteSize - 1
-          : Math.min(paletteSize - 1, Math.floor((paletteSize * (values[i] - minValue)) / range));
+        ? paletteSize - 1
+        : Math.min(paletteSize - 1, Math.floor((paletteSize * (values[i] - minValue)) / range));
   }
 
   return indexedFills;

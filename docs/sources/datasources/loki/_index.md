@@ -32,12 +32,6 @@ The following guides will help you get started with Loki:
 - [LogQL](/docs/loki/latest/logql/)
 - [Loki query editor]({{< relref "./query-editor" >}})
 
-## Supported Loki versions
-
-This data source supports these versions of Loki:
-
-- v2.8+
-
 ## Adding a data source
 
 For instructions on how to add a data source to Grafana, refer to the [administration documentation][data-source-management]
@@ -66,7 +60,6 @@ datasources:
     access: proxy
     url: http://localhost:3100
     jsonData:
-      timeout: 60
       maxLines: 1000
 ```
 

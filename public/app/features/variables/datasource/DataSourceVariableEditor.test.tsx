@@ -1,5 +1,4 @@
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { selectOptionInTest, getSelectParent } from 'test/helpers/selectOptionInTest';
 
@@ -46,21 +45,10 @@ describe('DataSourceVariableEditor', () => {
     expect(field).toBeInTheDocument();
   });
 
-  it('calls the handler when the regex filter is changed in onBlur', async () => {
-    const { user } = setup(<DataSourceVariableEditor {...props} />);
+  it('calls the handler when the regex filter is changed', () => {
+    render(<DataSourceVariableEditor {...props} />);
     const field = screen.getByLabelText(/Instance name filter/);
-    await user.click(field);
-    await user.type(field, '/prod/');
-    expect(field).toHaveValue('/prod/');
-    await user.tab();
-    expect(props.onPropChange).toHaveBeenCalledWith({ propName: 'regex', propValue: '/prod/', updateOptions: true });
+    fireEvent.change(field, { target: { value: '/prod/' } });
+    expect(props.onPropChange).toBeCalledWith({ propName: 'regex', propValue: '/prod/' });
   });
 });
-
-// based on styleguide recomendation
-function setup(jsx: JSX.Element) {
-  return {
-    user: userEvent.setup(),
-    ...render(jsx),
-  };
-}

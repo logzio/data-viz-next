@@ -11,7 +11,7 @@ import {
   QueryHint,
   TimeRange,
 } from '@grafana/data';
-import { config, TemplateSrv } from '@grafana/runtime';
+import { TemplateSrv } from '@grafana/runtime';
 
 import { PrometheusDatasource } from '../../datasource';
 import PromQlLanguageProvider from '../../language_provider';
@@ -59,10 +59,6 @@ const bugQuery: PromVisualQuery = {
   ],
 };
 
-afterEach(() => {
-  jest.restoreAllMocks();
-});
-
 describe('PromQueryBuilder', () => {
   it('shows empty just with metric selected', async () => {
     setup();
@@ -108,33 +104,11 @@ describe('PromQueryBuilder', () => {
     await waitFor(() => expect(datasource.getVariables).toBeCalled());
   });
 
-  it('checks if the LLM plugin is enabled when the `prometheusPromQAIL` feature is enabled', async () => {
-    jest.replaceProperty(config, 'featureToggles', {
-      prometheusPromQAIL: true,
-    });
-    const mockIsLLMPluginEnabled = jest.fn();
-    mockIsLLMPluginEnabled.mockResolvedValue(true);
-    jest.spyOn(require('./promQail/state/helpers'), 'isLLMPluginEnabled').mockImplementation(mockIsLLMPluginEnabled);
-    setup();
-    await waitFor(() => expect(mockIsLLMPluginEnabled).toHaveBeenCalledTimes(1));
-  });
-
-  it('does not check if the LLM plugin is enabled when the `prometheusPromQAIL` feature is disabled', async () => {
-    jest.replaceProperty(config, 'featureToggles', {
-      prometheusPromQAIL: false,
-    });
-    const mockIsLLMPluginEnabled = jest.fn();
-    mockIsLLMPluginEnabled.mockResolvedValue(true);
-    jest.spyOn(require('./promQail/state/helpers'), 'isLLMPluginEnabled').mockImplementation(mockIsLLMPluginEnabled);
-    setup();
-    await waitFor(() => expect(mockIsLLMPluginEnabled).toHaveBeenCalledTimes(0));
-  });
-
   // <LegacyPrometheus>
   it('tries to load labels when metric selected', async () => {
     const { languageProvider } = setup();
     await openLabelNameSelect();
-    await waitFor(() => expect(languageProvider.fetchLabelsWithMatch).toBeCalledWith('{__name__="random_metric"}'));
+    await waitFor(() => expect(languageProvider.fetchSeriesLabels).toBeCalledWith('{__name__="random_metric"}'));
   });
 
   it('tries to load variables in label field', async () => {
@@ -154,9 +128,7 @@ describe('PromQueryBuilder', () => {
     });
     await openLabelNameSelect(1);
     await waitFor(() =>
-      expect(languageProvider.fetchLabelsWithMatch).toBeCalledWith(
-        '{label_name="label_value", __name__="random_metric"}'
-      )
+      expect(languageProvider.fetchSeriesLabels).toBeCalledWith('{label_name="label_value", __name__="random_metric"}')
     );
   });
   //</LegacyPrometheus>
@@ -303,7 +275,7 @@ describe('PromQueryBuilder', () => {
       jsonData: { prometheusVersion: '2.38.1', prometheusType: PromApplication.Prometheus },
     });
     await openLabelNameSelect();
-    await waitFor(() => expect(languageProvider.fetchLabelsWithMatch).toBeCalledWith('{__name__="random_metric"}'));
+    await waitFor(() => expect(languageProvider.fetchSeriesLabelsMatch).toBeCalledWith('{__name__="random_metric"}'));
   });
 
   it('tries to load variables in label field modern prom', async () => {
@@ -329,7 +301,7 @@ describe('PromQueryBuilder', () => {
     );
     await openLabelNameSelect(1);
     await waitFor(() =>
-      expect(languageProvider.fetchLabelsWithMatch).toBeCalledWith(
+      expect(languageProvider.fetchSeriesLabelsMatch).toBeCalledWith(
         '{label_name="label_value", __name__="random_metric"}'
       )
     );

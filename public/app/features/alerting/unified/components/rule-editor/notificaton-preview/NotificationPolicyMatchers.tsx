@@ -4,24 +4,18 @@ import React from 'react';
 import { GrafanaTheme2 } from '@grafana/data';
 import { useStyles2 } from '@grafana/ui';
 
-import { MatcherFormatter } from '../../../utils/matchers';
 import { Matchers } from '../../notification-policies/Matchers';
 
 import { hasEmptyMatchers, isDefaultPolicy, RouteWithPath } from './route';
 
-interface Props {
-  route: RouteWithPath;
-  matcherFormatter: MatcherFormatter;
-}
-
-export function NotificationPolicyMatchers({ route, matcherFormatter }: Props) {
+export function NotificationPolicyMatchers({ route }: { route: RouteWithPath }) {
   const styles = useStyles2(getStyles);
   if (isDefaultPolicy(route)) {
     return <div className={styles.defaultPolicy}>Default policy</div>;
   } else if (hasEmptyMatchers(route)) {
     return <div className={styles.textMuted}>No matchers</div>;
   } else {
-    return <Matchers matchers={route.object_matchers ?? []} formatter={matcherFormatter} />;
+    return <Matchers matchers={route.object_matchers ?? []} />;
   }
 }
 

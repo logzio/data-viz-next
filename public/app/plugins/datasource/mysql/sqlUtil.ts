@@ -1,6 +1,7 @@
 import { isEmpty } from 'lodash';
 
-import { SQLQuery, createSelectClause, haveColumns } from '@grafana/sql';
+import { SQLQuery } from 'app/features/plugins/sql/types';
+import { createSelectClause, haveColumns } from 'app/features/plugins/sql/utils/sql.utils';
 
 export function toRawSql({ sql, dataset, table }: SQLQuery): string {
   let rawQuery = '';

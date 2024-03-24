@@ -18,7 +18,6 @@ import (
 	"github.com/grafana/grafana/pkg/services/user"
 	"github.com/grafana/grafana/pkg/services/user/userimpl"
 	"github.com/grafana/grafana/pkg/tests/testinfra"
-	"github.com/grafana/grafana/pkg/tests/testsuite"
 )
 
 type errorResponseBody struct {
@@ -29,10 +28,6 @@ type errorResponseBody struct {
 type TestContext struct {
 	env server.TestEnv
 	t   *testing.T
-}
-
-func TestMain(m *testing.M) {
-	testsuite.Run(m)
 }
 
 func NewTestEnv(t *testing.T) TestContext {
@@ -50,7 +45,7 @@ func NewTestEnv(t *testing.T) TestContext {
 
 type User struct {
 	User     user.User
-	password user.Password
+	password string
 }
 
 type GetParams struct {

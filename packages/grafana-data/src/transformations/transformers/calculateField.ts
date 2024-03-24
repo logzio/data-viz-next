@@ -61,7 +61,7 @@ export interface BinaryOptions {
   right: string;
 }
 
-interface IndexOptions {
+export interface IndexOptions {
   asPercentile: boolean;
 }
 

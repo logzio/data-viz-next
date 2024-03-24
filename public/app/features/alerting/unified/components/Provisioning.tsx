@@ -1,4 +1,4 @@
-import React, { ComponentPropsWithoutRef } from 'react';
+import React from 'react';
 
 import { Alert, Badge } from '@grafana/ui';
 
@@ -10,16 +10,13 @@ export enum ProvisionedResource {
   RootNotificationPolicy = 'root notification policy',
 }
 
-// we'll omit the props we don't want consumers to overwrite and forward the others to the alert component
-type ExtraAlertProps = Omit<ComponentPropsWithoutRef<typeof Alert>, 'title' | 'severity'>;
-
-interface ProvisioningAlertProps extends ExtraAlertProps {
+interface ProvisioningAlertProps {
   resource: ProvisionedResource;
 }
 
-export const ProvisioningAlert = ({ resource, ...rest }: ProvisioningAlertProps) => {
+export const ProvisioningAlert = ({ resource }: ProvisioningAlertProps) => {
   return (
-    <Alert title={`This ${resource} cannot be edited through the UI`} severity="info" {...rest}>
+    <Alert title={`This ${resource} cannot be edited through the UI`} severity="info">
       This {resource} has been provisioned, that means it was created by config. Please contact your server admin to
       update this {resource}.
     </Alert>

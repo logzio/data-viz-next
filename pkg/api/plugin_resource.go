@@ -90,11 +90,14 @@ func (hs *HTTPServer) callPluginResourceWithDataSource(c *contextmodel.ReqContex
 func (hs *HTTPServer) pluginResourceRequest(c *contextmodel.ReqContext) (*http.Request, error) {
 	clonedReq := c.Req.Clone(c.Req.Context())
 	rawURL := web.Params(c.Req)["*"]
-
-	clonedReq.URL = &url.URL{
-		Path:     rawURL,
-		RawQuery: clonedReq.URL.RawQuery,
+	if clonedReq.URL.RawQuery != "" {
+		rawURL += "?" + clonedReq.URL.RawQuery
 	}
+	urlPath, err := url.Parse(rawURL)
+	if err != nil {
+		return nil, err
+	}
+	clonedReq.URL = urlPath
 
 	return clonedReq, nil
 }

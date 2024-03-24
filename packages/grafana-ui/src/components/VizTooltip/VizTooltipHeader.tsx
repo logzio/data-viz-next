@@ -1,32 +1,27 @@
 import { css } from '@emotion/css';
-import React from 'react';
+import React, { ReactElement } from 'react';
 
 import { GrafanaTheme2 } from '@grafana/data';
 
 import { useStyles2 } from '../../themes';
 
-import { VizTooltipRow } from './VizTooltipRow';
-import { VizTooltipItem } from './types';
+import { HeaderLabel } from './HeaderLabel';
+import { VizTooltipHeaderLabelValue } from './VizTooltipHeaderLabelValue';
+import { LabelValue } from './types';
 
 interface Props {
-  item: VizTooltipItem;
+  headerLabel: LabelValue;
+  keyValuePairs?: LabelValue[];
+  customValueDisplay?: ReactElement | null;
   isPinned: boolean;
 }
-export const VizTooltipHeader = ({ item, isPinned }: Props) => {
+export const VizTooltipHeader = ({ headerLabel, keyValuePairs, customValueDisplay, isPinned }: Props) => {
   const styles = useStyles2(getStyles);
-
-  const { label, value, color, colorIndicator } = item;
 
   return (
     <div className={styles.wrapper}>
-      <VizTooltipRow
-        label={label}
-        value={value}
-        color={color}
-        colorIndicator={colorIndicator}
-        marginRight={'22px'}
-        isPinned={isPinned}
-      />
+      <HeaderLabel headerLabel={headerLabel} isPinned={isPinned} />
+      {customValueDisplay || <VizTooltipHeaderLabelValue keyValuePairs={keyValuePairs} isPinned={isPinned} />}
     </div>
   );
 };

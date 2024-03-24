@@ -12,13 +12,8 @@ import (
 	"github.com/grafana/grafana/pkg/infra/db"
 	"github.com/grafana/grafana/pkg/services/datasources"
 	"github.com/grafana/grafana/pkg/setting"
-	"github.com/grafana/grafana/pkg/tests/testsuite"
 	"github.com/grafana/grafana/pkg/util"
 )
-
-func TestMain(m *testing.M) {
-	testsuite.Run(m)
-}
 
 func TestPasswordMigrationCommand(t *testing.T) {
 	// setup datasources with password, basic_auth and none
@@ -43,10 +38,8 @@ func passwordMigration(t *testing.T, session *db.Session, sqlstore db.DB) {
 		ds.Created = time.Now()
 		ds.Updated = time.Now()
 
-		cfg := setting.NewCfg()
-
 		if ds.Name == "elasticsearch" {
-			key, err := util.Encrypt([]byte("value"), cfg.SecretKey)
+			key, err := util.Encrypt([]byte("value"), setting.SecretKey)
 			require.NoError(t, err)
 
 			ds.SecureJsonData = map[string][]byte{"key": key}
@@ -65,7 +58,7 @@ func passwordMigration(t *testing.T, session *db.Session, sqlstore db.DB) {
 	// run migration
 	c, err := commandstest.NewCliContext(map[string]string{})
 	require.Nil(t, err)
-	err = EncryptDatasourcePasswords(c, setting.NewCfg(), sqlstore)
+	err = EncryptDatasourcePasswords(c, sqlstore)
 	require.NoError(t, err)
 
 	// verify that no datasources still have password or basic_auth
@@ -75,8 +68,7 @@ func passwordMigration(t *testing.T, session *db.Session, sqlstore db.DB) {
 	assert.Equal(t, len(dss), 4)
 
 	for _, ds := range dss {
-		cfg := setting.NewCfg()
-		sj, err := DecryptSecureJsonData(cfg.SecretKey, ds)
+		sj, err := DecryptSecureJsonData(ds)
 		require.NoError(t, err)
 
 		if ds.Name == "influxdb" {
@@ -109,10 +101,10 @@ func passwordMigration(t *testing.T, session *db.Session, sqlstore db.DB) {
 	}
 }
 
-func DecryptSecureJsonData(secretKey string, ds *datasources.DataSource) (map[string]string, error) {
+func DecryptSecureJsonData(ds *datasources.DataSource) (map[string]string, error) {
 	decrypted := make(map[string]string)
 	for key, data := range ds.SecureJsonData {
-		decryptedData, err := util.Decrypt(data, secretKey)
+		decryptedData, err := util.Decrypt(data, setting.SecretKey)
 		if err != nil {
 			return nil, err
 		}

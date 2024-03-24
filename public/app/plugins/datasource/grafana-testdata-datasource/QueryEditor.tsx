@@ -17,7 +17,7 @@ import { RawFrameEditor } from './components/RawFrameEditor';
 import { SimulationQueryEditor } from './components/SimulationQueryEditor';
 import { USAQueryEditor, usaQueryModes } from './components/USAQueryEditor';
 import { defaultCSVWaveQuery, defaultPulseQuery, defaultQuery } from './constants';
-import { CSVWave, NodesQuery, TestDataDataQuery, TestDataQueryType, USAQuery } from './dataquery.gen';
+import { CSVWave, NodesQuery, TestData, TestDataQueryType, USAQuery } from './dataquery.gen';
 import { TestDataDataSource } from './datasource';
 import { defaultStreamQuery } from './runStreams';
 
@@ -31,11 +31,11 @@ const selectors = editorSelectors.components.DataSource.TestData.QueryTab;
 
 export interface EditorProps {
   onChange: (value: any) => void;
-  query: TestDataDataQuery;
+  query: TestData;
   ds: TestDataDataSource;
 }
 
-export type Props = QueryEditorProps<TestDataDataSource, TestDataDataQuery>;
+export type Props = QueryEditorProps<TestDataDataSource, TestData>;
 
 export const QueryEditor = ({ query, datasource, onChange, onRunQuery }: Props) => {
   query = { ...defaultQuery, ...query };
@@ -63,7 +63,7 @@ export const QueryEditor = ({ query, datasource, onChange, onRunQuery }: Props) 
     }));
   }, []);
 
-  const onUpdate = (query: TestDataDataQuery) => {
+  const onUpdate = (query: TestData) => {
     onChange(query);
     onRunQuery();
   };
@@ -83,7 +83,7 @@ export const QueryEditor = ({ query, datasource, onChange, onRunQuery }: Props) 
     }
 
     // Clear model from existing props that belong to other scenarios
-    const update: TestDataDataQuery = {
+    const update: TestData = {
       scenarioId: item.value! as TestDataQueryType,
       refId: query.refId,
       alias: query.alias,

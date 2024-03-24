@@ -1,22 +1,32 @@
 import { css } from '@emotion/css';
 import { autoUpdate, flip, useClick, useDismiss, useFloating, useInteractions } from '@floating-ui/react';
-import debounce from 'debounce-promise';
-import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useId, useMemo, useState } from 'react';
+import { useAsync } from 'react-use';
 
 import { GrafanaTheme2 } from '@grafana/data';
 import { config } from '@grafana/runtime';
 import { Alert, Icon, Input, LoadingBar, useStyles2 } from '@grafana/ui';
 import { t } from 'app/core/internationalization';
 import { skipToken, useGetFolderQuery } from 'app/features/browse-dashboards/api/browseDashboardsAPI';
-import { DashboardViewItemWithUIItems, DashboardsTreeItem } from 'app/features/browse-dashboards/types';
-import { QueryResponse, getGrafanaSearcher } from 'app/features/search/service';
+import { PAGE_SIZE } from 'app/features/browse-dashboards/api/services';
+import {
+  childrenByParentUIDSelector,
+  createFlatTree,
+  fetchNextChildrenPage,
+  rootItemsSelector,
+  useBrowseLoadingStatus,
+  useLoadNextChildrenPage,
+} from 'app/features/browse-dashboards/state';
+import { getPaginationPlaceholders } from 'app/features/browse-dashboards/state/utils';
+import { DashboardViewItemCollection } from 'app/features/browse-dashboards/types';
+import { getGrafanaSearcher } from 'app/features/search/service';
 import { queryResultToViewItem } from 'app/features/search/service/utils';
 import { DashboardViewItem } from 'app/features/search/types';
+import { useDispatch, useSelector } from 'app/types/store';
 
 import { getDOMId, NestedFolderList } from './NestedFolderList';
 import Trigger from './Trigger';
-import { ROOT_FOLDER_ITEM, useFoldersQuery } from './useFoldersQuery';
-import { useTreeInteractions } from './useTreeInteractions';
+import { useTreeInteractions } from './hooks';
 
 export interface NestedFolderPickerProps {
   /* Folder UID to show as selected */
@@ -32,77 +42,50 @@ export interface NestedFolderPickerProps {
   excludeUIDs?: string[];
 
   /* Callback for when the user selects a folder */
-  onChange?: (folderUID: string | undefined, folderName: string | undefined) => void;
-
-  /* Whether the picker should be clearable */
-  clearable?: boolean;
+  onChange?: (folderUID: string, folderName: string) => void;
 }
 
-const debouncedSearch = debounce(getSearchResults, 300);
-
-async function getSearchResults(searchQuery: string) {
-  const queryResponse = await getGrafanaSearcher().search({
-    query: searchQuery,
-    kind: ['folder'],
-    limit: 100,
-  });
-
-  const items = queryResponse.view.map((v) => queryResultToViewItem(v, queryResponse.view));
-  return { ...queryResponse, items };
-}
+const EXCLUDED_KINDS = ['empty-folder' as const, 'dashboard' as const];
 
 export function NestedFolderPicker({
   value,
   invalid,
   showRootFolder = true,
-  clearable = false,
   excludeUIDs,
   onChange,
 }: NestedFolderPickerProps) {
   const styles = useStyles2(getStyles);
+  const dispatch = useDispatch();
   const selectedFolder = useGetFolderQuery(value || skipToken);
 
+  const rootStatus = useBrowseLoadingStatus(undefined);
   const nestedFoldersEnabled = Boolean(config.featureToggles.nestedFolders);
 
   const [search, setSearch] = useState('');
-  const [searchResults, setSearchResults] = useState<(QueryResponse & { items: DashboardViewItem[] }) | null>(null);
-  const [isFetchingSearchResults, setIsFetchingSearchResults] = useState(false);
   const [autoFocusButton, setAutoFocusButton] = useState(false);
   const [overlayOpen, setOverlayOpen] = useState(false);
-  const [foldersOpenState, setFoldersOpenState] = useState<Record<string, boolean>>({});
+  const [folderOpenState, setFolderOpenState] = useState<Record<string, boolean>>({});
   const overlayId = useId();
   const [error] = useState<Error | undefined>(undefined); // TODO: error not populated anymore
-  const lastSearchTimestamp = useRef<number>(0);
 
-  const isBrowsing = Boolean(overlayOpen && !(search && searchResults));
-  const {
-    items: browseFlatTree,
-    isLoading: isBrowseLoading,
-    requestNextPage: fetchFolderPage,
-  } = useFoldersQuery(isBrowsing, foldersOpenState);
-
-  useEffect(() => {
+  const searchState = useAsync(async () => {
     if (!search) {
-      setSearchResults(null);
-      return;
+      return undefined;
     }
-
-    const timestamp = Date.now();
-    setIsFetchingSearchResults(true);
-
-    debouncedSearch(search).then((queryResponse) => {
-      // Only keep the results if it's was issued after the most recently resolved search.
-      // This prevents results showing out of order if first request is slower than later ones.
-      // We don't need to worry about clearing the isFetching state either - if there's a later
-      // request in progress, this will clear it for us
-      if (timestamp > lastSearchTimestamp.current) {
-        const items = queryResponse.view.map((v) => queryResultToViewItem(v, queryResponse.view));
-        setSearchResults({ ...queryResponse, items });
-        setIsFetchingSearchResults(false);
-        lastSearchTimestamp.current = timestamp;
-      }
+    const searcher = getGrafanaSearcher();
+    const queryResponse = await searcher.search({
+      query: search,
+      kind: ['folder'],
+      limit: 100,
     });
+
+    const items = queryResponse.view.map((v) => queryResultToViewItem(v, queryResponse.view));
+
+    return { ...queryResponse, items };
   }, [search]);
+
+  const rootCollection = useSelector(rootItemsSelector);
+  const childrenCollections = useSelector(childrenByParentUIDSelector);
 
   // the order of middleware is important!
   const middleware = [
@@ -135,13 +118,13 @@ export function NestedFolderPicker({
 
   const handleFolderExpand = useCallback(
     async (uid: string, newOpenState: boolean) => {
-      setFoldersOpenState((old) => ({ ...old, [uid]: newOpenState }));
+      setFolderOpenState((old) => ({ ...old, [uid]: newOpenState }));
 
-      if (newOpenState && !foldersOpenState[uid]) {
-        fetchFolderPage(uid);
+      if (newOpenState && !folderOpenState[uid]) {
+        dispatch(fetchNextChildrenPage({ parentUID: uid, pageSize: PAGE_SIZE, excludeKinds: EXCLUDED_KINDS }));
       }
     },
-    [fetchFolderPage, foldersOpenState]
+    [dispatch, folderOpenState]
   );
 
   const handleFolderSelect = useCallback(
@@ -154,66 +137,73 @@ export function NestedFolderPicker({
     [onChange]
   );
 
-  const handleClearSelection = useCallback(
-    (event: React.MouseEvent<SVGElement> | React.KeyboardEvent<SVGElement>) => {
-      event.preventDefault();
-      event.stopPropagation();
-      if (onChange) {
-        onChange(undefined, undefined);
-      }
-    },
-    [onChange]
-  );
-
   const handleCloseOverlay = useCallback(() => setOverlayOpen(false), [setOverlayOpen]);
 
+  const baseHandleLoadMore = useLoadNextChildrenPage(EXCLUDED_KINDS);
   const handleLoadMore = useCallback(
     (folderUID: string | undefined) => {
       if (search) {
         return;
       }
 
-      fetchFolderPage(folderUID);
+      baseHandleLoadMore(folderUID);
     },
-    [search, fetchFolderPage]
+    [search, baseHandleLoadMore]
   );
 
   const flatTree = useMemo(() => {
-    let flatTree: Array<DashboardsTreeItem<DashboardViewItemWithUIItems>> = [];
+    const searchResults = search && searchState.value;
 
-    if (isBrowsing) {
-      flatTree = browseFlatTree;
-    } else {
-      flatTree =
-        searchResults?.items.map((item) => ({
-          isOpen: false,
-          level: 0,
-          item: {
-            kind: 'folder' as const,
-            title: item.title,
-            uid: item.uid,
-          },
-        })) ?? [];
+    if (searchResults) {
+      const searchCollection: DashboardViewItemCollection = {
+        isFullyLoaded: true, //searchResults.items.length === searchResults.totalRows,
+        lastKindHasMoreItems: false, // TODO: paginate search
+        lastFetchedKind: 'folder', // TODO: paginate search
+        lastFetchedPage: 1, // TODO: paginate search
+        items: searchResults.items ?? [],
+      };
+
+      return createFlatTree(undefined, searchCollection, childrenCollections, {}, 0, EXCLUDED_KINDS, excludeUIDs);
     }
 
-    // It's not super optimal to filter these in an additional iteration, but
-    // these options are used infrequently that its not a big deal
-    if (!showRootFolder || excludeUIDs?.length) {
-      flatTree = flatTree.filter((item) => {
-        if (!showRootFolder && item === ROOT_FOLDER_ITEM) {
-          return false;
-        }
+    const allExcludedUIDs = config.sharedWithMeFolderUID
+      ? [...(excludeUIDs || []), config.sharedWithMeFolderUID]
+      : excludeUIDs;
 
-        if (excludeUIDs?.includes(item.item.uid)) {
-          return false;
-        }
+    let flatTree = createFlatTree(
+      undefined,
+      rootCollection,
+      childrenCollections,
+      folderOpenState,
+      0,
+      EXCLUDED_KINDS,
+      allExcludedUIDs
+    );
 
-        return true;
+    if (showRootFolder) {
+      // Increase the level of each item to 'make way' for the fake root Dashboards item
+      for (const item of flatTree) {
+        item.level += 1;
+      }
+
+      flatTree.unshift({
+        isOpen: true,
+        level: 0,
+        item: {
+          kind: 'folder',
+          title: 'Dashboards',
+          uid: '',
+        },
       });
     }
 
+    // If the root collection hasn't loaded yet, create loading placeholders
+    if (!rootCollection) {
+      flatTree = flatTree.concat(getPaginationPlaceholders(PAGE_SIZE, undefined, 0));
+    }
+
     return flatTree;
-  }, [browseFlatTree, excludeUIDs, isBrowsing, searchResults?.items, showRootFolder]);
+  }, [search, searchState.value, rootCollection, childrenCollections, folderOpenState, excludeUIDs, showRootFolder]);
 
   const isItemLoaded = useCallback(
     (itemIndex: number) => {
@@ -221,7 +211,6 @@ export function NestedFolderPicker({
       if (!treeItem) {
         return false;
       }
-
       const item = treeItem.item;
       const result = !(item.kind === 'ui' && item.uiKind === 'pagination-placeholder');
 
@@ -230,7 +219,7 @@ export function NestedFolderPicker({
     [flatTree]
   );
 
-  const isLoading = isBrowseLoading || isFetchingSearchResults;
+  const isLoading = rootStatus === 'pending' || searchState.loading;
 
   const { focusedItemIndex, handleKeyDown } = useTreeInteractions({
     tree: flatTree,
@@ -251,7 +240,6 @@ export function NestedFolderPicker({
     return (
       <Trigger
         label={label}
-        handleClearSelection={clearable && value !== undefined ? handleClearSelection : undefined}
         invalid={invalid}
         isLoading={selectedFolder.isLoading}
         autoFocus={autoFocusButton}
@@ -323,7 +311,7 @@ export function NestedFolderPicker({
               onFolderExpand={handleFolderExpand}
               onFolderSelect={handleFolderSelect}
               idPrefix={overlayId}
-              foldersAreOpenable={nestedFoldersEnabled && !(search && searchResults)}
+              foldersAreOpenable={nestedFoldersEnabled && !(search && searchState.value)}
               isItemLoaded={isItemLoaded}
               requestLoadMore={handleLoadMore}
             />

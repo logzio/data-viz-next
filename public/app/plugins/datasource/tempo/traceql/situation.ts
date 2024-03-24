@@ -14,7 +14,6 @@ import {
   Pipe,
   ScalarFilter,
   SelectArgs,
-  SelectOperation,
   SpansetFilter,
   SpansetPipeline,
   SpansetPipelineExpression,
@@ -212,14 +211,6 @@ const RESOLVERS: Resolver[] = [
   },
   {
     path: [ERROR_NODE_ID, IntrinsicField],
-    fun: resolveAttributeForFunction,
-  },
-  {
-    path: [ERROR_NODE_ID, GroupOperation],
-    fun: resolveAttributeForFunction,
-  },
-  {
-    path: [ERROR_NODE_ID, SelectOperation],
     fun: resolveAttributeForFunction,
   },
   {
@@ -431,7 +422,7 @@ function resolveNewSpansetExpression(node: SyntaxNode, text: string, offset: num
 
 function resolveAttributeForFunction(node: SyntaxNode, _0: string, _1: number): SituationType | void {
   const parent = node?.parent;
-  if (!!parent && [IntrinsicField, Aggregate, GroupOperation, SelectOperation, SelectArgs].includes(parent.type.id)) {
+  if (!!parent && [IntrinsicField, Aggregate, GroupOperation, SelectArgs].includes(parent.type.id)) {
     return {
       type: 'ATTRIBUTE_FOR_FUNCTION',
     };

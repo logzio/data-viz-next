@@ -13,6 +13,7 @@ import (
 	"github.com/grafana/grafana/pkg/plugins"
 	"github.com/grafana/grafana/pkg/plugins/config"
 	"github.com/grafana/grafana/pkg/plugins/log"
+	"github.com/grafana/grafana/pkg/services/featuremgmt"
 	"github.com/grafana/grafana/pkg/util"
 )
 
@@ -25,17 +26,19 @@ var (
 type Local struct {
 	log        log.Logger
 	production bool
+	features   featuremgmt.FeatureToggles
 }
 
-func NewLocalFinder(devMode bool) *Local {
+func NewLocalFinder(devMode bool, features featuremgmt.FeatureToggles) *Local {
 	return &Local{
 		production: !devMode,
 		log:        log.New("local.finder"),
+		features:   features,
 	}
 }
 
-func ProvideLocalFinder(cfg *config.PluginManagementCfg) *Local {
-	return NewLocalFinder(cfg.DevMode)
+func ProvideLocalFinder(cfg *config.Cfg) *Local {
+	return NewLocalFinder(cfg.DevMode, cfg.Features)
 }
 
 func (l *Local) Find(ctx context.Context, src plugins.PluginSource) ([]*plugins.FoundBundle, error) {
@@ -56,7 +59,12 @@ func (l *Local) Find(ctx context.Context, src plugins.PluginSource) ([]*plugins.
 			continue
 		}
 
-		paths, err := l.getAbsPluginJSONPaths(path)
+		followDistFolder := true
+		if src.PluginClass(ctx) == plugins.ClassCore &&
+			!l.features.IsEnabledGlobally(featuremgmt.FlagExternalCorePlugins) {
+			followDistFolder = false
+		}
+		paths, err := l.getAbsPluginJSONPaths(path, followDistFolder)
 		if err != nil {
 			return nil, err
 		}
@@ -159,7 +167,7 @@ func (l *Local) readPluginJSON(pluginJSONPath string) (plugins.JSONData, error) 
 	return plugin, nil
 }
 
-func (l *Local) getAbsPluginJSONPaths(path string) ([]string, error) {
+func (l *Local) getAbsPluginJSONPaths(path string, followDistFolder bool) ([]string, error) {
 	var pluginJSONPaths []string
 
 	var err error
@@ -168,7 +176,7 @@ func (l *Local) getAbsPluginJSONPaths(path string) ([]string, error) {
 		return []string{}, err
 	}
 
-	if err = walk(path, true, true,
+	if err = walk(path, true, true, followDistFolder,
 		func(currentPath string, fi os.FileInfo, err error) error {
 			if err != nil {
 				if errors.Is(err, os.ErrNotExist) {

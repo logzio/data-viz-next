@@ -13,6 +13,8 @@ import { getDashboardSnapshotSrv } from '../../services/SnapshotSrv';
 
 import { ShareModalTabProps } from './types';
 
+const snapshotApiUrl = '/api/snapshots';
+
 interface Props extends ShareModalTabProps {}
 
 interface State {
@@ -37,6 +39,10 @@ export class ShareSnapshot extends PureComponent<Props, State> {
     this.dashboard = props.dashboard;
     this.expireOptions = [
       {
+        label: t('share-modal.snapshot.expire-never', `Never`),
+        value: 0,
+      },
+      {
         label: t('share-modal.snapshot.expire-hour', `1 Hour`),
         value: 60 * 60,
       },
@@ -45,19 +51,15 @@ export class ShareSnapshot extends PureComponent<Props, State> {
         value: 60 * 60 * 24,
       },
       {
-        label: t('share-modal.snapshot.expire-week', `1 Week`),
+        label: t('share-modal.snapshot.expire-week', `7 Days`),
         value: 60 * 60 * 24 * 7,
-      },
-      {
-        label: t('share-modal.snapshot.expire-never', `Never`),
-        value: 0,
       },
     ];
     this.state = {
       isLoading: false,
       step: 1,
-      selectedExpireOption: this.expireOptions[2],
-      snapshotExpires: this.expireOptions[2].value,
+      selectedExpireOption: this.expireOptions[0],
+      snapshotExpires: this.expireOptions[0].value,
       snapshotName: props.dashboard.title,
       timeoutSeconds: 4,
       snapshotUrl: '',
@@ -107,7 +109,7 @@ export class ShareSnapshot extends PureComponent<Props, State> {
     };
 
     try {
-      const results = await getDashboardSnapshotSrv().create(cmdData);
+      const results: { deleteUrl: string; url: string } = await getBackendSrv().post(snapshotApiUrl, cmdData);
 
       // LOGZ.IO GRAFANA CHANGE :: DEV-20896 Change snapshot url to logzio
       const logzioUrl = await logzioServices.shareUrlService.getLogzioGrafanaUrl({
@@ -285,7 +287,7 @@ export class ShareSnapshot extends PureComponent<Props, State> {
             </Button>
           )}
           <Button variant="primary" disabled={isLoading} onClick={this.createSnapshot()}>
-            <Trans i18nKey="share-modal.snapshot.local-button">Publish Snapshot</Trans>
+            <Trans i18nKey="share-modal.snapshot.local-button">Local Snapshot</Trans>
           </Button>
         </Modal.ButtonRow>
       </>

@@ -1,8 +1,8 @@
 import {
   QueryBuilderOperation,
-  QueryBuilderOperationDefinition,
+  QueryBuilderOperationDef,
   QueryBuilderOperationParamDef,
-} from '@grafana/experimental';
+} from '../../prometheus/querybuilder/shared/types';
 
 import { defaultAddOperationHandler } from './operationUtils';
 import { LokiOperationId, LokiVisualQueryOperationCategory } from './types';
@@ -78,7 +78,7 @@ export const binaryScalarDefs = [
 
 // Not sure about this one. It could also be a more generic 'Simple math operation' where user specifies
 // both the operator and the operand in a single input
-export const binaryScalarOperations: QueryBuilderOperationDefinition[] = binaryScalarDefs.map((opDef) => {
+export const binaryScalarOperations: QueryBuilderOperationDef[] = binaryScalarDefs.map((opDef) => {
   const params: QueryBuilderOperationParamDef[] = [{ name: 'Value', type: 'number' }];
   const defaultParams: any[] = [2];
   if (opDef.comparison) {
@@ -103,11 +103,7 @@ export const binaryScalarOperations: QueryBuilderOperationDefinition[] = binaryS
 });
 
 function getSimpleBinaryRenderer(operator: string) {
-  return function binaryRenderer(
-    model: QueryBuilderOperation,
-    def: QueryBuilderOperationDefinition,
-    innerExpr: string
-  ) {
+  return function binaryRenderer(model: QueryBuilderOperation, def: QueryBuilderOperationDef, innerExpr: string) {
     let param = model.params[0];
     let bool = '';
     if (model.params.length === 2) {

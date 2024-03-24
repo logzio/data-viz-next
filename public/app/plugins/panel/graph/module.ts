@@ -14,7 +14,6 @@ import { MetricsPanelCtrl } from 'app/angular/panel/metrics_panel_ctrl';
 import config from 'app/core/config';
 import TimeSeries from 'app/core/time_series2';
 import { ThresholdMapper } from 'app/features/alerting/state/ThresholdMapper';
-import { getPanelPluginToMigrateTo } from 'app/features/dashboard/state/getPanelPluginToMigrateTo';
 import { changePanelPlugin } from 'app/features/panel/state/actions';
 import { dispatch } from 'app/store/store';
 
@@ -357,8 +356,7 @@ export class GraphCtrl extends MetricsPanelCtrl {
   };
 
   migrateToReact() {
-    const panelType = getPanelPluginToMigrateTo(this.panel, true);
-    this.onPluginTypeChange(config.panels[panelType!]);
+    this.onPluginTypeChange(config.panels['timeseries']);
   }
 }
 

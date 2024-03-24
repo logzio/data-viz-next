@@ -83,6 +83,3 @@ func (m *Middleware) HandleView(c *contextmodel.ReqContext) {
 }
 func (m *Middleware) HandleAccessView(c *contextmodel.ReqContext) {
 }
-func (m *Middleware) HandleConfirmAccessView(c *contextmodel.ReqContext) {
-
-}

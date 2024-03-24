@@ -1,7 +1,6 @@
 ---
 aliases:
   - ../basics/timeseries/
-  - /docs/grafana-cloud/introduction/prometheus/
 description: Introduction to Prometheus
 keywords:
   - grafana

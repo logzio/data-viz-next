@@ -1,5 +1,5 @@
 import { DataSourcePlugin } from '@grafana/data';
-import { SQLQuery } from '@grafana/sql';
+import { SQLQuery } from 'app/features/plugins/sql/types';
 
 import { CheatSheet } from './CheatSheet';
 import { PostgresQueryEditor } from './PostgresQueryEditor';

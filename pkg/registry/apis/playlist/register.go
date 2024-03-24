@@ -15,15 +15,15 @@ import (
 	common "k8s.io/kube-openapi/pkg/common"
 
 	playlist "github.com/grafana/grafana/pkg/apis/playlist/v0alpha1"
-	"github.com/grafana/grafana/pkg/apiserver/builder"
-	grafanarest "github.com/grafana/grafana/pkg/apiserver/rest"
-	"github.com/grafana/grafana/pkg/services/apiserver/endpoints/request"
-	"github.com/grafana/grafana/pkg/services/apiserver/utils"
+	grafanaapiserver "github.com/grafana/grafana/pkg/services/grafana-apiserver"
+	"github.com/grafana/grafana/pkg/services/grafana-apiserver/endpoints/request"
+	grafanarest "github.com/grafana/grafana/pkg/services/grafana-apiserver/rest"
+	"github.com/grafana/grafana/pkg/services/grafana-apiserver/utils"
 	playlistsvc "github.com/grafana/grafana/pkg/services/playlist"
 	"github.com/grafana/grafana/pkg/setting"
 )
 
-var _ builder.APIGroupBuilder = (*PlaylistAPIBuilder)(nil)
+var _ grafanaapiserver.APIGroupBuilder = (*PlaylistAPIBuilder)(nil)
 
 // This is used just so wire has something unique to return
 type PlaylistAPIBuilder struct {
@@ -33,7 +33,7 @@ type PlaylistAPIBuilder struct {
 }
 
 func RegisterAPIService(p playlistsvc.Service,
-	apiregistration builder.APIRegistrar,
+	apiregistration grafanaapiserver.APIRegistrar,
 	cfg *setting.Cfg,
 ) *PlaylistAPIBuilder {
 	builder := &PlaylistAPIBuilder{
@@ -79,7 +79,6 @@ func (b *PlaylistAPIBuilder) GetAPIGroupInfo(
 	scheme *runtime.Scheme,
 	codecs serializer.CodecFactory, // pointer?
 	optsGetter generic.RESTOptionsGetter,
-	dualWrite bool,
 ) (*genericapiserver.APIGroupInfo, error) {
 	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(playlist.GROUP, scheme, metav1.ParameterCodec, codecs)
 	storage := map[string]rest.Storage{}
@@ -113,7 +112,7 @@ func (b *PlaylistAPIBuilder) GetAPIGroupInfo(
 	storage[resource.StoragePath()] = legacyStore
 
 	// enable dual writes if a RESTOptionsGetter is provided
-	if optsGetter != nil && dualWrite {
+	if optsGetter != nil {
 		store, err := newStorage(scheme, optsGetter, legacyStore)
 		if err != nil {
 			return nil, err
@@ -129,7 +128,7 @@ func (b *PlaylistAPIBuilder) GetOpenAPIDefinitions() common.GetOpenAPIDefinition
 	return playlist.GetOpenAPIDefinitions
 }
 
-func (b *PlaylistAPIBuilder) GetAPIRoutes() *builder.APIRoutes {
+func (b *PlaylistAPIBuilder) GetAPIRoutes() *grafanaapiserver.APIRoutes {
 	return nil // no custom API routes
 }
 

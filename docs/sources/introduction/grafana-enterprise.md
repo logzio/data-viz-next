@@ -87,7 +87,6 @@ With a Grafana Enterprise license, you also get access to premium data sources, 
 - [MongoDB](/grafana/plugins/grafana-mongodb-datasource)
 - [New Relic](/grafana/plugins/grafana-newrelic-datasource)
 - [Oracle Database](/grafana/plugins/grafana-oracle-datasource)
-- [PagerDuty](/grafana/plugins/grafana-pagerduty-datasource)
 - [Salesforce](/grafana/plugins/grafana-salesforce-datasource)
 - [SAP HANA®](/grafana/plugins/grafana-saphana-datasource)
 - [ServiceNow](/grafana/plugins/grafana-servicenow-datasource)

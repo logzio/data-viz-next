@@ -86,40 +86,33 @@ func TestValidatePluginRole(t *testing.T) {
 		wantErr  error
 	}{
 		{
-			name:     "empty display name",
-			pluginID: "test-app",
-			role:     ac.RoleDTO{DisplayName: ""},
-			wantErr:  &ac.ErrorInvalidRole{},
-		},
-		{
 			name:     "empty",
 			pluginID: "",
-			role:     ac.RoleDTO{Name: "plugins::reader", DisplayName: "Reader"},
+			role:     ac.RoleDTO{Name: "plugins::"},
 			wantErr:  ac.ErrPluginIDRequired,
 		},
 		{
 			name:     "invalid name",
 			pluginID: "test-app",
-			role:     ac.RoleDTO{Name: "test-app:reader", DisplayName: "Reader"},
+			role:     ac.RoleDTO{Name: "test-app:reader"},
 			wantErr:  &ac.ErrorInvalidRole{},
 		},
 		{
 			name:     "invalid id in name",
 			pluginID: "test-app",
-			role:     ac.RoleDTO{Name: "plugins:test-app2:reader", DisplayName: "Reader"},
+			role:     ac.RoleDTO{Name: "plugins:test-app2:reader"},
 			wantErr:  &ac.ErrorInvalidRole{},
 		},
 		{
 			name:     "valid name",
 			pluginID: "test-app",
-			role:     ac.RoleDTO{Name: "plugins:test-app:reader", DisplayName: "Reader"},
+			role:     ac.RoleDTO{Name: "plugins:test-app:reader"},
 		},
 		{
 			name:     "invalid permission",
 			pluginID: "test-app",
 			role: ac.RoleDTO{
 				Name:        "plugins:test-app:reader",
-				DisplayName: "Reader",
 				Permissions: []ac.Permission{{Action: "invalidtest-app:read"}},
 			},
 			wantErr: &ac.ErrorInvalidRole{},
@@ -128,8 +121,7 @@ func TestValidatePluginRole(t *testing.T) {
 			name:     "valid permissions",
 			pluginID: "test-app",
 			role: ac.RoleDTO{
-				Name:        "plugins:test-app:reader",
-				DisplayName: "Reader",
+				Name: "plugins:test-app:reader",
 				Permissions: []ac.Permission{
 					{Action: "plugins.app:access", Scope: "plugins:id:test-app"},
 					{Action: "test-app:read"},
@@ -141,8 +133,7 @@ func TestValidatePluginRole(t *testing.T) {
 			name:     "invalid permission targets other plugin",
 			pluginID: "test-app",
 			role: ac.RoleDTO{
-				Name:        "plugins:test-app:reader",
-				DisplayName: "Reader",
+				Name: "plugins:test-app:reader",
 				Permissions: []ac.Permission{
 					{Action: "plugins.app:access", Scope: "plugins:id:other-app"},
 				},

@@ -23,8 +23,6 @@ export interface Props extends Omit<CardContainerProps, 'disableEvents' | 'disab
   /** @deprecated Use `Card.Description` instead */
   description?: string;
   isSelected?: boolean;
-  /** If true, the padding of the Card will be smaller */
-  isCompact?: boolean;
 }
 
 export interface CardInterface extends FC<Props> {
@@ -49,16 +47,7 @@ const CardContext = React.createContext<{
  *
  * @public
  */
-export const Card: CardInterface = ({
-  disabled,
-  href,
-  onClick,
-  children,
-  isSelected,
-  isCompact,
-  className,
-  ...htmlProps
-}) => {
+export const Card: CardInterface = ({ disabled, href, onClick, children, isSelected, className, ...htmlProps }) => {
   const hasHeadingComponent = useMemo(
     () => React.Children.toArray(children).some((c) => React.isValidElement(c) && c.type === Heading),
     [children]
@@ -66,7 +55,7 @@ export const Card: CardInterface = ({
 
   const disableHover = disabled || (!onClick && !href);
   const onCardClick = onClick && !disabled ? onClick : undefined;
-  const styles = useStyles2(getCardContainerStyles, disabled, disableHover, isSelected, isCompact);
+  const styles = useStyles2(getCardContainerStyles, disabled, disableHover, isSelected);
 
   return (
     <CardContainer

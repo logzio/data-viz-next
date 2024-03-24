@@ -2,7 +2,7 @@ import { DashboardInteractions } from 'app/features/dashboard-scene/utils/intera
 
 import { DashboardModel } from '../state';
 
-export function trackDashboardLoaded(dashboard: DashboardModel, duration: number, versionBeforeMigration?: number) {
+export function trackDashboardLoaded(dashboard: DashboardModel, versionBeforeMigration?: number) {
   // Count the different types of variables
   const variables = dashboard.templating.list
     .map((v) => v.type)
@@ -30,7 +30,6 @@ export function trackDashboardLoaded(dashboard: DashboardModel, duration: number
     ...variables,
     settings_nowdelay: dashboard.timepicker.nowDelay,
     settings_livenow: !!dashboard.liveNow,
-    duration,
   });
 }
 

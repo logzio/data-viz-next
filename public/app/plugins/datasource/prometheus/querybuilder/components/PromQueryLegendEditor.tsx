@@ -1,7 +1,6 @@
 import React, { useRef } from 'react';
 
 import { SelectableValue } from '@grafana/data';
-import { selectors } from '@grafana/e2e-selectors';
 import { EditorField } from '@grafana/experimental';
 import { Select, AutoSizeInput } from '@grafana/ui';
 
@@ -65,7 +64,6 @@ export const PromQueryLegendEditor = React.memo<Props>(({ legendFormat, onChange
     <EditorField
       label="Legend"
       tooltip="Series name override or template. Ex. {{hostname}} will be replaced with label value for hostname."
-      data-testid={selectors.components.DataSource.Prometheus.queryEditor.legend}
     >
       <>
         {mode === LegendFormatMode.Custom && (

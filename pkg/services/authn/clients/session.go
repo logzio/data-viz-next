@@ -2,20 +2,27 @@ package clients
 
 import (
 	"context"
+	"errors"
 	"net/url"
 	"time"
 
 	"github.com/grafana/grafana/pkg/infra/log"
+	"github.com/grafana/grafana/pkg/infra/network"
 	"github.com/grafana/grafana/pkg/services/auth"
 	"github.com/grafana/grafana/pkg/services/authn"
+	"github.com/grafana/grafana/pkg/services/featuremgmt"
 	"github.com/grafana/grafana/pkg/setting"
+	"github.com/grafana/grafana/pkg/web"
 )
 
+var _ authn.HookClient = new(Session)
 var _ authn.ContextAwareClient = new(Session)
 
-func ProvideSession(cfg *setting.Cfg, sessionService auth.UserTokenService) *Session {
+func ProvideSession(cfg *setting.Cfg, sessionService auth.UserTokenService,
+	features featuremgmt.FeatureToggles) *Session {
 	return &Session{
 		cfg:            cfg,
+		features:       features,
 		sessionService: sessionService,
 		log:            log.New(authn.ClientSession),
 	}
@@ -23,6 +30,7 @@ func ProvideSession(cfg *setting.Cfg, sessionService auth.UserTokenService) *Ses
 
 type Session struct {
 	cfg            *setting.Cfg
+	features       featuremgmt.FeatureToggles
 	sessionService auth.UserTokenService
 	log            log.Logger
 }
@@ -47,8 +55,10 @@ func (s *Session) Authenticate(ctx context.Context, r *authn.Request) (*authn.Id
 		return nil, err
 	}
 
-	if token.NeedsRotation(time.Duration(s.cfg.TokenRotationIntervalMinutes) * time.Minute) {
-		return nil, authn.ErrTokenNeedsRotation.Errorf("token needs to be rotated")
+	if s.features.IsEnabled(ctx, featuremgmt.FlagClientTokenRotation) {
+		if token.NeedsRotation(time.Duration(s.cfg.TokenRotationIntervalMinutes) * time.Minute) {
+			return nil, authn.ErrTokenNeedsRotation.Errorf("token needs to be rotated")
+		}
 	}
 
 	return &authn.Identity{
@@ -75,4 +85,41 @@ func (s *Session) Test(ctx context.Context, r *authn.Request) bool {
 
 func (s *Session) Priority() uint {
 	return 60
+}
+
+func (s *Session) Hook(ctx context.Context, identity *authn.Identity, r *authn.Request) error {
+	if identity.SessionToken == nil || s.features.IsEnabled(ctx, featuremgmt.FlagClientTokenRotation) {
+		return nil
+	}
+
+	r.Resp.Before(func(w web.ResponseWriter) {
+		if w.Written() || errors.Is(ctx.Err(), context.Canceled) {
+			return
+		}
+
+		// FIXME (jguer): get real values
+		addr := web.RemoteAddr(r.HTTPRequest)
+		userAgent := r.HTTPRequest.UserAgent()
+
+		// addr := reqContext.RemoteAddr()
+		ip, err := network.GetIPFromAddress(addr)
+		if err != nil {
+			s.log.Debug("Failed to get client IP address", "addr", addr, "err", err)
+			ip = nil
+		}
+		rotated, newToken, err := s.sessionService.TryRotateToken(ctx, identity.SessionToken, ip, userAgent)
+		if err != nil {
+			s.log.Error("Failed to rotate token", "error", err)
+			return
+		}
+
+		if rotated {
+			identity.SessionToken = newToken
+			s.log.Debug("Rotated session token", "user", identity.ID)
+
+			authn.WriteSessionCookie(w, s.cfg, identity.SessionToken)
+		}
+	})
+
+	return nil
 }

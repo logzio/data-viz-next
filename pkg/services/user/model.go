@@ -19,21 +19,13 @@ const (
 	HelpFlagDashboardHelp1
 )
 
-type UpdateEmailActionType string
-
-const (
-	EmailUpdateAction UpdateEmailActionType = "email-update"
-	LoginUpdateAction UpdateEmailActionType = "login-update"
-)
-
 type User struct {
-	ID            int64  `xorm:"pk autoincr 'id'"`
-	UID           string `json:"uid" xorm:"uid"`
+	ID            int64 `xorm:"pk autoincr 'id'"`
 	Version       int
 	Email         string
 	Name          string
 	Login         string
-	Password      Password
+	Password      string
 	Salt          string
 	Rands         string
 	Company       string
@@ -52,14 +44,13 @@ type User struct {
 }
 
 type CreateUserCommand struct {
-	UID              string
 	Email            string
 	Login            string
 	Name             string
 	Company          string
 	OrgID            int64
 	OrgName          string
-	Password         Password
+	Password         string
 	EmailVerified    bool
 	IsAdmin          bool
 	IsDisabled       bool
@@ -86,8 +77,8 @@ type UpdateUserCommand struct {
 }
 
 type ChangeUserPasswordCommand struct {
-	OldPassword Password `json:"oldPassword"`
-	NewPassword Password `json:"newPassword"`
+	OldPassword string `json:"oldPassword"`
+	NewPassword string `json:"newPassword"`
 
 	UserID int64 `json:"-"`
 }
@@ -124,7 +115,6 @@ type SearchUserQueryResult struct {
 
 type UserSearchHitDTO struct {
 	ID            int64                `json:"id" xorm:"id"`
-	UID           string               `json:"uid" xorm:"id"`
 	Name          string               `json:"name"`
 	Login         string               `json:"login"`
 	Email         string               `json:"email"`
@@ -143,7 +133,6 @@ type GetUserProfileQuery struct {
 
 type UserProfileDTO struct {
 	ID                             int64           `json:"id"`
-	UID                            string          `json:"uid"`
 	Email                          string          `json:"email"`
 	Name                           string          `json:"name"`
 	Login                          string          `json:"login"`
@@ -220,19 +209,12 @@ type GetUserByIDQuery struct {
 	ID int64
 }
 
-type VerifyEmailCommand struct {
-	User   User
-	Email  string
-	Action UpdateEmailActionType
-}
-
 type ErrCaseInsensitiveLoginConflict struct {
 	Users []User
 }
 
 type UserDisplayDTO struct {
 	ID        int64  `json:"id,omitempty"`
-	UID       string `json:"uid,omitempty"`
 	Name      string `json:"name,omitempty"`
 	Login     string `json:"login,omitempty"`
 	AvatarURL string `json:"avatarUrl"`
@@ -292,4 +274,10 @@ const (
 type AdminCreateUserResponse struct {
 	ID      int64  `json:"id"`
 	Message string `json:"message"`
+}
+
+type Password string
+
+func (p Password) IsWeak() bool {
+	return len(p) <= 4
 }

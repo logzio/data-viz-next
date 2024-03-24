@@ -24,9 +24,6 @@ jest.mock('@grafana/runtime', () => ({
       licenseUrl: '',
     },
     appSubUrl: '',
-    auth: {
-      basicAuthStrongPasswordPolicy: false,
-    },
   },
 }));
 

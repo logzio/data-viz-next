@@ -26,7 +26,6 @@ const (
 )
 
 type ServiceAccountsService struct {
-	acService         accesscontrol.Service
 	store             store
 	log               log.Logger
 	backgroundLog     log.Logger
@@ -55,7 +54,6 @@ func ProvideServiceAccountsService(
 		orgService,
 	)
 	s := &ServiceAccountsService{
-		acService:     accesscontrolService,
 		store:         serviceAccountsStore,
 		log:           log.New("serviceaccounts"),
 		backgroundLog: log.New("serviceaccounts.background"),
@@ -176,10 +174,7 @@ func (sa *ServiceAccountsService) DeleteServiceAccount(ctx context.Context, orgI
 	if err := validServiceAccountID(serviceAccountID); err != nil {
 		return err
 	}
-	if err := sa.store.DeleteServiceAccount(ctx, orgID, serviceAccountID); err != nil {
-		return err
-	}
-	return sa.acService.DeleteUserPermissions(ctx, orgID, serviceAccountID)
+	return sa.store.DeleteServiceAccount(ctx, orgID, serviceAccountID)
 }
 
 func (sa *ServiceAccountsService) EnableServiceAccount(ctx context.Context, orgID, serviceAccountID int64, enable bool) error {

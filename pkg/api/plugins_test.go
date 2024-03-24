@@ -27,7 +27,7 @@ import (
 	"github.com/grafana/grafana/pkg/plugins/manager/fakes"
 	"github.com/grafana/grafana/pkg/plugins/manager/filestore"
 	"github.com/grafana/grafana/pkg/plugins/manager/registry"
-	"github.com/grafana/grafana/pkg/plugins/pfs"
+	"github.com/grafana/grafana/pkg/plugins/plugindef"
 	"github.com/grafana/grafana/pkg/plugins/pluginscdn"
 	ac "github.com/grafana/grafana/pkg/services/accesscontrol"
 	"github.com/grafana/grafana/pkg/services/accesscontrol/acimpl"
@@ -49,7 +49,6 @@ func Test_PluginsInstallAndUninstall(t *testing.T) {
 	canInstall := []ac.Permission{{Action: pluginaccesscontrol.ActionInstall}}
 	cannotInstall := []ac.Permission{{Action: "plugins:cannotinstall"}}
 
-	pluginID := "grafana-test-datasource"
 	localOrg := int64(1)
 	globalOrg := int64(ac.GlobalOrgID)
 
@@ -89,17 +88,11 @@ func Test_PluginsInstallAndUninstall(t *testing.T) {
 
 			hs.pluginInstaller = NewFakePluginInstaller()
 			hs.pluginFileStore = &fakes.FakePluginFileStore{}
-			hs.pluginStore = pluginstore.NewFakePluginStore(pluginstore.Plugin{
-				JSONData: plugins.JSONData{
-					ID: pluginID,
-				},
-			})
 		})
 
 		t.Run(testName("Install", tc), func(t *testing.T) {
 			input := strings.NewReader(`{"version": "1.0.2"}`)
-			endpoint := fmt.Sprintf("/api/plugins/%s/install", pluginID)
-			req := webtest.RequestWithSignedInUser(server.NewPostRequest(endpoint, input), userWithPermissions(tc.permissionOrg, tc.permissions))
+			req := webtest.RequestWithSignedInUser(server.NewPostRequest("/api/plugins/test/install", input), userWithPermissions(tc.permissionOrg, tc.permissions))
 			res, err := server.SendJSON(req)
 			require.NoError(t, err)
 			require.Equal(t, tc.expectedCode, res.StatusCode)
@@ -108,8 +101,7 @@ func Test_PluginsInstallAndUninstall(t *testing.T) {
 
 		t.Run(testName("Uninstall", tc), func(t *testing.T) {
 			input := strings.NewReader("{ }")
-			endpoint := fmt.Sprintf("/api/plugins/%s/uninstall", pluginID)
-			req := webtest.RequestWithSignedInUser(server.NewPostRequest(endpoint, input), userWithPermissions(tc.permissionOrg, tc.permissions))
+			req := webtest.RequestWithSignedInUser(server.NewPostRequest("/api/plugins/test/uninstall", input), userWithPermissions(tc.permissionOrg, tc.permissions))
 			res, err := server.SendJSON(req)
 			require.NoError(t, err)
 			require.Equal(t, tc.expectedCode, res.StatusCode)
@@ -409,14 +401,14 @@ func TestMakePluginResourceRequestContentTypeEmpty(t *testing.T) {
 func TestPluginMarkdown(t *testing.T) {
 	t.Run("Plugin not installed returns error", func(t *testing.T) {
 		pluginFileStore := &fakes.FakePluginFileStore{
-			FileFunc: func(ctx context.Context, pluginID, pluginVersion, filename string) (*plugins.File, error) {
+			FileFunc: func(ctx context.Context, pluginID, filename string) (*plugins.File, error) {
 				return nil, plugins.ErrPluginNotInstalled
 			},
 		}
 		hs := HTTPServer{pluginFileStore: pluginFileStore}
 
 		pluginID := "test-datasource"
-		md, err := hs.pluginMarkdown(context.Background(), pluginID, "", "test")
+		md, err := hs.pluginMarkdown(context.Background(), pluginID, "test")
 		require.ErrorAs(t, err, &plugins.NotFoundError{PluginID: pluginID})
 		require.Equal(t, []byte{}, md)
 	})
@@ -424,7 +416,7 @@ func TestPluginMarkdown(t *testing.T) {
 	t.Run("File fetch will be retried using different casing if error occurs", func(t *testing.T) {
 		var requestedFiles []string
 		pluginFileStore := &fakes.FakePluginFileStore{
-			FileFunc: func(ctx context.Context, pluginID, pluginVersion, filename string) (*plugins.File, error) {
+			FileFunc: func(ctx context.Context, pluginID, filename string) (*plugins.File, error) {
 				requestedFiles = append(requestedFiles, filename)
 				return nil, errors.New("some error")
 			},
@@ -432,7 +424,7 @@ func TestPluginMarkdown(t *testing.T) {
 
 		hs := HTTPServer{pluginFileStore: pluginFileStore}
 
-		md, err := hs.pluginMarkdown(context.Background(), "", "", "reAdMe")
+		md, err := hs.pluginMarkdown(context.Background(), "", "reAdMe")
 		require.NoError(t, err)
 		require.Equal(t, []byte{}, md)
 		require.Equal(t, []string{"README.md", "readme.md"}, requestedFiles)
@@ -461,7 +453,7 @@ func TestPluginMarkdown(t *testing.T) {
 			data := []byte{123}
 			var requestedFiles []string
 			pluginFileStore := &fakes.FakePluginFileStore{
-				FileFunc: func(ctx context.Context, pluginID, pluginVersion, filename string) (*plugins.File, error) {
+				FileFunc: func(ctx context.Context, pluginID, filename string) (*plugins.File, error) {
 					requestedFiles = append(requestedFiles, filename)
 					return &plugins.File{Content: data}, nil
 				},
@@ -469,7 +461,7 @@ func TestPluginMarkdown(t *testing.T) {
 
 			hs := HTTPServer{pluginFileStore: pluginFileStore}
 
-			md, err := hs.pluginMarkdown(context.Background(), "test-datasource", "", tc.filePath)
+			md, err := hs.pluginMarkdown(context.Background(), "test-datasource", tc.filePath)
 			require.NoError(t, err)
 			require.Equal(t, data, md)
 			require.Equal(t, tc.expected, requestedFiles)
@@ -479,7 +471,7 @@ func TestPluginMarkdown(t *testing.T) {
 	t.Run("Non markdown file request returns an error", func(t *testing.T) {
 		hs := HTTPServer{pluginFileStore: &fakes.FakePluginFileStore{}}
 
-		md, err := hs.pluginMarkdown(context.Background(), "", "", "test.json")
+		md, err := hs.pluginMarkdown(context.Background(), "", "test.json")
 		require.ErrorIs(t, err, ErrUnexpectedFileExtension)
 		require.Equal(t, []byte{}, md)
 	})
@@ -488,14 +480,14 @@ func TestPluginMarkdown(t *testing.T) {
 		data := []byte{1, 2, 3}
 
 		pluginFileStore := &fakes.FakePluginFileStore{
-			FileFunc: func(ctx context.Context, pluginID, pluginVersion, filename string) (*plugins.File, error) {
+			FileFunc: func(ctx context.Context, pluginID, filename string) (*plugins.File, error) {
 				return &plugins.File{Content: data}, nil
 			},
 		}
 
 		hs := HTTPServer{pluginFileStore: pluginFileStore}
 
-		md, err := hs.pluginMarkdown(context.Background(), "", "", "someFile")
+		md, err := hs.pluginMarkdown(context.Background(), "", "someFile")
 		require.NoError(t, err)
 		require.Equal(t, data, md)
 	})
@@ -513,7 +505,7 @@ func pluginAssetScenario(t *testing.T, desc string, url string, urlPattern strin
 			pluginStore:     pluginstore.New(pluginRegistry, &fakes.FakeLoader{}),
 			pluginFileStore: filestore.ProvideService(pluginRegistry),
 			log:             log.NewNopLogger(),
-			pluginsCDNService: pluginscdn.ProvideService(&config.PluginManagementCfg{
+			pluginsCDNService: pluginscdn.ProvideService(&config.Cfg{
 				PluginsCDNURLTemplate: cfg.PluginsCDNURLTemplate,
 				PluginSettings:        cfg.PluginSettings,
 			}),
@@ -658,8 +650,8 @@ func TestHTTPServer_hasPluginRequestedPermissions(t *testing.T) {
 	pluginReg := pluginstore.Plugin{
 		JSONData: plugins.JSONData{
 			ID: "grafana-test-app",
-			IAM: &pfs.IAM{
-				Permissions: []pfs.Permission{{Action: ac.ActionUsersRead, Scope: newStr(ac.ScopeUsersAll)}, {Action: ac.ActionUsersCreate}},
+			IAM: &plugindef.IAM{
+				Permissions: []plugindef.Permission{{Action: ac.ActionUsersRead, Scope: newStr(ac.ScopeUsersAll)}, {Action: ac.ActionUsersCreate}},
 			},
 		},
 	}

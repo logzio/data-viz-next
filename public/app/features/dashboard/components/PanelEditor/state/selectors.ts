@@ -55,15 +55,12 @@ export const getPanelEditorTabs = memoizeOne((tab?: string, plugin?: PanelPlugin
 });
 
 export function shouldShowAlertingTab(plugin: PanelPlugin) {
-  const { unifiedAlertingEnabled = false } = getConfig();
+  const { alertingEnabled, unifiedAlertingEnabled } = getConfig();
   const hasRuleReadPermissions = contextSrv.hasPermission(getRulesPermissions(GRAFANA_RULES_SOURCE_NAME).read);
-  const isAlertingAvailable = unifiedAlertingEnabled && hasRuleReadPermissions;
-  if (!isAlertingAvailable) {
-    return false;
-  }
+  const isAlertingAvailable = alertingEnabled || (unifiedAlertingEnabled && hasRuleReadPermissions);
 
   const isGraph = plugin.meta.id === 'graph';
   const isTimeseries = plugin.meta.id === 'timeseries';
 
-  return isGraph || isTimeseries;
+  return (isAlertingAvailable && isGraph) || isTimeseries;
 }

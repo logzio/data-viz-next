@@ -7,9 +7,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/rest"
 
-	"github.com/grafana/grafana/pkg/apis/folder/v0alpha1"
-	"github.com/grafana/grafana/pkg/services/apiserver/endpoints/request"
+	"github.com/grafana/grafana/pkg/apis/folders/v0alpha1"
 	"github.com/grafana/grafana/pkg/services/folder"
+	"github.com/grafana/grafana/pkg/services/grafana-apiserver/endpoints/request"
 )
 
 type subParentsREST struct {
@@ -17,10 +17,9 @@ type subParentsREST struct {
 }
 
 var _ = rest.Connecter(&subParentsREST{})
-var _ = rest.StorageMetadata(&subParentsREST{})
 
 func (r *subParentsREST) New() runtime.Object {
-	return &v0alpha1.FolderInfoList{}
+	return &v0alpha1.FolderInfo{}
 }
 
 func (r *subParentsREST) Destroy() {
@@ -28,14 +27,6 @@ func (r *subParentsREST) Destroy() {
 
 func (r *subParentsREST) ConnectMethods() []string {
 	return []string{"GET"}
-}
-
-func (r *subParentsREST) ProducesMIMETypes(verb string) []string {
-	return nil
-}
-
-func (r *subParentsREST) ProducesObject(verb string) interface{} {
-	return &v0alpha1.FolderInfoList{}
 }
 
 func (r *subParentsREST) NewConnectOptions() (runtime.Object, bool, string) {
@@ -59,14 +50,13 @@ func (r *subParentsREST) Connect(ctx context.Context, name string, opts runtime.
 			return
 		}
 
-		info := &v0alpha1.FolderInfoList{
-			Items: make([]v0alpha1.FolderInfo, 0),
+		info := &v0alpha1.FolderInfo{
+			Items: make([]v0alpha1.FolderItem, 0),
 		}
 		for _, parent := range parents {
-			info.Items = append(info.Items, v0alpha1.FolderInfo{
-				UID:    parent.UID,
-				Title:  parent.Title,
-				Parent: parent.ParentUID,
+			info.Items = append(info.Items, v0alpha1.FolderItem{
+				Name:  parent.UID,
+				Title: parent.Title,
 			})
 		}
 		responder.Object(http.StatusOK, info)

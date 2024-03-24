@@ -1317,22 +1317,16 @@ describe('logs volume', () => {
         { refId: 'B', target: 'volume query 2' },
       ],
       scopedVars: {},
-      requestId: '',
-      interval: '',
-      intervalMs: 0,
+    } as unknown as DataQueryRequest<TestDataQuery>;
+    volumeProvider = queryLogsVolume(datasource, request, {
+      extractLevel: (dataFrame: DataFrame) => {
+        return dataFrame.fields[1]!.labels!.level === 'error' ? LogLevel.error : LogLevel.unknown;
+      },
       range: {
         from: FROM,
         to: TO,
-        raw: {
-          from: FROM,
-          to: TO,
-        },
+        raw: { from: '0', to: '1' },
       },
-      timezone: '',
-      app: '',
-      startTime: 0,
-    };
-    volumeProvider = queryLogsVolume(datasource, request, {
       targets: request.targets,
     });
   }
@@ -1642,7 +1636,6 @@ const mockLogRow = {
       },
       { name: 'labels', type: FieldType.other, values: [{ app: 'app01' }, { app: 'app02' }] },
     ],
-    refId: 'Z',
   }),
   rowIndex: 0,
 } as unknown as LogRowModel;
@@ -1680,10 +1673,5 @@ describe('logRowToDataFrame', () => {
     const result = logRowToSingleRowDataFrame({ ...mockLogRow, rowIndex: invalidRowIndex });
 
     expect(result).toBe(null);
-  });
-
-  it('should use refId from original DataFrame', () => {
-    const result = logRowToSingleRowDataFrame(mockLogRow);
-    expect(result?.refId).toBe(mockLogRow.dataFrame.refId);
   });
 });

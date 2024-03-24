@@ -136,14 +136,8 @@ func processLogsResponse(res *es.SearchResponse, target *Query, configuredFields
 
 	for hitIdx, hit := range res.Hits.Hits {
 		var flattened map[string]interface{}
-		var sourceString string
 		if hit["_source"] != nil {
 			flattened = flatten(hit["_source"].(map[string]interface{}), 10)
-			sourceMarshalled, err := json.Marshal(flattened)
-			if err != nil {
-				return err
-			}
-			sourceString = string(sourceMarshalled)
 		}
 
 		doc := map[string]interface{}{
@@ -152,8 +146,7 @@ func processLogsResponse(res *es.SearchResponse, target *Query, configuredFields
 			"_index":    hit["_index"],
 			"sort":      hit["sort"],
 			"highlight": hit["highlight"],
-			// In case of logs query we want to have the raw source as a string field so it can be visualized in logs panel
-			"_source": sourceString,
+			"_source":   flattened,
 		}
 
 		for k, v := range flattened {
@@ -907,10 +900,10 @@ func nameFields(queryResult backend.DataResponse, target *Query) {
 			// another is "number"
 			valueField := frame.Fields[1]
 			fieldName := getFieldName(*valueField, target, metricTypeCount)
-			// We need to remove labels so they are not added to legend as duplicates
-			// ensures backward compatibility with "frontend" version of the plugin
-			valueField.Labels = nil
-			frame.Name = fieldName
+			if valueField.Config == nil {
+				valueField.Config = &data.FieldConfig{}
+			}
+			valueField.Config.DisplayNameFromDS = fieldName
 		}
 	}
 }

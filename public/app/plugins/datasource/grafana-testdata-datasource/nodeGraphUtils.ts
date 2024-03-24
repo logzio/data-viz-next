@@ -1,5 +1,3 @@
-import { randomLcg } from 'd3-random';
-
 import {
   FieldColorModeId,
   FieldDTO,
@@ -9,13 +7,11 @@ import {
   DataFrame,
 } from '@grafana/data';
 
-import * as serviceMapResponseSmall from './testData/serviceMapResponse';
-import * as serviceMapResponsMedium from './testData/serviceMapResponseMedium';
+import { nodes, edges } from './testData/serviceMapResponse';
 
-export function generateRandomNodes(count = 10, seed?: number) {
+export function generateRandomNodes(count = 10) {
   const nodes = [];
   const edges: string[] = [];
-  const rand = randomLcg(seed);
 
   const root = {
     id: 'root',
@@ -35,7 +31,7 @@ export function generateRandomNodes(count = 10, seed?: number) {
   for (let i = 1; i < count; i++) {
     const node = makeRandomNode(i);
     nodes.push(node);
-    const sourceIndex = Math.floor(rand() * Math.floor(nodesWithoutMaxEdges.length - 1));
+    const sourceIndex = Math.floor(Math.random() * Math.floor(nodesWithoutMaxEdges.length - 1));
     const source = nodesWithoutMaxEdges[sourceIndex];
     source.edges.push(node.id);
     if (source.edges.length >= maxEdges) {
@@ -47,8 +43,8 @@ export function generateRandomNodes(count = 10, seed?: number) {
   // Add some random edges to create possible cycle
   const additionalEdges = Math.floor(count / 2);
   for (let i = 0; i <= additionalEdges; i++) {
-    const sourceIndex = Math.floor(rand() * Math.floor(nodes.length - 1));
-    const targetIndex = Math.floor(rand() * Math.floor(nodes.length - 1));
+    const sourceIndex = Math.floor(Math.random() * Math.floor(nodes.length - 1));
+    const targetIndex = Math.floor(Math.random() * Math.floor(nodes.length - 1));
     if (sourceIndex === targetIndex || nodes[sourceIndex].id === '0' || nodes[targetIndex].id === '0') {
       continue;
     }
@@ -189,12 +185,11 @@ function makeRandomNode(index: number) {
   };
 }
 
-export function savedNodesResponse(size: 'small' | 'medium'): [DataFrame, DataFrame] {
-  const response = size === 'small' ? serviceMapResponseSmall : serviceMapResponsMedium;
-  return [new MutableDataFrame(response.nodes), new MutableDataFrame(response.edges)];
+export function savedNodesResponse() {
+  return [new MutableDataFrame(nodes), new MutableDataFrame(edges)];
 }
 
 // Generates node graph data but only returns the edges
-export function generateRandomEdges(count = 10, seed = 1) {
-  return generateRandomNodes(count, seed)[1];
+export function generateRandomEdges(count = 10) {
+  return generateRandomNodes(count)[1];
 }

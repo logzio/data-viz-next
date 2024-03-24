@@ -1,38 +1,36 @@
 import { css } from '@emotion/css';
-import React from 'react';
+import React, { useContext, useEffect } from 'react';
 
-import { GrafanaTheme2, dateTimeFormat, systemDateFormats, textUtil } from '@grafana/data';
-import { HorizontalGroup, IconButton, Tag, usePanelContext, useStyles2 } from '@grafana/ui';
+import { GrafanaTheme2, textUtil } from '@grafana/data';
+import { HorizontalGroup, IconButton, LayoutItemContext, Tag, useStyles2 } from '@grafana/ui';
 import alertDef from 'app/features/alerting/state/alertDef';
 
 interface Props {
   annoVals: Record<string, any[]>;
   annoIdx: number;
-  timeZone: string;
+  timeFormatter: (v: number) => string;
+  canEdit: boolean;
+  canDelete: boolean;
   onEdit: () => void;
+  onDelete: () => void;
 }
 
-const retFalse = () => false;
-
-export const AnnotationTooltip2 = ({ annoVals, annoIdx, timeZone, onEdit }: Props) => {
-  const annoId = annoVals.id?.[annoIdx];
-
+export const AnnotationTooltip2 = ({
+  annoVals,
+  annoIdx,
+  timeFormatter,
+  canEdit,
+  canDelete,
+  onEdit,
+  onDelete,
+}: Props) => {
   const styles = useStyles2(getStyles);
 
-  const { canEditAnnotations = retFalse, canDeleteAnnotations = retFalse, onAnnotationDelete } = usePanelContext();
-
-  const dashboardUID = annoVals.dashboardUID?.[annoIdx];
-  const canEdit = canEditAnnotations(dashboardUID);
-  const canDelete = canDeleteAnnotations(dashboardUID) && onAnnotationDelete != null;
-
-  const timeFormatter = (value: number) =>
-    dateTimeFormat(value, {
-      format: systemDateFormats.fullDate,
-      timeZone,
-    });
+  const layoutCtx = useContext(LayoutItemContext);
+  useEffect(() => layoutCtx.boostZIndex(), [layoutCtx]);
 
   let time = timeFormatter(annoVals.time[annoIdx]);
-  let text = annoVals.text?.[annoIdx] ?? '';
+  let text = annoVals.text[annoIdx];
 
   if (annoVals.isRegion?.[annoIdx]) {
     time += ' - ' + timeFormatter(annoVals.timeEnd[annoIdx]);
@@ -56,7 +54,7 @@ export const AnnotationTooltip2 = ({ annoVals, annoIdx, timeZone, onEdit }: Prop
 
     // alertText = alertDef.getAlertAnnotationInfo(annotation); // @TODO ??
   } else if (annoVals.title?.[annoIdx]) {
-    text = annoVals.title[annoIdx] + text ? `<br />${text}` : '';
+    text = annoVals.title[annoIdx] + '<br />' + (typeof text === 'string' ? text : '');
   }
 
   return (
@@ -77,8 +75,9 @@ export const AnnotationTooltip2 = ({ annoVals, annoIdx, timeZone, onEdit }: Prop
                 <IconButton
                   name={'trash-alt'}
                   size={'sm'}
-                  onClick={() => onAnnotationDelete(annoId)}
+                  onClick={onDelete}
                   tooltip="Delete"
+                  disabled={!annoVals.id?.[annoIdx]}
                 />
               )}
             </div>

@@ -33,7 +33,6 @@ interface Props {
   fiscalYearStartMonth?: number;
   roundup?: boolean;
   isReversed?: boolean;
-  onError?: (error?: string) => void;
 }
 
 interface InputState {
@@ -48,15 +47,7 @@ const ERROR_MESSAGES = {
 };
 
 export const TimeRangeContent = (props: Props) => {
-  const {
-    value,
-    isFullscreen = false,
-    timeZone,
-    onApply: onApplyFromProps,
-    isReversed,
-    fiscalYearStartMonth,
-    onError,
-  } = props;
+  const { value, isFullscreen = false, timeZone, onApply: onApplyFromProps, isReversed, fiscalYearStartMonth } = props;
   const [fromValue, toValue] = valueToState(value.raw.from, value.raw.to, timeZone);
   const style = useStyles2(getStyles);
 
@@ -106,29 +97,6 @@ export const TimeRangeContent = (props: Props) => {
     if (event.key === 'Enter') {
       onApply();
     }
-  };
-
-  const onCopy = () => {
-    const raw: RawTimeRange = { from: from.value, to: to.value };
-    navigator.clipboard.writeText(JSON.stringify(raw));
-  };
-
-  const onPaste = async () => {
-    const raw = await navigator.clipboard.readText();
-    let range;
-
-    try {
-      range = JSON.parse(raw);
-    } catch (error) {
-      if (onError) {
-        onError(raw);
-      }
-      return;
-    }
-
-    const [fromValue, toValue] = valueToState(range.from, range.to, timeZone);
-    setFrom(fromValue);
-    setTo(toValue);
   };
 
   const fiscalYear = rangeUtil.convertRawToRange({ from: 'now/fy', to: 'now/fy' }, timeZone, fiscalYearStartMonth);
@@ -191,27 +159,9 @@ export const TimeRangeContent = (props: Props) => {
         </Field>
         {fyTooltip}
       </div>
-      <div className={style.buttonsContainer}>
-        <Button
-          data-testid={selectors.components.TimePicker.copyTimeRange}
-          icon="copy"
-          variant="secondary"
-          tooltip={t('time-picker.copy-paste.tooltip-copy', 'Copy time range to clipboard')}
-          type="button"
-          onClick={onCopy}
-        />
-        <Button
-          data-testid={selectors.components.TimePicker.pasteTimeRange}
-          icon="clipboard-alt"
-          variant="secondary"
-          tooltip={t('time-picker.copy-paste.tooltip-paste', 'Paste time range')}
-          type="button"
-          onClick={onPaste}
-        />
-        <Button data-testid={selectors.components.TimePicker.applyTimeRange} type="button" onClick={onApply}>
-          <Trans i18nKey="time-picker.range-content.apply-button">Apply time range</Trans>
-        </Button>
-      </div>
+      <Button data-testid={selectors.components.TimePicker.applyTimeRange} type="button" onClick={onApply}>
+        <Trans i18nKey="time-picker.range-content.apply-button">Apply time range</Trans>
+      </Button>
 
       <TimePickerCalendar
         isFullscreen={isFullscreen}
@@ -269,11 +219,6 @@ function getStyles(theme: GrafanaTheme2) {
   return {
     fieldContainer: css({
       display: 'flex',
-    }),
-    buttonsContainer: css({
-      display: 'flex',
-      gap: theme.spacing(0.5),
-      marginTop: theme.spacing(1),
     }),
     tooltip: css({
       paddingLeft: theme.spacing(1),

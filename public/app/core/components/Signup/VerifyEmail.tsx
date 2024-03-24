@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
 
 import { getBackendSrv } from '@grafana/runtime';
-import { Field, Input, Button, Legend, Container, LinkButton, Stack } from '@grafana/ui';
+import { Form, Field, Input, Button, Legend, Container, HorizontalGroup, LinkButton } from '@grafana/ui';
 import { getConfig } from 'app/core/config';
 import { useAppNotification } from 'app/core/copy/appNotification';
 import { w3cStandardEmailValidator } from 'app/features/admin/utils';
@@ -13,11 +12,6 @@ interface EmailDTO {
 
 export const VerifyEmail = () => {
   const notifyApp = useAppNotification();
-  const {
-    handleSubmit,
-    register,
-    formState: { errors },
-  } = useForm<EmailDTO>();
   const [emailSent, setEmailSent] = useState(false);
 
   const onSubmit = (formModel: EmailDTO) => {
@@ -45,32 +39,36 @@ export const VerifyEmail = () => {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
-      <Legend>Verify Email</Legend>
-      <Field
-        label="Email"
-        description="Enter your email address to get a verification link sent to you"
-        invalid={!!errors.email}
-        error={errors.email?.message}
-      >
-        <Input
-          id="email"
-          {...register('email', {
-            required: 'Email is required',
-            pattern: {
-              value: w3cStandardEmailValidator,
-              message: 'Email is invalid',
-            },
-          })}
-          placeholder="Email"
-        />
-      </Field>
-      <Stack>
-        <Button type="submit">Send verification email</Button>
-        <LinkButton fill="text" href={getConfig().appSubUrl + '/login'}>
-          Back to login
-        </LinkButton>
-      </Stack>
-    </form>
+    <Form onSubmit={onSubmit}>
+      {({ register, errors }) => (
+        <>
+          <Legend>Verify Email</Legend>
+          <Field
+            label="Email"
+            description="Enter your email address to get a verification link sent to you"
+            invalid={!!errors.email}
+            error={errors.email?.message}
+          >
+            <Input
+              id="email"
+              {...register('email', {
+                required: 'Email is required',
+                pattern: {
+                  value: w3cStandardEmailValidator,
+                  message: 'Email is invalid',
+                },
+              })}
+              placeholder="Email"
+            />
+          </Field>
+          <HorizontalGroup>
+            <Button type="submit">Send verification email</Button>
+            <LinkButton fill="text" href={getConfig().appSubUrl + '/login'}>
+              Back to login
+            </LinkButton>
+          </HorizontalGroup>
+        </>
+      )}
+    </Form>
   );
 };

@@ -2,7 +2,7 @@ import tinycolor from 'tinycolor2';
 import uPlot from 'uplot';
 
 import { GrafanaTheme2, Threshold, ThresholdsConfig, ThresholdsMode } from '@grafana/data';
-import { GraphThresholdsStyleConfig, GraphThresholdsStyleMode } from '@grafana/schema';
+import { GraphThresholdsStyleConfig, GraphTresholdsStyleMode } from '@grafana/schema';
 
 import { getGradientRange, scaleGradient } from './gradientFills';
 
@@ -19,8 +19,8 @@ export interface UPlotThresholdOptions {
 
 export function getThresholdsDrawHook(options: UPlotThresholdOptions) {
   const dashSegments =
-    options.config.mode === GraphThresholdsStyleMode.Dashed ||
-    options.config.mode === GraphThresholdsStyleMode.DashedAndArea
+    options.config.mode === GraphTresholdsStyleMode.Dashed ||
+    options.config.mode === GraphTresholdsStyleMode.DashedAndArea
       ? [10, 10]
       : null;
 
@@ -123,15 +123,15 @@ export function getThresholdsDrawHook(options: UPlotThresholdOptions) {
     ctx.save();
 
     switch (config.mode) {
-      case GraphThresholdsStyleMode.Line:
-      case GraphThresholdsStyleMode.Dashed:
+      case GraphTresholdsStyleMode.Line:
+      case GraphTresholdsStyleMode.Dashed:
         addLines(u, scaleKey, steps, theme);
         break;
-      case GraphThresholdsStyleMode.Area:
+      case GraphTresholdsStyleMode.Area:
         addAreas(u, scaleKey, steps, theme);
         break;
-      case GraphThresholdsStyleMode.LineAndArea:
-      case GraphThresholdsStyleMode.DashedAndArea:
+      case GraphTresholdsStyleMode.LineAndArea:
+      case GraphTresholdsStyleMode.DashedAndArea:
         addAreas(u, scaleKey, steps, theme);
         addLines(u, scaleKey, steps, theme);
     }

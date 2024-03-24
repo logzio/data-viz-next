@@ -10,8 +10,6 @@ import (
 	"github.com/grafana/grafana/pkg/services/sqlstore"
 	"github.com/grafana/grafana/pkg/services/sqlstore/migrator"
 	"github.com/grafana/grafana/pkg/services/sqlstore/session"
-	"github.com/grafana/grafana/pkg/services/sqlstore/sqlutil"
-	"github.com/grafana/grafana/pkg/setting"
 )
 
 type DB interface {
@@ -53,15 +51,9 @@ type DB interface {
 type Session = sqlstore.DBSession
 type InitTestDBOpt = sqlstore.InitTestDBOpt
 
-var SetupTestDB = sqlstore.SetupTestDB
 var InitTestDB = sqlstore.InitTestDB
-var CleanupTestDB = sqlstore.CleanupTestDB
+var InitTestDBwithCfg = sqlstore.InitTestDBWithCfg
 var ProvideService = sqlstore.ProvideService
-
-func InitTestDBwithCfg(t sqlutil.ITestDB, opts ...InitTestDBOpt) (*sqlstore.SQLStore, *setting.Cfg) {
-	store := InitTestDB(t, opts...)
-	return store, store.Cfg
-}
 
 func IsTestDbSQLite() bool {
 	if db, present := os.LookupEnv("GRAFANA_TEST_DB"); !present || db == "sqlite" {

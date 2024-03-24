@@ -1,5 +1,3 @@
-import { dropRight, last } from 'lodash';
-
 import { DataFrame, Labels, roundDecimals } from '@grafana/data';
 import { CombinedRuleNamespace } from 'app/types/unified-alerting';
 
@@ -42,52 +40,23 @@ const formatLabels = (labels: Labels): string => {
     .join(', ');
 };
 
-interface DecodedNamespace {
-  name: string;
-  parents: string[];
-}
-
 /**
  * After https://github.com/grafana/grafana/pull/74600,
  * Grafana folder names will be returned from the API as a combination of the folder name and parent UID in a format of JSON array,
  * where first element is parent UID and the second element is Title.
- *
- * Here we parse this to return the name of the last folder and the array of parent folders
  */
-const decodeGrafanaNamespace = (namespace: CombinedRuleNamespace): DecodedNamespace => {
+const decodeGrafanaNamespace = (namespace: CombinedRuleNamespace): string => {
   const namespaceName = namespace.name;
 
   if (isCloudRulesSource(namespace.rulesSource)) {
-    return {
-      name: namespaceName,
-      parents: [],
-    };
+    return namespaceName;
   }
 
-  // try to parse the folder as a nested folder, if it fails fall back to returning the folder name as-is.
   try {
-    const folderParts: string[] = JSON.parse(namespaceName);
-    if (!Array.isArray(folderParts)) {
-      throw new Error('not a nested Grafana folder');
-    }
-
-    const name = last(folderParts) ?? namespaceName;
-    const parents = dropRight(folderParts, 1);
-
-    return {
-      name,
-      parents,
-    };
+    return JSON.parse(namespaceName).at(-1) ?? namespaceName;
   } catch {
-    return {
-      name: namespace.name,
-      parents: [],
-    };
+    return namespaceName;
   }
-};
-
-const encodeGrafanaNamespace = (name: string, parents: string[] | undefined = []) => {
-  return JSON.stringify(parents.concat(name));
 };
 
 const isEmptySeries = (series: DataFrame[]): boolean => {
@@ -96,12 +65,4 @@ const isEmptySeries = (series: DataFrame[]): boolean => {
   return isEmpty;
 };
 
-export {
-  decodeGrafanaNamespace,
-  encodeGrafanaNamespace,
-  formatLabels,
-  getSeriesLabels,
-  getSeriesName,
-  getSeriesValue,
-  isEmptySeries,
-};
+export { decodeGrafanaNamespace, formatLabels, getSeriesLabels, getSeriesName, getSeriesValue, isEmptySeries };

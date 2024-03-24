@@ -14,7 +14,6 @@ export interface GraphiteQuery extends DataQuery {
   queryType?: string;
   textEditor?: boolean;
   target?: string;
-  targetFull?: string;
   tags?: string[];
   fromAnnotations?: boolean;
 }

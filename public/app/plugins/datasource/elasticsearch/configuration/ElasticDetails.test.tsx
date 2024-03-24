@@ -3,7 +3,7 @@ import React from 'react';
 import selectEvent from 'react-select-event';
 
 import { ElasticDetails } from './ElasticDetails';
-import { createDefaultConfigOptions } from './__mocks__/configOptions';
+import { createDefaultConfigOptions } from './mocks';
 
 describe('ElasticDetails', () => {
   describe('Max concurrent Shard Requests', () => {

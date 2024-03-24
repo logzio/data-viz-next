@@ -1,12 +1,9 @@
 import { createAction } from '@reduxjs/toolkit';
-import { ComponentType } from 'react';
 
 import { VariableType } from '@grafana/data';
 
 import { reducerTester } from '../../../../test/core/redux/reducerTester';
 import { VariableAdapter, variableAdapters } from '../adapters';
-import { VariableEditorProps } from '../editor/types';
-import { VariablePickerProps } from '../pickers/types';
 import { QueryVariableModel } from '../types';
 import { toVariablePayload } from '../utils';
 
@@ -24,8 +21,8 @@ const variableAdapter: VariableAdapter<QueryVariableModel> = {
   reducer: jest.fn().mockReturnValue({}),
   getValueForUrl: jest.fn(),
   getSaveModel: jest.fn(),
-  picker: null as unknown as ComponentType<VariablePickerProps<QueryVariableModel>>,
-  editor: null as unknown as ComponentType<VariableEditorProps<QueryVariableModel>>,
+  picker: null as any,
+  editor: null as any,
   setValue: jest.fn(),
   setValueFromUrl: jest.fn(),
 };

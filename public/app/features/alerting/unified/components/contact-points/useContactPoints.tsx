@@ -27,20 +27,7 @@ const RECEIVER_STATUS_POLLING_INTERVAL = 10 * 1000; // 10 seconds
  * 3. (if available) additional metadata about Grafana Managed contact points
  * 4. (if available) the OnCall plugin metadata
  */
-interface UseContactPointsWithStatusOptions {
-  includePoliciesCount: boolean;
-  receiverStatusPollingInterval?: number;
-}
-
-const defaultHookOptions = {
-  includePoliciesCount: true,
-  receiverStatusPollingInterval: RECEIVER_STATUS_POLLING_INTERVAL,
-};
-
-export function useContactPointsWithStatus({
-  includePoliciesCount,
-  receiverStatusPollingInterval,
-}: UseContactPointsWithStatusOptions = defaultHookOptions) {
+export function useContactPointsWithStatus() {
   const { selectedAlertmanager, isGrafanaAlertmanager } = useAlertmanager();
   const { installed: onCallPluginInstalled, loading: onCallPluginStatusLoading } = usePluginBridge(
     SupportedPlugin.OnCall
@@ -50,8 +37,8 @@ export function useContactPointsWithStatus({
   const fetchContactPointsStatus = alertmanagerApi.endpoints.getContactPointsStatus.useQuery(undefined, {
     refetchOnFocus: true,
     refetchOnReconnect: true,
-    // re-fetch status every so often for up-to-date information, allow disabling by passing "receiverStatusPollingInterval: 0"
-    pollingInterval: receiverStatusPollingInterval,
+    // re-fetch status every so often for up-to-date information
+    pollingInterval: RECEIVER_STATUS_POLLING_INTERVAL,
     // skip fetching receiver statuses if not Grafana AM
     skip: !isGrafanaAlertmanager,
   });
@@ -77,7 +64,6 @@ export function useContactPointsWithStatus({
   }
 
   // fetch the latest config from the Alertmanager
-  // we use this endpoint only when we need to get the number of policies
   const fetchAlertmanagerConfiguration = alertmanagerApi.endpoints.getAlertmanagerConfiguration.useQuery(
     selectedAlertmanager!,
     {
@@ -87,56 +73,30 @@ export function useContactPointsWithStatus({
         ...result,
         contactPoints: result.data
           ? enhanceContactPointsWithMetadata(
+              result.data,
               fetchContactPointsStatus.data,
               fetchReceiverMetadata.data,
-              onCallMetadata,
-              result.data.alertmanager_config.receivers ?? [],
-              result.data
+              onCallMetadata
             )
           : [],
       }),
-      skip: !includePoliciesCount,
     }
   );
 
-  // for Grafana Managed Alertmanager, we use the new read-only endpoint for getting the list of contact points
-  const fetchGrafanaContactPoints = alertmanagerApi.endpoints.getContactPointsList.useQuery(undefined, {
-    refetchOnFocus: true,
-    refetchOnReconnect: true,
-    selectFromResult: (result) => ({
-      ...result,
-      contactPoints: result.data
-        ? enhanceContactPointsWithMetadata(
-            fetchContactPointsStatus.data,
-            fetchReceiverMetadata.data,
-            onCallMetadata,
-            result.data, // contact points from the new readonly endpoint
-            undefined //no config data
-          )
-        : [],
-    }),
-    skip: includePoliciesCount || !isGrafanaAlertmanager,
-  });
-
   // we will fail silently for fetching OnCall plugin status and integrations
-  const error =
-    fetchAlertmanagerConfiguration.error || fetchGrafanaContactPoints.error || fetchContactPointsStatus.error;
+  const error = fetchAlertmanagerConfiguration.error ?? fetchContactPointsStatus.error;
   const isLoading =
     fetchAlertmanagerConfiguration.isLoading ||
-    fetchGrafanaContactPoints.isLoading ||
     fetchContactPointsStatus.isLoading ||
     onCallPluginStatusLoading ||
     onCallPluginIntegrationsLoading;
 
-  const unsortedContactPoints = includePoliciesCount
-    ? fetchAlertmanagerConfiguration.contactPoints
-    : fetchGrafanaContactPoints.contactPoints;
-  const contactPoints = unsortedContactPoints.sort((a, b) => a.name.localeCompare(b.name));
+  const contactPoints = fetchAlertmanagerConfiguration.contactPoints.sort((a, b) => a.name.localeCompare(b.name));
+
   return {
     error,
     isLoading,
     contactPoints,
-    refetchReceivers: fetchGrafanaContactPoints.refetch,
   };
 }
 

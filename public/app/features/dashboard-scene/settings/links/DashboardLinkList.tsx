@@ -1,10 +1,11 @@
 import { css } from '@emotion/css';
 import React from 'react';
 
-import { GrafanaTheme2 } from '@grafana/data';
 import { DashboardLink } from '@grafana/schema';
-import { Button, DeleteButton, HorizontalGroup, Icon, IconButton, TagList, useStyles2 } from '@grafana/ui';
+import { DeleteButton, HorizontalGroup, Icon, IconButton, TagList, useStyles2 } from '@grafana/ui';
 import EmptyListCTA from 'app/core/components/EmptyListCTA/EmptyListCTA';
+
+import { ListNewButton } from '../../../dashboard/components/DashboardSettings/ListNewButton';
 
 interface DashboardLinkListProps {
   links: DashboardLink[];
@@ -91,14 +92,12 @@ export function DashboardLinkList({
           ))}
         </tbody>
       </table>
-      <Button className={styles.newLinkButton} icon="plus" onClick={onNew}>
-        New link
-      </Button>
+      <ListNewButton onClick={onNew}>New link</ListNewButton>
     </>
   );
 }
 
-const getStyles = (theme: GrafanaTheme2) => ({
+const getStyles = () => ({
   titleWrapper: css({
     width: '20vw',
     textOverflow: 'ellipsis',
@@ -108,8 +107,5 @@ const getStyles = (theme: GrafanaTheme2) => ({
     width: '40vw',
     textOverflow: 'ellipsis',
     overflow: 'hidden',
-  }),
-  newLinkButton: css({
-    marginTop: theme.spacing(3),
   }),
 });

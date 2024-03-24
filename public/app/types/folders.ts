@@ -1,10 +1,5 @@
 import { WithAccessControlMetadata } from '@grafana/data';
 
-export interface FolderListItemDTO {
-  uid: string;
-  title: string;
-}
-
 export interface FolderDTO extends WithAccessControlMetadata {
   canAdmin: boolean;
   canDelete: boolean;

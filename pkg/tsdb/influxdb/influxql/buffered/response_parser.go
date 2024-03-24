@@ -241,12 +241,6 @@ func transformRowsForTimeSeries(rows []models.Row, query models.Query) data.Fram
 
 		if !hasTimeCol {
 			newFrame := newFrameWithoutTimeField(row, query)
-			if len(frames) == 0 {
-				newFrame.Meta = &data.FrameMeta{
-					ExecutedQueryString:    query.RawQuery,
-					PreferredVisualization: util.GetVisType(query.ResultFormat),
-				}
-			}
 			frames = append(frames, newFrame)
 		} else {
 			for colIndex, column := range row.Columns {
@@ -332,21 +326,20 @@ func newFrameWithoutTimeField(row models.Row, query models.Query) *data.Frame {
 	for _, valuePair := range row.Values {
 		if strings.Contains(strings.ToLower(query.RawQuery), strings.ToLower("SHOW TAG VALUES")) {
 			if len(valuePair) >= 2 {
-				values = append(values, util.ParseString(valuePair[1]))
-			}
-		} else if strings.Contains(strings.ToLower(query.RawQuery), strings.ToLower("SHOW DIAGNOSTICS")) {
-			// https://docs.influxdata.com/platform/monitoring/influxdata-platform/tools/show-diagnostics/
-			for _, vp := range valuePair {
-				values = append(values, util.ParseString(vp))
+				values = append(values, util.ToPtr(valuePair[1].(string)))
 			}
 		} else {
 			if len(valuePair) >= 1 {
-				values = append(values, util.ParseString(valuePair[0]))
+				values = append(values, util.ToPtr(valuePair[0].(string)))
 			}
 		}
 	}
 
 	field := data.NewField("Value", nil, values)
 	frame := data.NewFrame(row.Name, field)
+	frame.Meta = &data.FrameMeta{
+		ExecutedQueryString:    query.RawQuery,
+		PreferredVisualization: util.GetVisType(query.ResultFormat),
+	}
 	return frame
 }

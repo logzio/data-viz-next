@@ -10,7 +10,6 @@ import {
   variablesCompleteTransaction,
   variablesInitTransaction,
 } from './transactionReducer';
-import { VariablePayload } from './types';
 
 describe('transactionReducer', () => {
   describe('when variablesInitTransaction is dispatched', () => {
@@ -72,7 +71,7 @@ describe('transactionReducer', () => {
               ...initialTransactionState,
               status: TransactionStatus.Fetching,
             })
-            .whenActionIsDispatched(removeVariable({} as VariablePayload<{ reIndex: boolean }>))
+            .whenActionIsDispatched(removeVariable({} as any))
             .thenStateShouldEqual({ uid: null, status: TransactionStatus.Fetching, isDirty: false });
         });
       });
@@ -84,7 +83,7 @@ describe('transactionReducer', () => {
               ...initialTransactionState,
               status: TransactionStatus.NotStarted,
             })
-            .whenActionIsDispatched(removeVariable({} as VariablePayload<{ reIndex: boolean }>))
+            .whenActionIsDispatched(removeVariable({} as any))
             .thenStateShouldEqual({ uid: null, status: TransactionStatus.NotStarted, isDirty: false });
         });
       });
@@ -96,7 +95,7 @@ describe('transactionReducer', () => {
               ...initialTransactionState,
               status: TransactionStatus.Completed,
             })
-            .whenActionIsDispatched(removeVariable({} as VariablePayload<{ reIndex: boolean }>))
+            .whenActionIsDispatched(removeVariable({} as any))
             .thenStateShouldEqual({ uid: null, status: TransactionStatus.Completed, isDirty: true });
         });
       });
@@ -108,7 +107,7 @@ describe('transactionReducer', () => {
               ...initialTransactionState,
               status: TransactionStatus.Completed,
             })
-            .whenActionIsDispatched(variableStateNotStarted({} as VariablePayload))
+            .whenActionIsDispatched(variableStateNotStarted({} as any))
             .thenStateShouldEqual({ uid: null, status: TransactionStatus.Completed, isDirty: false });
         });
       });

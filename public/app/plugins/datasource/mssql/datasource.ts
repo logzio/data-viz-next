@@ -1,7 +1,9 @@
 import { DataSourceInstanceSettings, ScopedVars } from '@grafana/data';
 import { LanguageDefinition } from '@grafana/experimental';
 import { TemplateSrv } from '@grafana/runtime';
-import { DB, SQLQuery, SqlDatasource, SQLSelectableValue, formatSQL } from '@grafana/sql';
+import { SqlDatasource } from 'app/features/plugins/sql/datasource/SqlDatasource';
+import { DB, SQLQuery, SQLSelectableValue } from 'app/features/plugins/sql/types';
+import { formatSQL } from 'app/features/plugins/sql/utils/formatSQL';
 
 import { getSchema, showDatabases, getSchemaAndName } from './MSSqlMetaQuery';
 import { MSSqlQueryModel } from './MSSqlQueryModel';

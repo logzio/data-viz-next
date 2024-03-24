@@ -4,6 +4,9 @@ import { SelectableValue } from '@grafana/data';
 import { isFetchError } from '@grafana/runtime';
 import type { Monaco, monacoTypes } from '@grafana/ui';
 
+import { notifyApp } from '../_importedDependencies/actions/appNotification';
+import { createErrorNotification } from '../_importedDependencies/core/appNotification';
+import { dispatch } from '../_importedDependencies/store';
 import TempoLanguageProvider from '../language_provider';
 
 import { getSituation, Situation } from './situation';
@@ -11,7 +14,6 @@ import { intrinsics, scopes } from './traceql';
 
 interface Props {
   languageProvider: TempoLanguageProvider;
-  setAlertText: (text?: string) => void;
 }
 
 type MinimalCompletionItem = {
@@ -31,11 +33,9 @@ type MinimalCompletionItem = {
 export class CompletionProvider implements monacoTypes.languages.CompletionItemProvider {
   languageProvider: TempoLanguageProvider;
   registerInteractionCommandId: string | null;
-  setAlertText: (text?: string) => void;
 
   constructor(props: Props) {
     this.languageProvider = props.languageProvider;
-    this.setAlertText = props.setAlertText;
     this.registerInteractionCommandId = null;
   }
 
@@ -243,7 +243,7 @@ export class CompletionProvider implements monacoTypes.languages.CompletionItemP
 
     const { range, offset } = getRangeAndOffset(this.monaco, model, position);
     const situation = getSituation(model.getValue(), offset);
-    const completionItems = situation != null ? this.getCompletions(situation, this.setAlertText) : Promise.resolve([]);
+    const completionItems = situation != null ? this.getCompletions(situation) : Promise.resolve([]);
 
     return completionItems.then((items) => {
       // monaco by-default alphabetically orders the items.
@@ -298,7 +298,7 @@ export class CompletionProvider implements monacoTypes.languages.CompletionItemP
    * @param situation
    * @private
    */
-  private async getCompletions(situation: Situation, setAlertText: (text?: string) => void): Promise<Completion[]> {
+  private async getCompletions(situation: Situation): Promise<Completion[]> {
     switch (situation.type) {
       // This should only happen for cases that we do not support yet
       case 'UNKNOWN': {
@@ -370,12 +370,11 @@ export class CompletionProvider implements monacoTypes.languages.CompletionItemP
         let tagValues;
         try {
           tagValues = await this.getTagValues(situation.tagName, situation.query);
-          setAlertText(undefined);
         } catch (error) {
           if (isFetchError(error)) {
-            setAlertText(error.data.error);
+            dispatch(notifyApp(createErrorNotification(error.data.error, new Error(error.data.message))));
           } else if (error instanceof Error) {
-            setAlertText(`Error: ${error.message}`);
+            dispatch(notifyApp(createErrorNotification('Error', error)));
           }
         }
 

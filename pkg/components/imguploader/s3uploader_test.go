@@ -17,7 +17,7 @@ func TestUploadToS3(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		s3Uploader, err := NewImageUploader(cfg)
+		s3Uploader, err := NewImageUploader()
 		require.NoError(t, err)
 
 		path, err := s3Uploader.Upload(context.Background(), "../../../public/img/logo_transparent_400x.png")

@@ -9,7 +9,6 @@ export default {
   downloads: 33645089,
   featured: 180,
   id: 74,
-  keywords: ['zabbix', 'monitoring', 'dashboard'],
   typeId: 1,
   typeName: 'Application',
   internal: false,

@@ -3,7 +3,12 @@ import React from 'react';
 
 import { PluginSignatureType, PluginType } from '@grafana/data';
 import { LogContext } from '@grafana/faro-web-sdk';
-import { config, createMonitoringLogger } from '@grafana/runtime';
+import {
+  logWarning as logWarningRuntime,
+  logError as logErrorRuntime,
+  logInfo as logInfoRuntime,
+  config,
+} from '@grafana/runtime';
 
 import { getPluginSettings } from '../pluginSettings';
 
@@ -19,22 +24,35 @@ export function assertNever(x: never): never {
   throw new Error(`Unexpected object: ${x}. This should never happen.`);
 }
 
-const sandboxLogger = createMonitoringLogger('sandbox', { monitorOnly: String(monitorOnly) });
-
 export function isReactClassComponent(obj: unknown): obj is React.Component {
   return obj instanceof React.Component;
 }
 
 export function logWarning(message: string, context?: LogContext) {
-  sandboxLogger.logWarning(message, context);
+  context = {
+    ...context,
+    source: 'sandbox',
+    monitorOnly: String(monitorOnly),
+  };
+  logWarningRuntime(message, context);
 }
 
 export function logError(error: Error, context?: LogContext) {
-  sandboxLogger.logError(error, context);
+  context = {
+    ...context,
+    source: 'sandbox',
+    monitorOnly: String(monitorOnly),
+  };
+  logErrorRuntime(error, context);
 }
 
 export function logInfo(message: string, context?: LogContext) {
-  sandboxLogger.logInfo(message, context);
+  context = {
+    ...context,
+    source: 'sandbox',
+    monitorOnly: String(monitorOnly),
+  };
+  logInfoRuntime(message, context);
 }
 
 export async function isFrontendSandboxSupported({

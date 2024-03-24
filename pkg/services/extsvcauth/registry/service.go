@@ -1,7 +1,5 @@
 package registry
 
-// FIXME (gamab): we can eventually remove this package
-
 import (
 	"context"
 	"sync"
@@ -11,6 +9,7 @@ import (
 	"github.com/grafana/grafana/pkg/infra/serverlock"
 	"github.com/grafana/grafana/pkg/infra/slugify"
 	"github.com/grafana/grafana/pkg/services/extsvcauth"
+	"github.com/grafana/grafana/pkg/services/extsvcauth/oauthserver/oasimpl"
 	"github.com/grafana/grafana/pkg/services/featuremgmt"
 	"github.com/grafana/grafana/pkg/services/serviceaccounts/extsvcaccounts"
 )
@@ -30,20 +29,21 @@ type serverLocker interface {
 type Registry struct {
 	features featuremgmt.FeatureToggles
 	logger   log.Logger
+	oauthReg extsvcauth.ExternalServiceRegistry
 	saReg    extsvcauth.ExternalServiceRegistry
 
-	// FIXME (gamab): we can remove this field and use the saReg.GetExternalServiceNames directly
 	extSvcProviders map[string]extsvcauth.AuthProvider
 	lock            sync.Mutex
 	serverLock      serverLocker
 }
 
-func ProvideExtSvcRegistry(saSvc *extsvcaccounts.ExtSvcAccountsService, serverLock *serverlock.ServerLockService, features featuremgmt.FeatureToggles) *Registry {
+func ProvideExtSvcRegistry(oauthServer *oasimpl.OAuth2ServiceImpl, saSvc *extsvcaccounts.ExtSvcAccountsService, serverLock *serverlock.ServerLockService, features featuremgmt.FeatureToggles) *Registry {
 	return &Registry{
 		extSvcProviders: map[string]extsvcauth.AuthProvider{},
 		features:        features,
 		lock:            sync.Mutex{},
 		logger:          log.New("extsvcauth.registry"),
+		oauthReg:        oauthServer,
 		saReg:           saSvc,
 		serverLock:      serverLock,
 	}
@@ -67,6 +67,11 @@ func (r *Registry) CleanUpOrphanedExternalServices(ctx context.Context) error {
 				switch provider {
 				case extsvcauth.ServiceAccounts:
 					if err := r.saReg.RemoveExternalService(ctx, name); err != nil {
+						errCleanUp = err
+						return
+					}
+				case extsvcauth.OAuth2Server:
+					if err := r.oauthReg.RemoveExternalService(ctx, name); err != nil {
 						errCleanUp = err
 						return
 					}
@@ -116,6 +121,13 @@ func (r *Registry) RemoveExternalService(ctx context.Context, name string) error
 		}
 		r.logger.Debug("Routing External Service removal to the External Service Account service", "service", name)
 		return r.saReg.RemoveExternalService(ctx, name)
+	case extsvcauth.OAuth2Server:
+		if !r.features.IsEnabled(ctx, featuremgmt.FlagExternalServiceAuth) {
+			r.logger.Debug("Skipping External Service removal, flag disabled", "service", name, "flag", featuremgmt.FlagExternalServiceAccounts)
+			return nil
+		}
+		r.logger.Debug("Routing External Service removal to the OAuth2Server", "service", name)
+		return r.oauthReg.RemoveExternalService(ctx, name)
 	default:
 		return extsvcauth.ErrUnknownProvider.Errorf("unknown provider '%v'", provider)
 	}
@@ -145,6 +157,13 @@ func (r *Registry) SaveExternalService(ctx context.Context, cmd *extsvcauth.Exte
 			}
 			r.logger.Debug("Routing the External Service registration to the External Service Account service", "service", cmd.Name)
 			extSvc, errSave = r.saReg.SaveExternalService(ctx, cmd)
+		case extsvcauth.OAuth2Server:
+			if !r.features.IsEnabled(ctx, featuremgmt.FlagExternalServiceAuth) {
+				r.logger.Warn("Skipping External Service authentication, flag disabled", "service", cmd.Name, "flag", featuremgmt.FlagExternalServiceAuth)
+				return
+			}
+			r.logger.Debug("Routing the External Service registration to the OAuth2Server", "service", cmd.Name)
+			extSvc, errSave = r.oauthReg.SaveExternalService(ctx, cmd)
 		default:
 			errSave = extsvcauth.ErrUnknownProvider.Errorf("unknown provider '%v'", cmd.AuthProvider)
 		}
@@ -168,7 +187,16 @@ func (r *Registry) retrieveExtSvcProviders(ctx context.Context) (map[string]exts
 			extsvcs[names[i]] = extsvcauth.ServiceAccounts
 		}
 	}
-
+	// Important to run this second as the OAuth server uses External Service Accounts as well.
+	if r.features.IsEnabled(ctx, featuremgmt.FlagExternalServiceAuth) {
+		names, err := r.oauthReg.GetExternalServiceNames(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for i := range names {
+			extsvcs[names[i]] = extsvcauth.OAuth2Server
+		}
+	}
 	return extsvcs, nil
 }
 

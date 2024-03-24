@@ -8,14 +8,9 @@ import (
 	"github.com/grafana/grafana/pkg/services/featuremgmt"
 	"github.com/grafana/grafana/pkg/tests/apis"
 	"github.com/grafana/grafana/pkg/tests/testinfra"
-	"github.com/grafana/grafana/pkg/tests/testsuite"
 )
 
-func TestMain(m *testing.M) {
-	testsuite.Run(m)
-}
-
-func TestIntegrationRequiresDevMode(t *testing.T) {
+func TestRequiresDevMode(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test")
 	}
@@ -23,6 +18,7 @@ func TestIntegrationRequiresDevMode(t *testing.T) {
 		AppModeProduction: true, // should fail
 		DisableAnonymous:  true,
 		EnableFeatureToggles: []string{
+			featuremgmt.FlagGrafanaAPIServer,
 			featuremgmt.FlagGrafanaAPIServerWithExperimentalAPIs, // Required to start the example service
 		},
 	})
@@ -31,7 +27,7 @@ func TestIntegrationRequiresDevMode(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestIntegrationDashboardsApp(t *testing.T) {
+func TestDashboardsApp(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test")
 	}
@@ -39,6 +35,7 @@ func TestIntegrationDashboardsApp(t *testing.T) {
 		AppModeProduction: false, // required for experimental APIs
 		DisableAnonymous:  true,
 		EnableFeatureToggles: []string{
+			featuremgmt.FlagGrafanaAPIServer,
 			featuremgmt.FlagGrafanaAPIServerWithExperimentalAPIs, // Required to start the example service
 		},
 	})
@@ -77,7 +74,7 @@ func TestIntegrationDashboardsApp(t *testing.T) {
 					{
 					  "responseKind": {
 						"group": "",
-						"kind": "DashboardVersionList",
+						"kind": "DashboardVersionsInfo",
 						"version": ""
 					  },
 					  "subresource": "versions",

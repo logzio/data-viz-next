@@ -12,7 +12,6 @@ import (
 )
 
 func SLOQuery(t *testing.T) {
-	service := &Service{}
 	t.Run("when data from query returns slo and alias by is defined", func(t *testing.T) {
 		data, err := loadTestFile("./test-data/6-series-response-slo.json")
 		require.NoError(t, err)
@@ -30,7 +29,7 @@ func SLOQuery(t *testing.T) {
 				},
 				aliasBy: "{{project}} - {{service}} - {{slo}} - {{selector}}",
 			}
-			err = query.parseResponse(res, data, "", service.logger)
+			err = query.parseResponse(res, data, "")
 			require.NoError(t, err)
 			frames := res.Frames
 			require.NoError(t, err)
@@ -54,7 +53,7 @@ func SLOQuery(t *testing.T) {
 					SloId:        "test-slo",
 				},
 			}
-			err = query.parseResponse(res, data, "", service.logger)
+			err = query.parseResponse(res, data, "")
 			require.NoError(t, err)
 			frames := res.Frames
 			require.NoError(t, err)
@@ -69,7 +68,7 @@ func SLOQuery(t *testing.T) {
 
 		res := &backend.DataResponse{}
 		query := &cloudMonitoringSLO{params: url.Values{}, parameters: &dataquery.SLOQuery{SloId: "yes"}}
-		err = query.parseResponse(res, data, "", service.logger)
+		err = query.parseResponse(res, data, "")
 		require.NoError(t, err)
 		frames := res.Frames
 		assert.Equal(t, len(frames[0].Fields[1].Config.Links), 0)

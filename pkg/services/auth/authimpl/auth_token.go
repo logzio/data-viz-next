@@ -66,7 +66,7 @@ type UserAuthTokenService struct {
 }
 
 func (s *UserAuthTokenService) CreateToken(ctx context.Context, user *user.User, clientIP net.IP, userAgent string) (*auth.UserToken, error) {
-	token, hashedToken, err := generateAndHashToken(s.cfg.SecretKey)
+	token, hashedToken, err := generateAndHashToken()
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +112,7 @@ func (s *UserAuthTokenService) CreateToken(ctx context.Context, user *user.User,
 }
 
 func (s *UserAuthTokenService) LookupToken(ctx context.Context, unhashedToken string) (*auth.UserToken, error) {
-	hashedToken := hashToken(s.cfg.SecretKey, unhashedToken)
+	hashedToken := hashToken(unhashedToken)
 	var model userAuthToken
 	var exists bool
 	var err error
@@ -249,7 +249,7 @@ func (s *UserAuthTokenService) rotateToken(ctx context.Context, token *auth.User
 		clientIPStr = clientIP.String()
 	}
 
-	newToken, hashedToken, err := generateAndHashToken(s.cfg.SecretKey)
+	newToken, hashedToken, err := generateAndHashToken()
 	if err != nil {
 		return nil, err
 	}
@@ -338,7 +338,7 @@ func (s *UserAuthTokenService) TryRotateToken(ctx context.Context, token *auth.U
 		if err != nil {
 			return nil, err
 		}
-		hashedToken := hashToken(s.cfg.SecretKey, newToken)
+		hashedToken := hashToken(newToken)
 
 		// very important that auth_token_seen is set after the prev_auth_token = case when ... for mysql to function correctly
 		sql := `
@@ -627,18 +627,18 @@ func createToken() (string, error) {
 	return token, nil
 }
 
-func hashToken(secretKey string, token string) string {
-	hashBytes := sha256.Sum256([]byte(token + secretKey))
+func hashToken(token string) string {
+	hashBytes := sha256.Sum256([]byte(token + setting.SecretKey))
 	return hex.EncodeToString(hashBytes[:])
 }
 
-func generateAndHashToken(secretKey string) (string, string, error) {
+func generateAndHashToken() (string, string, error) {
 	token, err := createToken()
 	if err != nil {
 		return "", "", err
 	}
 
-	return token, hashToken(secretKey, token), nil
+	return token, hashToken(token), nil
 }
 
 func readQuotaConfig(cfg *setting.Cfg) (*quota.Map, error) {

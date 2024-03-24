@@ -42,15 +42,12 @@ describe('Dimensions', () => {
       />
     );
     await userEvent.click(screen.getByLabelText('Dimensions filter key'));
-    expect(getDimensionKeys).toHaveBeenCalledWith(
-      {
-        namespace: q.namespace,
-        region: q.region,
-        metricName: q.metricName,
-        accountId: q.accountId,
-        dimensionFilters: { abc: ['xyz'] },
-      },
-      false
-    );
+    expect(getDimensionKeys).toHaveBeenCalledWith({
+      namespace: q.namespace,
+      region: q.region,
+      metricName: q.metricName,
+      accountId: q.accountId,
+      dimensionFilters: { abc: ['xyz'] },
+    });
   });
 });

@@ -1,6 +1,7 @@
 import { SerializedError } from '@reduxjs/toolkit';
 import { useEffect, useMemo } from 'react';
 
+import { DashboardModel, PanelModel } from 'app/features/dashboard/state';
 import { useDispatch } from 'app/types';
 import { CombinedRule } from 'app/types/unified-alerting';
 
@@ -13,8 +14,8 @@ import { useCombinedRuleNamespaces } from './useCombinedRuleNamespaces';
 import { useUnifiedAlertingSelector } from './useUnifiedAlertingSelector';
 
 interface Options {
-  dashboardUID: string;
-  panelId: number;
+  dashboard: DashboardModel;
+  panel: PanelModel;
 
   poll?: boolean;
 }
@@ -26,7 +27,7 @@ interface ReturnBag {
   loading?: boolean;
 }
 
-export function usePanelCombinedRules({ dashboardUID, panelId, poll = false }: Options): ReturnBag {
+export function usePanelCombinedRules({ dashboard, panel, poll = false }: Options): ReturnBag {
   const dispatch = useDispatch();
 
   const promRuleRequest =
@@ -40,13 +41,13 @@ export function usePanelCombinedRules({ dashboardUID, panelId, poll = false }: O
       dispatch(
         fetchPromRulesAction({
           rulesSourceName: GRAFANA_RULES_SOURCE_NAME,
-          filter: { dashboardUID, panelId },
+          filter: { dashboardUID: dashboard.uid, panelId: panel.id },
         })
       );
       dispatch(
         fetchRulerRulesAction({
           rulesSourceName: GRAFANA_RULES_SOURCE_NAME,
-          filter: { dashboardUID, panelId },
+          filter: { dashboardUID: dashboard.uid, panelId: panel.id },
         })
       );
     };
@@ -58,7 +59,7 @@ export function usePanelCombinedRules({ dashboardUID, panelId, poll = false }: O
       };
     }
     return () => {};
-  }, [dispatch, poll, panelId, dashboardUID]);
+  }, [dispatch, poll, panel.id, dashboard.uid]);
 
   const loading = promRuleRequest.loading || rulerRuleRequest.loading;
   const errors = [promRuleRequest.error, rulerRuleRequest.error].filter(
@@ -75,10 +76,10 @@ export function usePanelCombinedRules({ dashboardUID, panelId, poll = false }: O
         .flatMap((group) => group.rules)
         .filter(
           (rule) =>
-            rule.annotations[Annotation.dashboardUID] === dashboardUID &&
-            rule.annotations[Annotation.panelID] === String(panelId)
+            rule.annotations[Annotation.dashboardUID] === dashboard.uid &&
+            rule.annotations[Annotation.panelID] === String(panel.id)
         ),
-    [combinedNamespaces, dashboardUID, panelId]
+    [combinedNamespaces, dashboard, panel]
   );
 
   return {

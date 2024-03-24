@@ -51,10 +51,7 @@ export const usePluginDetailsTabs = (plugin?: CatalogPlugin, pageId?: PluginTabI
       });
     }
 
-    if (
-      config.featureToggles.panelTitleSearch &&
-      (pluginConfig.meta.type === PluginType.panel || pluginConfig.meta.type === PluginType.datasource)
-    ) {
+    if (config.featureToggles.panelTitleSearch && pluginConfig.meta.type === PluginType.panel) {
       navModelChildren.push({
         text: PluginTabLabels.USAGE,
         icon: 'list-ul',

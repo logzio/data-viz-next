@@ -19,34 +19,30 @@ import (
 	"github.com/grafana/grafana/pkg/plugins/manager/registry"
 	"github.com/grafana/grafana/pkg/plugins/manager/signature"
 	"github.com/grafana/grafana/pkg/plugins/manager/sources"
-	"github.com/grafana/grafana/pkg/services/pluginsintegration/pipeline"
+	"github.com/grafana/grafana/pkg/services/featuremgmt"
 	"github.com/grafana/grafana/pkg/services/rendering"
 )
 
-func ProvideService(cfg *config.PluginManagementCfg, pluginEnvProvider envvars.Provider,
-	registry registry.Service) (*Manager, error) {
-	l, err := createLoader(cfg, pluginEnvProvider, registry)
+func ProvideService(cfg *config.Cfg, registry registry.Service, licensing plugins.Licensing,
+	features featuremgmt.FeatureToggles) (*Manager, error) {
+	l, err := createLoader(cfg, registry, licensing, features)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewManager(cfg, l), nil
+	return &Manager{
+		cfg:    cfg,
+		loader: l,
+		log:    log.New("plugins.renderer"),
+	}, nil
 }
 
 type Manager struct {
-	cfg    *config.PluginManagementCfg
+	cfg    *config.Cfg
 	loader loader.Service
 	log    log.Logger
 
 	renderer *Plugin
-}
-
-func NewManager(cfg *config.PluginManagementCfg, loader loader.Service) *Manager {
-	return &Manager{
-		cfg:    cfg,
-		loader: loader,
-		log:    log.New("renderer.manager"),
-	}
 }
 
 type Plugin struct {
@@ -81,35 +77,27 @@ func (m *Manager) Renderer(ctx context.Context) (rendering.Plugin, bool) {
 		return m.renderer, true
 	}
 
-	srcs, err := sources.DirAsLocalSources(m.cfg.PluginsPath, plugins.ClassExternal)
+	ps, err := m.loader.Load(ctx, sources.NewLocalSource(plugins.ClassExternal, []string{m.cfg.PluginsPath}))
 	if err != nil {
-		m.log.Error("Failed to get renderer plugin sources", "error", err)
+		m.log.Error("Failed to load renderer plugin", "error", err)
 		return nil, false
 	}
 
-	for _, src := range srcs {
-		ps, err := m.loader.Load(ctx, src)
-		if err != nil {
-			m.log.Error("Failed to load renderer plugin", "error", err)
-			return nil, false
-		}
-
-		if len(ps) >= 1 {
-			m.renderer = &Plugin{plugin: ps[0]}
-			return m.renderer, true
-		}
+	if len(ps) >= 1 {
+		m.renderer = &Plugin{plugin: ps[0]}
+		return m.renderer, true
 	}
 
 	return nil, false
 }
 
-func createLoader(cfg *config.PluginManagementCfg, pluginEnvProvider envvars.Provider,
-	pr registry.Service) (loader.Service, error) {
+func createLoader(cfg *config.Cfg, pr registry.Service, l plugins.Licensing,
+	features featuremgmt.FeatureToggles) (loader.Service, error) {
 	d := discovery.New(cfg, discovery.Opts{
 		FindFilterFuncs: []discovery.FindFilterFunc{
 			discovery.NewPermittedPluginTypesFilterStep([]plugins.Type{plugins.TypeRenderer}),
 			func(ctx context.Context, class plugins.Class, bundles []*plugins.FoundBundle) ([]*plugins.FoundBundle, error) {
-				return pipeline.NewDuplicatePluginIDFilterStep(pr).Filter(ctx, bundles)
+				return discovery.NewDuplicatePluginFilterStep(pr).Filter(ctx, bundles)
 			},
 		},
 	})
@@ -123,7 +111,7 @@ func createLoader(cfg *config.PluginManagementCfg, pluginEnvProvider envvars.Pro
 	})
 	i := initialization.New(cfg, initialization.Opts{
 		InitializeFuncs: []initialization.InitializeFunc{
-			initialization.BackendClientInitStep(pluginEnvProvider, provider.New(provider.RendererProvider)),
+			initialization.BackendClientInitStep(envvars.NewProvider(cfg, l), provider.New(provider.RendererProvider)),
 			initialization.PluginRegistrationStep(pr),
 		},
 	})

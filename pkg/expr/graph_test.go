@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/grafana/grafana/pkg/services/datasources"
-	"github.com/grafana/grafana/pkg/services/featuremgmt"
 )
 
 func TestServicebuildPipeLine(t *testing.T) {
@@ -232,9 +231,7 @@ func TestServicebuildPipeLine(t *testing.T) {
 			expectedOrder: []string{"B", "A"},
 		},
 	}
-	s := Service{
-		features: featuremgmt.WithFeatures(featuremgmt.FlagExpressionParser),
-	}
+	s := Service{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			nodes, err := s.buildPipeline(tt.req)

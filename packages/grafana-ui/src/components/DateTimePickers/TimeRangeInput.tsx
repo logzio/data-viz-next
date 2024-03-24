@@ -78,7 +78,7 @@ export const TimeRangeInput = ({
       <button
         type="button"
         className={styles.pickerInput}
-        data-testid={selectors.components.TimePicker.openButton}
+        aria-label={selectors.components.TimePicker.openButton}
         onClick={onOpen}
       >
         {showIcon && <Icon name="clock-nine" size={'sm'} className={styles.icon} />}

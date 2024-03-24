@@ -2,11 +2,13 @@ import { css } from '@emotion/css';
 import React, { useCallback, useEffect, useState } from 'react';
 
 import { CoreApp, GrafanaTheme2 } from '@grafana/data';
-import { TemporaryAlert } from '@grafana/o11y-ds-frontend';
 import { config, FetchError, getTemplateSrv, reportInteraction } from '@grafana/runtime';
 import { Alert, Button, HorizontalGroup, Select, useStyles2 } from '@grafana/ui';
 
+import { notifyApp } from '../_importedDependencies/actions/appNotification';
+import { createErrorNotification } from '../_importedDependencies/core/appNotification';
 import { RawQuery } from '../_importedDependencies/datasources/prometheus/RawQuery';
+import { dispatch } from '../_importedDependencies/store';
 import { TraceqlFilter, TraceqlSearchScope } from '../dataquery.gen';
 import { TempoDatasource } from '../datasource';
 import { TempoQueryBuilderOptions } from '../traceql/TempoQueryBuilderOptions';
@@ -33,7 +35,6 @@ const hardCodedFilterIds = ['min-duration', 'max-duration', 'status'];
 
 const TraceQLSearch = ({ datasource, query, onChange, onClearResults, app }: Props) => {
   const styles = useStyles2(getStyles);
-  const [alertText, setAlertText] = useState<string>();
   const [error, setError] = useState<Error | FetchError | null>(null);
 
   const [isTagsLoading, setIsTagsLoading] = useState(true);
@@ -72,15 +73,14 @@ const TraceQLSearch = ({ datasource, query, onChange, onClearResults, app }: Pro
       try {
         await datasource.languageProvider.start();
         setIsTagsLoading(false);
-        setAlertText(undefined);
       } catch (error) {
         if (error instanceof Error) {
-          setAlertText(`Error: ${error.message}`);
+          dispatch(notifyApp(createErrorNotification('Error', error)));
         }
       }
     };
     fetchTags();
-  }, [datasource, setAlertText]);
+  }, [datasource]);
 
   useEffect(() => {
     // Initialize state with configured static filters that already have a value from the config
@@ -151,8 +151,6 @@ const TraceQLSearch = ({ datasource, query, onChange, onClearResults, app }: Pro
               hideScope={true}
               hideTag={true}
               query={traceQlQuery}
-              isMulti={false}
-              allowCustomValue={false}
             />
           </InlineSearchField>
           <InlineSearchField
@@ -211,7 +209,6 @@ const TraceQLSearch = ({ datasource, query, onChange, onClearResults, app }: Pro
               staticTags={staticTags}
               isTagsLoading={isTagsLoading}
               query={traceQlQuery}
-              requireTagAndValue={true}
             />
           </InlineSearchField>
           {config.featureToggles.metricsSummary && (
@@ -250,7 +247,6 @@ const TraceQLSearch = ({ datasource, query, onChange, onClearResults, app }: Pro
           configure it in the <a href={`/datasources/edit/${datasource.uid}`}>datasource settings</a>.
         </Alert>
       ) : null}
-      {alertText && <TemporaryAlert severity={'error'} text={alertText} />}
     </>
   );
 };
@@ -258,16 +254,16 @@ const TraceQLSearch = ({ datasource, query, onChange, onClearResults, app }: Pro
 export default TraceQLSearch;
 
 const getStyles = (theme: GrafanaTheme2) => ({
-  alert: css({
-    maxWidth: '75ch',
-    marginTop: theme.spacing(2),
-  }),
-  container: css({
-    display: 'flex',
-    gap: '4px',
-    flexWrap: 'wrap',
-    flexDirection: 'column',
-  }),
+  alert: css`
+    max-width: 75ch;
+    margin-top: ${theme.spacing(2)};
+  `,
+  container: css`
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    flex-direction: column;
+  `,
   rawQueryContainer: css({
     alignItems: 'center',
     backgroundColor: theme.colors.background.secondary,

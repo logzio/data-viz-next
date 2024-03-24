@@ -96,10 +96,12 @@ const addFilter = async (
 
   const operationLabel = operation === 'eq' ? '=' : '!=';
   const addFilter = await screen.findByLabelText('Add');
-  await userEvent.click(addFilter);
-  if (mockQuery.azureTraces?.filters && mockQuery.azureTraces.filters.length < 1) {
-    expect(onQueryChange).not.toHaveBeenCalled();
-  }
+  await act(() => {
+    userEvent.click(addFilter);
+    if (mockQuery.azureTraces?.filters && mockQuery.azureTraces.filters.length < 1) {
+      expect(onQueryChange).not.toHaveBeenCalled();
+    }
+  });
 
   await waitFor(() => expect(screen.getByText('Property')).toBeInTheDocument());
   const propertySelect = await screen.findByText('Property');
@@ -160,8 +162,8 @@ const addFilter = async (
     ...(mockQuery.azureTraces?.filters ?? []),
     { property, operation, filters: values },
   ]);
-  await userEvent.type(valueSelect, '{Escape}');
   await waitFor(() => {
+    userEvent.type(valueSelect, '{Escape}');
     expect(onQueryChange).toHaveBeenCalledWith(newQuery);
   });
 

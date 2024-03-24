@@ -1,5 +1,5 @@
 'use strict';
-const { getPackagesSync } = require('@manypkg/get-packages');
+
 const browserslist = require('browserslist');
 const { resolveToEsbuildTarget } = require('esbuild-plugin-browserslist');
 const ESLintPlugin = require('eslint-webpack-plugin');
@@ -9,7 +9,6 @@ const path = require('path');
 const { DefinePlugin } = require('webpack');
 const WebpackAssetsManifest = require('webpack-assets-manifest');
 const { merge } = require('webpack-merge');
-const WebpackBar = require('webpackbar');
 
 const common = require('./webpack.common.js');
 const esbuildTargets = resolveToEsbuildTarget(browserslist(), { printUnknownTargets: false });
@@ -19,12 +18,6 @@ const esbuildOptions = {
   target: esbuildTargets,
   format: undefined,
 };
-
-// To speed up webpack and prevent unnecessary rebuilds we ignore decoupled packages
-function getDecoupledPlugins() {
-  const { packages } = getPackagesSync(process.cwd());
-  return packages.filter((pkg) => pkg.dir.includes('plugins/datasource')).map((pkg) => `${pkg.dir}/**`);
-}
 
 module.exports = (env = {}) => {
   return merge(common, {
@@ -39,19 +32,7 @@ module.exports = (env = {}) => {
 
     // If we enabled watch option via CLI
     watchOptions: {
-      ignored: ['/node_modules/', ...getDecoupledPlugins()],
-    },
-
-    resolve: {
-      alias: {
-        // Packages linked for development need react to be resolved from the same location
-        react: require.resolve('react'),
-
-        // Also Grafana packages need to be resolved from the same location so they share
-        // the same singletons
-        '@grafana/runtime': path.resolve(__dirname, '../../packages/grafana-runtime'),
-        '@grafana/data': path.resolve(__dirname, '../../packages/grafana-data'),
-      },
+      ignored: /node_modules/,
     },
 
     module: {
@@ -59,6 +40,7 @@ module.exports = (env = {}) => {
       rules: [
         {
           test: /\.tsx?$/,
+          exclude: /node_modules/,
           use: {
             loader: 'esbuild-loader',
             options: esbuildOptions,
@@ -70,8 +52,6 @@ module.exports = (env = {}) => {
         }),
       ],
     },
-
-    // infrastructureLogging: { level: 'error' },
 
     // https://webpack.js.org/guides/build-performance/#output-without-path-info
     output: {
@@ -130,12 +110,6 @@ module.exports = (env = {}) => {
         integrity: true,
         publicPath: true,
       }),
-      new WebpackBar({
-        color: '#eb7b18',
-        name: 'Grafana',
-      }),
     ],
-
-    stats: 'minimal',
   });
 };

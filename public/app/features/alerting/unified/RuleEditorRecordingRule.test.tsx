@@ -3,7 +3,7 @@ import userEvent, { PointerEventsCheckLevel } from '@testing-library/user-event'
 import React from 'react';
 import { renderRuleEditor, ui } from 'test/helpers/alertingRuleEditor';
 import { clickSelectOption } from 'test/helpers/selectOptionInTest';
-import { byText } from 'testing-library-selector';
+import { byRole, byText } from 'testing-library-selector';
 
 import { setDataSourceSrv } from '@grafana/runtime';
 import { contextSrv } from 'app/core/services/context_srv';
@@ -72,7 +72,6 @@ jest.mock('@grafana/runtime', () => ({
   getDataSourceSrv: jest.fn(() => ({
     getInstanceSettings: () => dataSources.default,
     get: () => dataSources.default,
-    getList: () => Object.values(dataSources),
   })),
 }));
 
@@ -150,9 +149,9 @@ describe('RuleEditor recording rules', () => {
     await userEvent.type(await ui.inputs.name.find(), 'my great new recording rule');
 
     const dataSourceSelect = ui.inputs.dataSource.get();
-    await userEvent.click(dataSourceSelect);
+    await userEvent.click(byRole('combobox').get(dataSourceSelect));
 
-    await userEvent.click(screen.getByText('Prom'));
+    await clickSelectOption(dataSourceSelect, 'Prom (default)');
     await clickSelectOption(ui.inputs.namespace.get(), 'namespace2');
     await clickSelectOption(ui.inputs.group.get(), 'group2');
 

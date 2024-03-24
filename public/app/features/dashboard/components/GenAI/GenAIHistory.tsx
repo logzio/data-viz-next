@@ -2,7 +2,18 @@ import { css } from '@emotion/css';
 import React, { useEffect, useState } from 'react';
 
 import { GrafanaTheme2 } from '@grafana/data';
-import { Alert, Button, Icon, IconButton, Input, Stack, Text, TextLink, useStyles2 } from '@grafana/ui';
+import {
+  Alert,
+  Button,
+  HorizontalGroup,
+  Icon,
+  IconButton,
+  Input,
+  Text,
+  TextLink,
+  useStyles2,
+  VerticalGroup,
+} from '@grafana/ui';
 
 import { STOP_GENERATION_TEXT } from './GenAIButton';
 import { GenerationHistoryCarousel } from './GenerationHistoryCarousel';
@@ -89,9 +100,7 @@ export const GenAIHistory = ({
 
   const onGenerateWithFeedback = (suggestion: string | QuickFeedbackType) => {
     if (suggestion !== QuickFeedbackType.Regenerate) {
-      messages = [...messages, ...getFeedbackMessage(history[currentIndex - 1], suggestion)];
-    } else {
-      messages = [...messages, ...getFeedbackMessage(history[currentIndex - 1], 'Please, regenerate')];
+      messages = [...messages, ...getFeedbackMessage(history[currentIndex], suggestion)];
     }
 
     setMessages(messages);
@@ -113,11 +122,13 @@ export const GenAIHistory = ({
   return (
     <div className={styles.container}>
       {showError && (
-        <Alert title="">
-          <Stack direction={'column'}>
-            <p>Sorry, I was unable to complete your request. Please try again.</p>
-          </Stack>
-        </Alert>
+        <div>
+          <Alert title="">
+            <VerticalGroup>
+              <div>Sorry, I was unable to complete your request. Please try again.</div>
+            </VerticalGroup>
+          </Alert>
+        </div>
       )}
 
       <Input
@@ -146,11 +157,11 @@ export const GenAIHistory = ({
         />
       </div>
       <div className={styles.applySuggestion}>
-        <Stack justifyContent={'flex-end'} direction={'row'}>
+        <HorizontalGroup justify={'flex-end'}>
           <Button icon={!isStreamGenerating ? 'check' : 'fa fa-spinner'} onClick={onApply}>
             {isStreamGenerating ? STOP_GENERATION_TEXT : 'Apply'}
           </Button>
-        </Stack>
+        </HorizontalGroup>
       </div>
       <div className={styles.footer}>
         <Icon name="exclamation-circle" aria-label="exclamation-circle" className={styles.infoColor} />
@@ -175,7 +186,7 @@ const getStyles = (theme: GrafanaTheme2) => ({
     display: 'flex',
     flexDirection: 'column',
     width: 520,
-    maxHeight: 350,
+    height: 250,
     // This is the space the footer height
     paddingBottom: 35,
   }),

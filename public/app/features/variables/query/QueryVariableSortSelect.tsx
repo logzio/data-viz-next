@@ -1,6 +1,7 @@
 import React, { PropsWithChildren, useMemo } from 'react';
 
 import { SelectableValue } from '@grafana/data';
+import { selectors } from '@grafana/e2e-selectors';
 
 import { VariableSelectField } from '../../dashboard-scene/settings/variables/components/VariableSelectField';
 import { VariableSort } from '../types';
@@ -8,7 +9,6 @@ import { VariableSort } from '../types';
 interface Props {
   onChange: (option: SelectableValue<VariableSort>) => void;
   sort: VariableSort;
-  testId?: string;
 }
 
 const SORT_OPTIONS = [
@@ -23,7 +23,7 @@ const SORT_OPTIONS = [
   { label: 'Natural (desc)', value: VariableSort.naturalDesc },
 ];
 
-export function QueryVariableSortSelect({ onChange, sort, testId }: PropsWithChildren<Props>) {
+export function QueryVariableSortSelect({ onChange, sort }: PropsWithChildren<Props>) {
   const value = useMemo(() => SORT_OPTIONS.find((o) => o.value === sort) ?? SORT_OPTIONS[0], [sort]);
 
   return (
@@ -33,7 +33,7 @@ export function QueryVariableSortSelect({ onChange, sort, testId }: PropsWithChi
       value={value}
       options={SORT_OPTIONS}
       onChange={onChange}
-      testId={testId}
+      testId={selectors.pages.Dashboard.Settings.Variables.Edit.QueryVariable.queryOptionsSortSelectV2}
       width={25}
     />
   );

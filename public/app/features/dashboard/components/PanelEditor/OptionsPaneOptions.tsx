@@ -33,14 +33,7 @@ export const OptionsPaneOptions = (props: OptionPaneRenderProps) => {
   );
 
   const justOverrides = useMemo(
-    () =>
-      getFieldOverrideCategories(
-        props.panel.fieldConfig,
-        props.plugin.fieldConfigRegistry,
-        props.data?.series ?? [],
-        searchQuery,
-        props.onFieldConfigsChange
-      ),
+    () => getFieldOverrideCategories(props, searchQuery),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [panel.configRev, props.data, props.instanceState, searchQuery]
   );
@@ -150,7 +143,7 @@ export enum OptionFilter {
   Recent = 'Recent',
 }
 
-export function renderSearchHits(
+function renderSearchHits(
   allOptions: OptionsPaneCategoryDescriptor[],
   overrides: OptionsPaneCategoryDescriptor[],
   searchQuery: string

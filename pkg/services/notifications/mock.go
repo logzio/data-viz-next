@@ -2,17 +2,13 @@ package notifications
 
 import (
 	"context"
-
-	"github.com/grafana/grafana/pkg/services/user"
 )
 
 type NotificationServiceMock struct {
-	Webhook           SendWebhookSync
-	EmailSync         SendEmailCommandSync
-	Email             SendEmailCommand
-	EmailVerified     bool
-	EmailVerification SendVerifyEmailCommand
-	ShouldError       error
+	Webhook     SendWebhookSync
+	EmailSync   SendEmailCommandSync
+	Email       SendEmailCommand
+	ShouldError error
 
 	WebhookHandler   func(context.Context, *SendWebhookSync) error
 	EmailHandlerSync func(context.Context, *SendEmailCommandSync) error
@@ -40,22 +36,6 @@ func (ns *NotificationServiceMock) SendEmailCommandHandler(ctx context.Context, 
 	if ns.EmailHandler != nil {
 		return ns.EmailHandler(ctx, cmd)
 	}
-	return ns.ShouldError
-}
-
-func (ns *NotificationServiceMock) SendResetPasswordEmail(ctx context.Context, cmd *SendResetPasswordEmailCommand) error {
-	// TODO: Implement if needed
-	return ns.ShouldError
-}
-
-func (ns *NotificationServiceMock) ValidateResetPasswordCode(ctx context.Context, query *ValidateResetPasswordCodeQuery, userByLogin GetUserByLoginFunc) (*user.User, error) {
-	// TODO: Implement if needed
-	return nil, ns.ShouldError
-}
-
-func (ns *NotificationServiceMock) SendVerificationEmail(ctx context.Context, cmd *SendVerifyEmailCommand) error {
-	ns.EmailVerified = true
-	ns.EmailVerification = *cmd
 	return ns.ShouldError
 }
 

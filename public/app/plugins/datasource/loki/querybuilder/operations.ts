@@ -1,4 +1,4 @@
-import { QueryBuilderOperationDefinition, QueryBuilderOperationParamValue } from '@grafana/experimental';
+import { QueryBuilderOperationDef, QueryBuilderOperationParamValue } from '../../prometheus/querybuilder/shared/types';
 
 import { binaryScalarOperations } from './binaryScalarOperations';
 import { UnwrapParamEditor } from './components/UnwrapParamEditor';
@@ -15,7 +15,7 @@ import {
 } from './operationUtils';
 import { LokiOperationId, LokiOperationOrder, lokiOperators, LokiVisualQueryOperationCategory } from './types';
 
-function getOperationDefinitions(): QueryBuilderOperationDefinition[] {
+export function getOperationDefinitions(): QueryBuilderOperationDef[] {
   const aggregations = [
     LokiOperationId.Sum,
     LokiOperationId.Min,
@@ -66,7 +66,7 @@ function getOperationDefinitions(): QueryBuilderOperationDefinition[] {
     ...createRangeOperationWithGrouping(LokiOperationId.QuantileOverTime),
   ];
 
-  const list: QueryBuilderOperationDefinition[] = [
+  const list: QueryBuilderOperationDef[] = [
     ...aggregations,
     ...aggregationsWithParam,
     ...rangeOperations,
@@ -581,14 +581,14 @@ Example: \`\`error_level=\`level\` \`\`
 }
 
 // Keeping a local copy as an optimization measure.
-export const operationDefinitions = getOperationDefinitions();
+const definitions = getOperationDefinitions();
 
 /**
  * Given an operator, return the corresponding explain.
  * For usage within the Query Editor.
  */
 export function explainOperator(id: LokiOperationId | string): string {
-  const definition = operationDefinitions.find((operation) => operation.id === id);
+  const definition = definitions.find((operation) => operation.id === id);
 
   const explain = definition?.explainHandler?.({ id: '', params: ['<value>'] }) || '';
 
@@ -596,14 +596,11 @@ export function explainOperator(id: LokiOperationId | string): string {
   return explain.replace(/\[(.*)\]\(.*\)/g, '$1');
 }
 
-export function getDefinitionById(id: string): QueryBuilderOperationDefinition | undefined {
-  return operationDefinitions.find((x) => x.id === id);
+export function getDefinitionById(id: string): QueryBuilderOperationDef | undefined {
+  return definitions.find((x) => x.id === id);
 }
 
-export function checkParamsAreValid(
-  def: QueryBuilderOperationDefinition,
-  params: QueryBuilderOperationParamValue[]
-): boolean {
+export function checkParamsAreValid(def: QueryBuilderOperationDef, params: QueryBuilderOperationParamValue[]): boolean {
   // For now we only check if the operation has all the required params.
   if (params.length < def.params.filter((param) => !param.optional).length) {
     return false;

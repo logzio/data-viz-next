@@ -4,7 +4,7 @@
 //     public/app/plugins/gen.go
 // Using jennies:
 //     TSTypesJenny
-//     PluginTsTypesJenny
+//     PluginTSTypesJenny
 //
 // Run 'make gen-cue' from repository root to regenerate.
 

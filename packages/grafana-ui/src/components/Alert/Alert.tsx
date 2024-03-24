@@ -74,9 +74,7 @@ export const Alert = React.forwardRef<HTMLDivElement, Props>(
           </Box>
 
           <Box paddingY={1} grow={1}>
-            <Text color="primary" weight="medium">
-              {title}
-            </Text>
+            <Text weight="medium">{title}</Text>
             {children && <div className={styles.content}>{children}</div>}
           </Box>
           {/* If onRemove is specified, giving preference to onRemove */}
@@ -153,7 +151,6 @@ const getStyles = (
       color: color.text,
     }),
     content: css({
-      color: theme.colors.text.primary,
       paddingTop: hasTitle ? theme.spacing(0.5) : 0,
       maxHeight: '50vh',
       overflowY: 'auto',

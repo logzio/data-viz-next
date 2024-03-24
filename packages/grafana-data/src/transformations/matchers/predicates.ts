@@ -184,11 +184,11 @@ export const alwaysFieldMatcher = (field: Field) => {
   return true;
 };
 
-const alwaysFrameMatcher = (frame: DataFrame) => {
+export const alwaysFrameMatcher = (frame: DataFrame) => {
   return true;
 };
 
-const neverFieldMatcher = (field: Field) => {
+export const neverFieldMatcher = (field: Field) => {
   return false;
 };
 
@@ -196,7 +196,7 @@ export const notTimeFieldMatcher = (field: Field) => {
   return field.type !== FieldType.time;
 };
 
-const neverFrameMatcher = (frame: DataFrame) => {
+export const neverFrameMatcher = (frame: DataFrame) => {
   return false;
 };
 

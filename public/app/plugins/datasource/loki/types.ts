@@ -1,11 +1,6 @@
 import { DataQuery, DataQueryRequest, DataSourceJsonData, TimeRange } from '@grafana/data';
 
-import {
-  LokiDataQuery as LokiQueryFromSchema,
-  LokiQueryType,
-  SupportingQueryType,
-  LokiQueryDirection,
-} from './dataquery.gen';
+import { Loki as LokiQueryFromSchema, LokiQueryType, SupportingQueryType, LokiQueryDirection } from './dataquery.gen';
 
 export { LokiQueryDirection, LokiQueryType, SupportingQueryType };
 
@@ -92,7 +87,8 @@ export interface ContextFilter {
   enabled: boolean;
   label: string;
   value: string;
-  nonIndexed: boolean;
+  fromParser: boolean;
+  description?: string;
 }
 
 export interface ParserAndLabelKeysResult {

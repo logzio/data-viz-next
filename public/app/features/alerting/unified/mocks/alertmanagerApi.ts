@@ -1,5 +1,4 @@
-import 'whatwg-fetch';
-import { http, HttpResponse } from 'msw';
+import { rest } from 'msw';
 import { SetupServer } from 'msw/node';
 
 import {
@@ -15,7 +14,7 @@ export const defaultAlertmanagerChoiceResponse: AlertmanagersChoiceResponse = {
   numExternalAlertmanagers: 0,
 };
 export function mockAlertmanagerChoiceResponse(server: SetupServer, response: AlertmanagersChoiceResponse) {
-  server.use(http.get('/api/v1/ngalert', () => HttpResponse.json(response)));
+  server.use(rest.get('/api/v1/ngalert', (req, res, ctx) => res(ctx.status(200), ctx.json(response))));
 }
 
 export const emptyExternalAlertmanagersResponse: ExternalAlertmanagersResponse = {
@@ -25,7 +24,7 @@ export const emptyExternalAlertmanagersResponse: ExternalAlertmanagersResponse =
   },
 };
 export function mockAlertmanagersResponse(server: SetupServer, response: ExternalAlertmanagersResponse) {
-  server.use(http.get('/api/v1/ngalert/alertmanagers', () => HttpResponse.json(response)));
+  server.use(rest.get('/api/v1/ngalert/alertmanagers', (req, res, ctx) => res(ctx.status(200), ctx.json(response))));
 }
 
 export function mockAlertmanagerConfigResponse(
@@ -34,8 +33,8 @@ export function mockAlertmanagerConfigResponse(
   response: AlertManagerCortexConfig
 ) {
   server.use(
-    http.get(`/api/alertmanager/${getDatasourceAPIUid(alertManagerSourceName)}/config/api/v1/alerts`, () =>
-      HttpResponse.json(response)
+    rest.get(`/api/alertmanager/${getDatasourceAPIUid(alertManagerSourceName)}/config/api/v1/alerts`, (req, res, ctx) =>
+      res(ctx.status(200), ctx.json(response))
     )
   );
 }

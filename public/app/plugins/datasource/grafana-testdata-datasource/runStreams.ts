@@ -1,6 +1,5 @@
 import { defaults } from 'lodash';
 import { Observable } from 'rxjs';
-import { v4 as uuidv4 } from 'uuid';
 
 import {
   DataQueryRequest,
@@ -13,14 +12,10 @@ import {
   DataFrameSchema,
   DataFrameData,
   StreamingDataFrame,
-  createDataFrame,
-  addRow,
-  getDisplayProcessor,
-  createTheme,
 } from '@grafana/data';
 
 import { getRandomLine } from './LogIpsum';
-import { TestDataDataQuery, StreamingQuery } from './dataquery.gen';
+import { TestData, StreamingQuery } from './dataquery.gen';
 
 export const defaultStreamQuery: StreamingQuery = {
   type: 'signal',
@@ -30,31 +25,27 @@ export const defaultStreamQuery: StreamingQuery = {
   bands: 1,
 };
 
-export function runStream(
-  target: TestDataDataQuery,
-  req: DataQueryRequest<TestDataDataQuery>
-): Observable<DataQueryResponse> {
+export function runStream(target: TestData, req: DataQueryRequest<TestData>): Observable<DataQueryResponse> {
   const query = defaults(target.stream, defaultStreamQuery);
-  switch (query.type) {
-    case 'signal':
-      return runSignalStream(target, query, req);
-    case 'logs':
-      return runLogsStream(target, query, req);
-    case 'fetch':
-      return runFetchStream(target, query, req);
-    case 'traces':
-      return runTracesStream(target, query, req);
+  if ('signal' === query.type) {
+    return runSignalStream(target, query, req);
+  }
+  if ('logs' === query.type) {
+    return runLogsStream(target, query, req);
+  }
+  if ('fetch' === query.type) {
+    return runFetchStream(target, query, req);
   }
   throw new Error(`Unknown Stream Type: ${query.type}`);
 }
 
 export function runSignalStream(
-  target: TestDataDataQuery,
+  target: TestData,
   query: StreamingQuery,
-  req: DataQueryRequest<TestDataDataQuery>
+  req: DataQueryRequest<TestData>
 ): Observable<DataQueryResponse> {
   return new Observable<DataQueryResponse>((subscriber) => {
-    const streamId = `signal-${req.panelId || 'explore'}-${target.refId}`;
+    const streamId = `signal-${req.panelId}-${target.refId}`;
     const maxDataPoints = req.maxDataPoints || 1000;
 
     const schema: DataFrameSchema = {
@@ -131,12 +122,12 @@ export function runSignalStream(
 }
 
 export function runLogsStream(
-  target: TestDataDataQuery,
+  target: TestData,
   query: StreamingQuery,
-  req: DataQueryRequest<TestDataDataQuery>
+  req: DataQueryRequest<TestData>
 ): Observable<DataQueryResponse> {
   return new Observable<DataQueryResponse>((subscriber) => {
-    const streamId = `logs-${req.panelId || 'explore'}-${target.refId}`;
+    const streamId = `logs-${req.panelId}-${target.refId}`;
     const maxDataPoints = req.maxDataPoints || 1000;
 
     const data = new CircularDataFrame({
@@ -160,7 +151,6 @@ export function runLogsStream(
       subscriber.next({
         data: [data],
         key: streamId,
-        state: LoadingState.Streaming,
       });
 
       timeoutId = setTimeout(pushNextEvent, speed);
@@ -177,12 +167,12 @@ export function runLogsStream(
 }
 
 export function runFetchStream(
-  target: TestDataDataQuery,
+  target: TestData,
   query: StreamingQuery,
-  req: DataQueryRequest<TestDataDataQuery>
+  req: DataQueryRequest<TestData>
 ): Observable<DataQueryResponse> {
   return new Observable<DataQueryResponse>((subscriber) => {
-    const streamId = `fetch-${req.panelId || 'explore'}-${target.refId}`;
+    const streamId = `fetch-${req.panelId}-${target.refId}`;
     const maxDataPoints = req.maxDataPoints || 1000;
 
     let data = new CircularDataFrame({
@@ -253,77 +243,3 @@ export function runFetchStream(
     };
   });
 }
-
-export function runTracesStream(
-  target: TestDataDataQuery,
-  query: StreamingQuery,
-  req: DataQueryRequest<TestDataDataQuery>
-): Observable<DataQueryResponse> {
-  return new Observable<DataQueryResponse>((subscriber) => {
-    const streamId = `traces-${req.panelId || 'explore'}-${target.refId}`;
-    const data = createMainTraceFrame(target, req.maxDataPoints);
-    let timeoutId: ReturnType<typeof setTimeout>;
-
-    const pushNextEvent = () => {
-      const subframe = createTraceSubFrame();
-      addRow(subframe, [uuidv4(), Date.now(), 'Grafana', 1500]);
-      addRow(data, [uuidv4(), Date.now(), 'Grafana', 'HTTP GET /explore', 1500, [subframe]]);
-
-      subscriber.next({
-        data: [data],
-        key: streamId,
-        state: LoadingState.Streaming,
-      });
-
-      timeoutId = setTimeout(pushNextEvent, query.speed);
-    };
-
-    // Send first event in 5ms
-    setTimeout(pushNextEvent, 5);
-
-    return () => {
-      console.log('unsubscribing to stream ' + streamId);
-      clearTimeout(timeoutId);
-    };
-  });
-}
-
-function createMainTraceFrame(target: TestDataDataQuery, maxDataPoints = 1000) {
-  const data = new CircularDataFrame({
-    append: 'head',
-    capacity: maxDataPoints,
-  });
-  data.refId = target.refId;
-  data.name = target.alias || 'Traces ' + target.refId;
-  data.addField({ name: 'TraceID', type: FieldType.string });
-  data.addField({ name: 'Start time', type: FieldType.time });
-  data.addField({ name: 'Service', type: FieldType.string });
-  data.addField({ name: 'Name', type: FieldType.string });
-  data.addField({ name: 'Duration', type: FieldType.number, config: { unit: 'ms' } });
-  data.addField({ name: 'nested', type: FieldType.nestedFrames });
-  data.meta = {
-    preferredVisualisationType: 'table',
-    uniqueRowIdFields: [0],
-  };
-  return data;
-}
-
-function createTraceSubFrame() {
-  const frame = createDataFrame({
-    fields: [
-      { name: 'SpanID', type: FieldType.string },
-      { name: 'Start time', type: FieldType.time },
-      { name: 'service.name', type: FieldType.string },
-      { name: 'duration', type: FieldType.number },
-    ],
-  });
-
-  // TODO: this should be removed later but right now there is an issue that applyFieldOverrides does not consider
-  //  nested frames.
-  for (const f of frame.fields) {
-    f.display = getDisplayProcessor({ field: f, theme });
-  }
-  return frame;
-}
-
-const theme = createTheme();

@@ -1,8 +1,8 @@
 ---
 aliases:
-  - ../../alerting/unified-alerting/alerting-rules/rule-list/ # /docs/grafana/<GRAFANA_VERSION>/alerting/unified-alerting/alerting-rules/rule-list
-  - ../../alerting/alerting-rules/view-alert-rules/ # /docs/grafana/<GRAFANA_VERSION>/alerting/alerting-rules/view-alert-rules
-  - ../../alerting/alerting-rules/rule-list/ # /docs/grafana/<GRAFANA_VERSION>/alerting/alerting-rules/rule-list
+  - ../unified-alerting/alerting-rules/rule-list/
+  - ../view-alert-rules/
+  - rule-list/
 canonical: https://grafana.com/docs/grafana/latest/alerting/manage-notifications/view-alert-rules/
 description: View and filter by alert rules
 keywords:
@@ -52,7 +52,7 @@ From the Alert list page, you can also make copies of alert rules to help you re
 
 Click the **Export rule group** icon next to each alert rule group to export to YAML, JSON, or Terraform.
 
-Click **Export rules** to export all Grafana-managed alert rules to YAML, JSON, or Terraform.
+Click **More** -> **Export all Grafana-managed rules** to export all Grafana-managed alert rules to YAML, JSON, or Terraform.
 
 Click **More** -> **Modify export** next to each individual alert rule within a group to edit provisioned alert rules and export a modified version.
 

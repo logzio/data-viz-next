@@ -3,7 +3,7 @@ import React, { memo } from 'react';
 
 import { AnnotationQuery } from '@grafana/data';
 import { EditorField, EditorRow } from '@grafana/experimental';
-import { Input, Stack } from '@grafana/ui';
+import { Input } from '@grafana/ui';
 
 // Types
 import { getNormalizedLokiQuery } from '../queryUtils';
@@ -49,8 +49,8 @@ export const LokiAnnotationsQueryEditor = memo(function LokiAnnotationQueryEdito
     queryType: annotation.queryType,
   };
   return (
-    <Stack gap={5} direction="column">
-      <Stack gap={0} direction="column">
+    <>
+      <div className="gf-form-group">
         <LokiQueryField
           datasource={props.datasource}
           query={queryWithRefId}
@@ -67,7 +67,8 @@ export const LokiAnnotationsQueryEditor = memo(function LokiAnnotationQueryEdito
             />
           }
         />
-      </Stack>
+      </div>
+
       <EditorRow>
         <EditorField
           label="Title"
@@ -119,6 +120,6 @@ export const LokiAnnotationsQueryEditor = memo(function LokiAnnotationQueryEdito
           />
         </EditorField>
       </EditorRow>
-    </Stack>
+    </>
   );
 });

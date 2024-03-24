@@ -51,7 +51,7 @@ async function loadGroupByLabels(query: PromVisualQuery, datasource: DataSourceA
   }
 
   const expr = promQueryModeller.renderLabels(labels);
-  const result = await datasource.languageProvider.fetchLabelsWithMatch(expr);
+  const result = await datasource.languageProvider.fetchSeriesLabels(expr);
 
   return Object.keys(result).map((x) => ({
     label: x,

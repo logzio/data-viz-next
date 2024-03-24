@@ -94,7 +94,7 @@ function track(action: string, selectionLength: number, dataSourceType: string |
 
 const getStyles = (theme: GrafanaTheme2) => ({
   menu: css({
-    position: 'fixed',
+    position: 'absolute',
     zIndex: theme.zIndex.modal,
   }),
 });

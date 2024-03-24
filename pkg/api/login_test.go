@@ -122,14 +122,16 @@ func TestLoginErrorCookieAPIEndpoint(t *testing.T) {
 	})
 
 	cfg.LoginCookieName = loginCookieName
+	setting.SecretKey = "login_testing"
+
 	cfg.OAuthAutoLogin = true
 
 	oauthError := errors.New("User not a member of one of the required organizations")
 	encryptedError, err := hs.SecretsService.Encrypt(context.Background(), []byte(oauthError.Error()), secrets.WithoutScope())
 	require.NoError(t, err)
 	expCookiePath := "/"
-	if len(cfg.AppSubURL) > 0 {
-		expCookiePath = cfg.AppSubURL
+	if len(setting.AppSubUrl) > 0 {
+		expCookiePath = setting.AppSubUrl
 	}
 	cookie := http.Cookie{
 		Name:     loginErrorCookieName,
@@ -600,8 +602,8 @@ func TestAuthProxyLoginWithEnableLoginTokenAndEnabledOauthAutoLogin(t *testing.T
 		return response.Empty(http.StatusOK)
 	})
 
-	sc.cfg.AuthProxy.Enabled = true
-	sc.cfg.AuthProxy.EnableLoginToken = true
+	sc.cfg.AuthProxyEnabled = true
+	sc.cfg.AuthProxyEnableLoginToken = true
 
 	sc.m.Get(sc.url, sc.defaultHandler)
 	sc.fakeReqNoAssertions("GET", sc.url).exec()
@@ -640,8 +642,8 @@ func setupAuthProxyLoginTest(t *testing.T, enableLoginToken bool) *scenarioConte
 		return response.Empty(http.StatusOK)
 	})
 
-	sc.cfg.AuthProxy.Enabled = true
-	sc.cfg.AuthProxy.EnableLoginToken = enableLoginToken
+	sc.cfg.AuthProxyEnabled = true
+	sc.cfg.AuthProxyEnableLoginToken = enableLoginToken
 
 	sc.m.Get(sc.url, sc.defaultHandler)
 	sc.fakeReqNoAssertions("GET", sc.url).exec()

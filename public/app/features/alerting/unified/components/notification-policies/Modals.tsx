@@ -11,8 +11,6 @@ import {
 } from 'app/plugins/datasource/alertmanager/types';
 
 import { FormAmRoute } from '../../types/amroutes';
-import { MatcherFormatter } from '../../utils/matchers';
-import { InsertPosition } from '../../utils/routeTree';
 import { AlertGroup } from '../alert-groups/AlertGroup';
 import { useGetAmRouteReceiverWithGrafanaAppTypes } from '../receivers/grafanaAppReceivers/grafanaApp';
 
@@ -22,28 +20,24 @@ import { AmRoutesExpandedForm } from './EditNotificationPolicyForm';
 import { Matchers } from './Matchers';
 
 type ModalHook<T = undefined> = [JSX.Element, (item: T) => void, () => void];
-type AddModalHook<T = undefined> = [JSX.Element, (item: T, position: InsertPosition) => void, () => void];
 type EditModalHook = [JSX.Element, (item: RouteWithID, isDefaultRoute?: boolean) => void, () => void];
 
 const useAddPolicyModal = (
   receivers: Receiver[] = [],
-  handleAdd: (route: Partial<FormAmRoute>, referenceRoute: RouteWithID, position: InsertPosition) => void,
+  handleAdd: (route: Partial<FormAmRoute>, parentRoute: RouteWithID) => void,
   loading: boolean
-): AddModalHook<RouteWithID> => {
+): ModalHook<RouteWithID> => {
   const [showModal, setShowModal] = useState(false);
-  const [insertPosition, setInsertPosition] = useState<InsertPosition | undefined>(undefined);
-  const [referenceRoute, setReferenceRoute] = useState<RouteWithID>();
+  const [parentRoute, setParentRoute] = useState<RouteWithID>();
   const AmRouteReceivers = useGetAmRouteReceiverWithGrafanaAppTypes(receivers);
 
   const handleDismiss = useCallback(() => {
-    setReferenceRoute(undefined);
-    setInsertPosition(undefined);
+    setParentRoute(undefined);
     setShowModal(false);
   }, []);
 
-  const handleShow = useCallback((referenceRoute: RouteWithID, position: InsertPosition) => {
-    setReferenceRoute(referenceRoute);
-    setInsertPosition(position);
+  const handleShow = useCallback((parentRoute: RouteWithID) => {
+    setParentRoute(parentRoute);
     setShowModal(true);
   }, []);
 
@@ -62,13 +56,9 @@ const useAddPolicyModal = (
           <AmRoutesExpandedForm
             receivers={AmRouteReceivers}
             defaults={{
-              groupBy: referenceRoute?.group_by,
+              groupBy: parentRoute?.group_by,
             }}
-            onSubmit={(newRoute) => {
-              if (referenceRoute && insertPosition) {
-                handleAdd(newRoute, referenceRoute, insertPosition);
-              }
-            }}
+            onSubmit={(newRoute) => parentRoute && handleAdd(newRoute, parentRoute)}
             actionButtons={
               <Modal.ButtonRow>
                 <Button type="button" variant="secondary" onClick={handleDismiss} fill="outline">
@@ -80,7 +70,7 @@ const useAddPolicyModal = (
           />
         </Modal>
       ),
-    [AmRouteReceivers, handleAdd, handleDismiss, insertPosition, loading, referenceRoute, showModal]
+    [AmRouteReceivers, handleAdd, handleDismiss, loading, parentRoute, showModal]
   );
 
   return [modalElement, handleShow, handleDismiss];
@@ -220,7 +210,6 @@ const useAlertGroupsModal = (): [
   const [showModal, setShowModal] = useState(false);
   const [alertGroups, setAlertGroups] = useState<AlertmanagerGroup[]>([]);
   const [matchers, setMatchers] = useState<ObjectMatcher[]>([]);
-  const [formatter, setFormatter] = useState<MatcherFormatter>('default');
 
   const handleDismiss = useCallback(() => {
     setShowModal(false);
@@ -228,19 +217,13 @@ const useAlertGroupsModal = (): [
     setMatchers([]);
   }, []);
 
-  const handleShow = useCallback(
-    (alertGroups: AlertmanagerGroup[], matchers?: ObjectMatcher[], formatter?: MatcherFormatter) => {
-      setAlertGroups(alertGroups);
-      if (matchers) {
-        setMatchers(matchers);
-      }
-      if (formatter) {
-        setFormatter(formatter);
-      }
-      setShowModal(true);
-    },
-    []
-  );
+  const handleShow = useCallback((alertGroups: AlertmanagerGroup[], matchers?: ObjectMatcher[]) => {
+    setAlertGroups(alertGroups);
+    if (matchers) {
+      setMatchers(matchers);
+    }
+    setShowModal(true);
+  }, []);
 
   const instancesByState = useMemo(() => {
     const instances = alertGroups.flatMap((group) => group.alerts);
@@ -259,7 +242,7 @@ const useAlertGroupsModal = (): [
             <Stack direction="row" alignItems="center" gap={0.5}>
               <Icon name="x" /> Matchers
             </Stack>
-            <Matchers matchers={matchers} formatter={formatter} />
+            <Matchers matchers={matchers} />
           </Stack>
         }
       >
@@ -282,7 +265,7 @@ const useAlertGroupsModal = (): [
         </Modal.ButtonRow>
       </Modal>
     ),
-    [alertGroups, handleDismiss, instancesByState, matchers, formatter, showModal]
+    [alertGroups, handleDismiss, instancesByState, matchers, showModal]
   );
 
   return [modalElement, handleShow, handleDismiss];

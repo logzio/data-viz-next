@@ -16,11 +16,10 @@ const (
 )
 
 const (
-	SupportingQueryLogsVolume                         = dataquery.SupportingQueryTypeLogsVolume
-	SupportingQueryLogsSample                         = dataquery.SupportingQueryTypeLogsSample
-	SupportingQueryDataSample                         = dataquery.SupportingQueryTypeDataSample
-	SupportingQueryInfiniteScroll                     = dataquery.SupportingQueryTypeInfiniteScroll
-	SupportingQueryNone           SupportingQueryType = "none"
+	SupportingQueryLogsVolume                     = dataquery.SupportingQueryTypeLogsVolume
+	SupportingQueryLogsSample                     = dataquery.SupportingQueryTypeLogsSample
+	SupportingQueryDataSample                     = dataquery.SupportingQueryTypeDataSample
+	SupportingQueryNone       SupportingQueryType = "none"
 )
 
 const (

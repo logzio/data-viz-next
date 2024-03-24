@@ -38,7 +38,7 @@ describe('PromQail', () => {
   it('shows selected metric and asks for a prompt', async () => {
     setup(defaultQuery);
 
-    await clickSecurityButton();
+    clickSecurityButton();
 
     await waitFor(() => {
       expect(screen.getByText('random_metric')).toBeInTheDocument();
@@ -49,7 +49,7 @@ describe('PromQail', () => {
   it('displays a prompt when the user knows what they want to query', async () => {
     setup(defaultQuery);
 
-    await clickSecurityButton();
+    clickSecurityButton();
 
     await waitFor(() => {
       expect(screen.getByText('random_metric')).toBeInTheDocument();
@@ -58,7 +58,7 @@ describe('PromQail', () => {
 
     const aiPrompt = screen.getByTestId(testIds.clickForAi);
 
-    await userEvent.click(aiPrompt);
+    userEvent.click(aiPrompt);
 
     await waitFor(() => {
       expect(screen.getByText('What kind of data do you want to see with your metric?')).toBeInTheDocument();
@@ -68,7 +68,7 @@ describe('PromQail', () => {
   it('does not display a prompt when choosing historical', async () => {
     setup(defaultQuery);
 
-    await clickSecurityButton();
+    clickSecurityButton();
 
     await waitFor(() => {
       expect(screen.getByText('random_metric')).toBeInTheDocument();
@@ -77,7 +77,7 @@ describe('PromQail', () => {
 
     const historicalPrompt = screen.getByTestId(testIds.clickForHistorical);
 
-    await userEvent.click(historicalPrompt);
+    userEvent.click(historicalPrompt);
 
     await waitFor(() => {
       expect(screen.queryByText('What kind of data do you want to see with your metric?')).toBeNull();
@@ -141,8 +141,8 @@ function setup(query: PromVisualQuery) {
   return container;
 }
 
-async function clickSecurityButton() {
+function clickSecurityButton() {
   const securityInfoButton = screen.getByTestId(testIds.securityInfoButton);
 
-  await userEvent.click(securityInfoButton);
+  userEvent.click(securityInfoButton);
 }

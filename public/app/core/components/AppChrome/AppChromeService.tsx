@@ -11,8 +11,6 @@ import { KioskMode } from 'app/types';
 
 import { RouteDescriptor } from '../../navigation/types';
 
-import { ReturnToPreviousProps } from './ReturnToPrevious/ReturnToPrevious';
-
 export interface AppChromeState {
   chromeless?: boolean;
   sectionNav: NavModel;
@@ -23,10 +21,6 @@ export interface AppChromeState {
   megaMenuDocked: boolean;
   kioskMode: KioskMode | null;
   layout: PageLayoutType;
-  returnToPrevious?: {
-    title: ReturnToPreviousProps['title'];
-    href: ReturnToPreviousProps['href'];
-  };
 }
 
 export const DOCKED_LOCAL_STORAGE_KEY = 'grafana.navigation.docked';
@@ -38,12 +32,13 @@ export class AppChromeService {
   private routeChangeHandled = true;
 
   private megaMenuDocked = Boolean(
-    window.innerWidth >= config.theme2.breakpoints.values.xl &&
-      store.getBool(DOCKED_LOCAL_STORAGE_KEY, Boolean(window.innerWidth >= config.theme2.breakpoints.values.xxl))
+    config.featureToggles.dockedMegaMenu &&
+      window.innerWidth >= config.theme2.breakpoints.values.xl &&
+      store.getBool(
+        DOCKED_LOCAL_STORAGE_KEY,
+        Boolean(config.featureToggles.dockedMegaMenu && window.innerWidth >= config.theme2.breakpoints.values.xxl)
+      )
   );
-
-  private sessionStorageData = window.sessionStorage.getItem('returnToPrevious');
-  private returnToPreviousData = this.sessionStorageData ? JSON.parse(this.sessionStorageData) : undefined;
 
   readonly state = new BehaviorSubject<AppChromeState>({
     chromeless: true, // start out hidden to not flash it on pages without chrome
@@ -53,7 +48,6 @@ export class AppChromeService {
     megaMenuDocked: this.megaMenuDocked,
     kioskMode: null,
     layout: PageLayoutType.Canvas,
-    returnToPrevious: this.returnToPreviousData,
   });
 
   public setMatchedRoute(route: RouteDescriptor) {
@@ -89,38 +83,6 @@ export class AppChromeService {
     }
   }
 
-  public setReturnToPrevious = (returnToPrevious: ReturnToPreviousProps) => {
-    const isReturnToPreviousEnabled = config.featureToggles.returnToPrevious;
-    if (!isReturnToPreviousEnabled) {
-      return;
-    }
-    const previousPage = this.state.getValue().returnToPrevious;
-    reportInteraction('grafana_return_to_previous_button_created', {
-      page: returnToPrevious.href,
-      previousPage: previousPage?.href,
-    });
-
-    this.update({ returnToPrevious });
-    window.sessionStorage.setItem('returnToPrevious', JSON.stringify(returnToPrevious));
-  };
-
-  public clearReturnToPrevious = (interactionAction: 'clicked' | 'dismissed' | 'auto_dismissed') => {
-    const isReturnToPreviousEnabled = config.featureToggles.returnToPrevious;
-    if (!isReturnToPreviousEnabled) {
-      return;
-    }
-    const existingRtp = this.state.getValue().returnToPrevious;
-    if (existingRtp) {
-      reportInteraction('grafana_return_to_previous_button_dismissed', {
-        action: interactionAction,
-        page: existingRtp.href,
-      });
-    }
-
-    this.update({ returnToPrevious: undefined });
-    window.sessionStorage.removeItem('returnToPrevious');
-  };
-
   private ignoreStateUpdate(newState: AppChromeState, current: AppChromeState) {
     if (isShallowEqual(newState, current)) {
       return true;
@@ -148,10 +110,14 @@ export class AppChromeService {
 
   public setMegaMenuOpen = (newOpenState: boolean) => {
     const { megaMenuDocked } = this.state.getValue();
-    if (megaMenuDocked) {
-      store.set(DOCKED_MENU_OPEN_LOCAL_STORAGE_KEY, newOpenState);
+    if (config.featureToggles.dockedMegaMenu) {
+      if (megaMenuDocked) {
+        store.set(DOCKED_MENU_OPEN_LOCAL_STORAGE_KEY, newOpenState);
+      }
+      reportInteraction('grafana_mega_menu_open', { state: newOpenState });
+    } else {
+      reportInteraction('grafana_toggle_menu_clicked', { action: newOpenState ? 'open' : 'close' });
     }
-    reportInteraction('grafana_mega_menu_open', { state: newOpenState });
     this.update({
       megaMenuOpen: newOpenState,
     });
@@ -191,19 +157,13 @@ export class AppChromeService {
   }
 
   public setKioskModeFromUrl(kiosk: UrlQueryValue) {
-    let newKioskMode: KioskMode | undefined;
-
     switch (kiosk) {
       case 'tv':
-        newKioskMode = KioskMode.TV;
+        this.update({ kioskMode: KioskMode.TV });
         break;
       case '1':
       case true:
-        newKioskMode = KioskMode.Full;
-    }
-
-    if (newKioskMode && newKioskMode !== this.state.getValue().kioskMode) {
-      this.update({ kioskMode: newKioskMode });
+        this.update({ kioskMode: KioskMode.Full });
     }
   }
 

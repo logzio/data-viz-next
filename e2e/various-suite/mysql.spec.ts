@@ -34,11 +34,8 @@ describe('MySQL datasource', () => {
     cy.wait('@datasets');
   });
 
-  it.skip('code editor autocomplete should handle table name escaping/quoting', () => {
+  it('code editor autocomplete should handle table name escaping/quoting', () => {
     e2e.components.RadioButton.container().filter(':contains("Code")').click();
-
-    e2e.components.CodeEditor.container().children('[data-testid="Spinner"]').should('not.exist');
-    cy.window().its('monaco').should('exist');
 
     cy.get('textarea').type('S{downArrow}{enter}');
     cy.wait('@tables');
@@ -91,10 +88,8 @@ describe('MySQL datasource', () => {
       cy.get("[aria-label='Macros value selector']").should('be.visible').click();
       selectOption('timeFilter');
 
-      e2e.components.CodeEditor.container().children('[data-testid="Spinner"]').should('not.exist');
-      cy.window().its('monaco').should('exist');
-
       // Validate that the timeFilter macro was added
+
       e2e.components.CodeEditor.container()
         .get('textarea')
         .should(

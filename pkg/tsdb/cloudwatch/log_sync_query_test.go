@@ -15,8 +15,10 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
-	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
+	"github.com/grafana/grafana/pkg/services/featuremgmt"
+	ngalertmodels "github.com/grafana/grafana/pkg/services/ngalert/models"
+	"github.com/grafana/grafana/pkg/services/query"
 	"github.com/grafana/grafana/pkg/tsdb/cloudwatch/models"
 	"github.com/grafana/grafana/pkg/tsdb/cloudwatch/utils"
 	"github.com/stretchr/testify/assert"
@@ -37,14 +39,14 @@ func Test_executeSyncLogQuery(t *testing.T) {
 
 	t.Run("getCWLogsClient is called with region from input JSON", func(t *testing.T) {
 		cli = fakeCWLogsClient{queryResults: cloudwatchlogs.GetQueryResultsOutput{Status: aws.String("Complete")}}
-		sess := fakeSessionCache{}
 		im := datasource.NewInstanceManager(func(ctx context.Context, s backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
-			return DataSource{Settings: models.CloudWatchSettings{}, sessions: &sess}, nil
+			return DataSource{Settings: models.CloudWatchSettings{}}, nil
 		})
-		executor := newExecutor(im, log.NewNullLogger())
+		sess := fakeSessionCache{}
+		executor := newExecutor(im, newTestConfig(), &sess, featuremgmt.WithFeatures())
 
 		_, err := executor.QueryData(context.Background(), &backend.QueryDataRequest{
-			Headers:       map[string]string{headerFromAlert: "some value"},
+			Headers:       map[string]string{ngalertmodels.FromAlertHeaderName: "some value"},
 			PluginContext: backend.PluginContext{DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{}},
 			Queries: []backend.DataQuery{
 				{
@@ -63,14 +65,14 @@ func Test_executeSyncLogQuery(t *testing.T) {
 
 	t.Run("getCWLogsClient is called with region from instance manager when region is default", func(t *testing.T) {
 		cli = fakeCWLogsClient{queryResults: cloudwatchlogs.GetQueryResultsOutput{Status: aws.String("Complete")}}
-		sess := fakeSessionCache{}
 		im := datasource.NewInstanceManager(func(ctx context.Context, s backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
-			return DataSource{Settings: models.CloudWatchSettings{AWSDatasourceSettings: awsds.AWSDatasourceSettings{Region: "instance manager's region"}}, sessions: &sess}, nil
+			return DataSource{Settings: models.CloudWatchSettings{AWSDatasourceSettings: awsds.AWSDatasourceSettings{Region: "instance manager's region"}}}, nil
 		})
+		sess := fakeSessionCache{}
 
-		executor := newExecutor(im, log.NewNullLogger())
+		executor := newExecutor(im, newTestConfig(), &sess, featuremgmt.WithFeatures())
 		_, err := executor.QueryData(context.Background(), &backend.QueryDataRequest{
-			Headers:       map[string]string{headerFromAlert: "some value"},
+			Headers:       map[string]string{ngalertmodels.FromAlertHeaderName: "some value"},
 			PluginContext: backend.PluginContext{DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{}},
 			Queries: []backend.DataQuery{
 				{
@@ -95,12 +97,12 @@ func Test_executeSyncLogQuery(t *testing.T) {
 		}{
 			{
 				"alert header",
-				map[string]string{headerFromAlert: "some value"},
+				map[string]string{ngalertmodels.FromAlertHeaderName: "some value"},
 				true,
 			},
 			{
 				"expression header",
-				map[string]string{fmt.Sprintf("http_%s", headerFromExpression): "some value"},
+				map[string]string{fmt.Sprintf("http_%s", query.HeaderFromExpression): "some value"},
 				true,
 			},
 			{
@@ -121,10 +123,11 @@ func Test_executeSyncLogQuery(t *testing.T) {
 				syncCalled = false
 				cli = fakeCWLogsClient{queryResults: cloudwatchlogs.GetQueryResultsOutput{Status: aws.String("Complete")}}
 				im := datasource.NewInstanceManager(func(ctx context.Context, s backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
-					return DataSource{Settings: models.CloudWatchSettings{AWSDatasourceSettings: awsds.AWSDatasourceSettings{Region: "instance manager's region"}}, sessions: &fakeSessionCache{}}, nil
+					return DataSource{Settings: models.CloudWatchSettings{AWSDatasourceSettings: awsds.AWSDatasourceSettings{Region: "instance manager's region"}}}, nil
 				})
+				sess := fakeSessionCache{}
 
-				executor := newExecutor(im, log.NewNullLogger())
+				executor := newExecutor(im, newTestConfig(), &sess, featuremgmt.WithFeatures())
 				_, err := executor.QueryData(context.Background(), &backend.QueryDataRequest{
 					Headers:       tc.headers,
 					PluginContext: backend.PluginContext{DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{}},
@@ -163,10 +166,11 @@ func Test_executeSyncLogQuery(t *testing.T) {
 
 		cli = fakeCWLogsClient{queryResults: cloudwatchlogs.GetQueryResultsOutput{Status: aws.String("Complete")}}
 		im := datasource.NewInstanceManager(func(ctx context.Context, s backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
-			return DataSource{Settings: models.CloudWatchSettings{AWSDatasourceSettings: awsds.AWSDatasourceSettings{Region: "instance manager's region"}}, sessions: &fakeSessionCache{}}, nil
+			return DataSource{Settings: models.CloudWatchSettings{AWSDatasourceSettings: awsds.AWSDatasourceSettings{Region: "instance manager's region"}}}, nil
 		})
+		sess := fakeSessionCache{}
 
-		executor := newExecutor(im, log.NewNullLogger())
+		executor := newExecutor(im, newTestConfig(), &sess, featuremgmt.WithFeatures())
 		_, err := executor.QueryData(context.Background(), &backend.QueryDataRequest{
 			PluginContext: backend.PluginContext{DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{}},
 			Queries: []backend.DataQuery{
@@ -203,12 +207,12 @@ func Test_executeSyncLogQuery_handles_RefId_from_input_queries(t *testing.T) {
 		}, nil)
 		cli.On("GetQueryResultsWithContext", mock.Anything, mock.Anything, mock.Anything).Return(&cloudwatchlogs.GetQueryResultsOutput{Status: aws.String("Complete")}, nil)
 		im := datasource.NewInstanceManager(func(ctx context.Context, s backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
-			return DataSource{Settings: models.CloudWatchSettings{}, sessions: &fakeSessionCache{}}, nil
+			return DataSource{Settings: models.CloudWatchSettings{}}, nil
 		})
-		executor := newExecutor(im, log.NewNullLogger())
+		executor := newExecutor(im, newTestConfig(), &fakeSessionCache{}, featuremgmt.WithFeatures())
 
 		res, err := executor.QueryData(context.Background(), &backend.QueryDataRequest{
-			Headers:       map[string]string{headerFromAlert: "some value"},
+			Headers:       map[string]string{ngalertmodels.FromAlertHeaderName: "some value"},
 			PluginContext: backend.PluginContext{DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{}},
 			Queries: []backend.DataQuery{
 				{
@@ -232,12 +236,12 @@ func Test_executeSyncLogQuery_handles_RefId_from_input_queries(t *testing.T) {
 		}, nil)
 		cli.On("GetQueryResultsWithContext", mock.Anything, mock.Anything, mock.Anything).Return(&cloudwatchlogs.GetQueryResultsOutput{Status: aws.String("Complete")}, nil)
 		im := datasource.NewInstanceManager(func(ctx context.Context, s backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
-			return DataSource{Settings: models.CloudWatchSettings{}, sessions: &fakeSessionCache{}}, nil
+			return DataSource{Settings: models.CloudWatchSettings{}}, nil
 		})
-		executor := newExecutor(im, log.NewNullLogger())
+		executor := newExecutor(im, newTestConfig(), &fakeSessionCache{}, featuremgmt.WithFeatures())
 
 		res, err := executor.QueryData(context.Background(), &backend.QueryDataRequest{
-			Headers:       map[string]string{headerFromAlert: "some value"},
+			Headers:       map[string]string{ngalertmodels.FromAlertHeaderName: "some value"},
 			PluginContext: backend.PluginContext{DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{}},
 			Queries: []backend.DataQuery{
 				{
@@ -301,12 +305,12 @@ func Test_executeSyncLogQuery_handles_RefId_from_input_queries(t *testing.T) {
 			Status: aws.String("Complete")}, nil)
 
 		im := datasource.NewInstanceManager(func(ctx context.Context, s backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
-			return DataSource{Settings: models.CloudWatchSettings{}, sessions: &fakeSessionCache{}}, nil
+			return DataSource{Settings: models.CloudWatchSettings{}}, nil
 		})
-		executor := newExecutor(im, log.NewNullLogger())
+		executor := newExecutor(im, newTestConfig(), &fakeSessionCache{}, featuremgmt.WithFeatures())
 
 		res, err := executor.QueryData(context.Background(), &backend.QueryDataRequest{
-			Headers:       map[string]string{headerFromAlert: "some value"},
+			Headers:       map[string]string{ngalertmodels.FromAlertHeaderName: "some value"},
 			PluginContext: backend.PluginContext{DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{}},
 			Queries: []backend.DataQuery{
 				{
@@ -346,13 +350,13 @@ func Test_executeSyncLogQuery_handles_RefId_from_input_queries(t *testing.T) {
 		}, nil)
 		cli.On("GetQueryResultsWithContext", mock.Anything, mock.Anything, mock.Anything).Return(&cloudwatchlogs.GetQueryResultsOutput{Status: aws.String("Running")}, nil)
 		im := datasource.NewInstanceManager(func(ctx context.Context, s backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
-			return DataSource{Settings: models.CloudWatchSettings{LogsTimeout: models.Duration{Duration: time.Millisecond}}, sessions: &fakeSessionCache{}}, nil
+			return DataSource{Settings: models.CloudWatchSettings{LogsTimeout: models.Duration{Duration: time.Millisecond}}}, nil
 		})
 
-		executor := newExecutor(im, log.NewNullLogger())
+		executor := newExecutor(im, newTestConfig(), &fakeSessionCache{}, featuremgmt.WithFeatures())
 
 		_, err := executor.QueryData(context.Background(), &backend.QueryDataRequest{
-			Headers:       map[string]string{headerFromAlert: "some value"},
+			Headers:       map[string]string{ngalertmodels.FromAlertHeaderName: "some value"},
 			PluginContext: backend.PluginContext{DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{}},
 			Queries: []backend.DataQuery{
 				{
@@ -379,12 +383,12 @@ func Test_executeSyncLogQuery_handles_RefId_from_input_queries(t *testing.T) {
 			&fakeAWSError{code: "foo", message: "bar"},
 		)
 		im := datasource.NewInstanceManager(func(ctx context.Context, s backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
-			return DataSource{Settings: models.CloudWatchSettings{}, sessions: &fakeSessionCache{}}, nil
+			return DataSource{Settings: models.CloudWatchSettings{}}, nil
 		})
-		executor := newExecutor(im, log.NewNullLogger())
+		executor := newExecutor(im, newTestConfig(), &fakeSessionCache{}, featuremgmt.WithFeatures())
 
 		res, err := executor.QueryData(context.Background(), &backend.QueryDataRequest{
-			Headers:       map[string]string{headerFromAlert: "some value"},
+			Headers:       map[string]string{ngalertmodels.FromAlertHeaderName: "some value"},
 			PluginContext: backend.PluginContext{DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{}},
 			Queries: []backend.DataQuery{
 				{

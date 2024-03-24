@@ -13,11 +13,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 
-	exp "github.com/grafana/grafana-plugin-sdk-go/experimental/errorsource"
 	"github.com/grafana/grafana/pkg/infra/log"
 	"github.com/grafana/grafana/pkg/infra/tracing"
 )
@@ -55,7 +55,7 @@ type Client interface {
 }
 
 // NewClient creates a new elasticsearch client
-var NewClient = func(ctx context.Context, ds *DatasourceInfo, logger log.Logger, tracer tracing.Tracer) (Client, error) {
+var NewClient = func(ctx context.Context, ds *DatasourceInfo, timeRange backend.TimeRange, logger log.Logger, tracer tracing.Tracer) (Client, error) {
 	logger = logger.New("entity", "client")
 
 	ip, err := newIndexPattern(ds.Interval, ds.Database)
@@ -64,14 +64,19 @@ var NewClient = func(ctx context.Context, ds *DatasourceInfo, logger log.Logger,
 		return nil, err
 	}
 
-	logger.Debug("Creating new client", "configuredFields", fmt.Sprintf("%#v", ds.ConfiguredFields), "interval", ds.Interval, "index", ds.Database)
+	indices, err := ip.GetIndices(timeRange)
+	if err != nil {
+		return nil, err
+	}
+	logger.Debug("Creating new client", "configuredFields", fmt.Sprintf("%#v", ds.ConfiguredFields), "indices", strings.Join(indices, ", "), "interval", ds.Interval, "index", ds.Database)
 
 	return &baseClientImpl{
 		logger:           logger,
 		ctx:              ctx,
 		ds:               ds,
 		configuredFields: ds.ConfiguredFields,
-		indexPattern:     ip,
+		indices:          indices,
+		timeRange:        timeRange,
 		tracer:           tracer,
 	}, nil
 }
@@ -80,7 +85,8 @@ type baseClientImpl struct {
 	ctx              context.Context
 	ds               *DatasourceInfo
 	configuredFields ConfiguredFields
-	indexPattern     IndexPattern
+	indices          []string
+	timeRange        backend.TimeRange
 	logger           log.Logger
 	tracer           tracing.Tracer
 }
@@ -185,10 +191,6 @@ func (c *baseClientImpl) ExecuteMultisearch(r *MultiSearchRequest) (*MultiSearch
 			status = "cancelled"
 		}
 		lp := []any{"error", err, "status", status, "duration", time.Since(start), "stage", StageDatabaseRequest}
-		sourceErr := exp.Error{}
-		if errors.As(err, &sourceErr) {
-			lp = append(lp, "statusSource", sourceErr.Source())
-		}
 		if clientRes != nil {
 			lp = append(lp, "statusCode", clientRes.StatusCode)
 		}
@@ -232,16 +234,11 @@ func (c *baseClientImpl) createMultiSearchRequests(searchRequests []*SearchReque
 	multiRequests := []*multiRequest{}
 
 	for _, searchReq := range searchRequests {
-		indices, err := c.indexPattern.GetIndices(searchReq.TimeRange)
-		if err != nil {
-			c.logger.Error("Failed to get indices from index pattern", "error", err)
-			continue
-		}
 		mr := multiRequest{
 			header: map[string]any{
 				"search_type":        "query_then_fetch",
 				"ignore_unavailable": true,
-				"index":              strings.Join(indices, ","),
+				"index":              strings.Join(c.indices, ","),
 			},
 			body:     searchReq,
 			interval: searchReq.Interval,

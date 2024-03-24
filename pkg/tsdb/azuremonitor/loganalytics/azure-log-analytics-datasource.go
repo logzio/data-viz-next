@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
-	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/tracing"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 	"go.opentelemetry.io/otel/attribute"
@@ -31,8 +30,7 @@ import (
 
 // AzureLogAnalyticsDatasource calls the Azure Log Analytics API's
 type AzureLogAnalyticsDatasource struct {
-	Proxy  types.ServiceProxy
-	Logger log.Logger
+	Proxy types.ServiceProxy
 }
 
 // AzureLogAnalyticsQuery is the query request that is built from the saved values for
@@ -302,7 +300,7 @@ func (e *AzureLogAnalyticsDatasource) executeQuery(ctx context.Context, query *A
 
 	defer func() {
 		if err := res.Body.Close(); err != nil {
-			e.Logger.Warn("Failed to close response body", "err", err)
+			backend.Logger.Warn("Failed to close response body", "err", err)
 		}
 	}()
 
@@ -326,7 +324,12 @@ func (e *AzureLogAnalyticsDatasource) executeQuery(ctx context.Context, query *A
 		return &dataResponse, nil
 	}
 
-	queryUrl, err := getQueryUrl(query.Query, query.Resources, dsInfo.Routes["Azure Portal"].URL, query.TimeRange)
+	azurePortalBaseUrl, err := GetAzurePortalUrl(dsInfo.Cloud)
+	if err != nil {
+		return nil, err
+	}
+
+	queryUrl, err := getQueryUrl(query.Query, query.Resources, azurePortalBaseUrl, query.TimeRange)
 	if err != nil {
 		return nil, err
 	}
@@ -360,7 +363,7 @@ func (e *AzureLogAnalyticsDatasource) executeQuery(ctx context.Context, query *A
 	}
 
 	// Use the parent span query for the parent span data link
-	err = addDataLinksToFields(query, dsInfo.Routes["Azure Portal"].URL, frame, dsInfo, queryUrl)
+	err = addDataLinksToFields(query, azurePortalBaseUrl, frame, dsInfo, queryUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -485,19 +488,11 @@ func (e *AzureLogAnalyticsDatasource) createRequest(ctx context.Context, queryUR
 	}
 
 	if len(query.Resources) > 1 && query.QueryType == dataquery.AzureQueryTypeAzureLogAnalytics && !query.AppInsightsQuery {
-		str := strings.ToLower(query.Resources[0])
-
-		if strings.Contains(str, "microsoft.operationalinsights/workspaces") {
-			body["workspaces"] = query.Resources
-		} else {
-			body["resources"] = query.Resources
-		}
+		body["workspaces"] = query.Resources
 	}
-
 	if query.AppInsightsQuery {
 		body["applications"] = query.Resources
 	}
-
 	jsonValue, err := json.Marshal(body)
 	if err != nil {
 		return nil, fmt.Errorf("%v: %w", "failed to create request", err)
@@ -507,7 +502,6 @@ func (e *AzureLogAnalyticsDatasource) createRequest(ctx context.Context, queryUR
 	if err != nil {
 		return nil, fmt.Errorf("%v: %w", "failed to create request", err)
 	}
-
 	req.URL.Path = "/"
 	req.Header.Set("Content-Type", "application/json")
 	req.URL.Path = path.Join(req.URL.Path, query.URL)
@@ -616,7 +610,7 @@ func getCorrelationWorkspaces(ctx context.Context, baseResource string, resource
 
 		defer func() {
 			if err := res.Body.Close(); err != nil {
-				azMonService.Logger.Warn("Failed to close response body", "err", err)
+				backend.Logger.Warn("Failed to close response body", "err", err)
 			}
 		}()
 
@@ -720,7 +714,7 @@ func (e *AzureLogAnalyticsDatasource) unmarshalResponse(res *http.Response) (Azu
 	}
 	defer func() {
 		if err := res.Body.Close(); err != nil {
-			e.Logger.Warn("Failed to close response body", "err", err)
+			backend.Logger.Warn("Failed to close response body", "err", err)
 		}
 	}()
 

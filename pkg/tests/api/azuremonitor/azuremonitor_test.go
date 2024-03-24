@@ -18,12 +18,7 @@ import (
 	"github.com/grafana/grafana/pkg/services/org"
 	"github.com/grafana/grafana/pkg/services/user"
 	"github.com/grafana/grafana/pkg/tests/testinfra"
-	"github.com/grafana/grafana/pkg/tests/testsuite"
 )
-
-func TestMain(m *testing.M) {
-	testsuite.Run(m)
-}
 
 func TestIntegrationAzureMonitor(t *testing.T) {
 	if testing.Short() {

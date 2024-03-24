@@ -40,7 +40,6 @@ import { errorFromCurrentCondition, errorFromPreviewData, findRenamedDataQueryRe
 
 import { CloudDataSourceSelector } from './CloudDataSourceSelector';
 import { SmartAlertTypeDetector } from './SmartAlertTypeDetector';
-import { DESCRIPTIONS } from './descriptions';
 import {
   addExpressions,
   addNewDataQuery,
@@ -187,9 +186,8 @@ export const QueryAndExpressionsStep = ({ editingExistingRule, onDataChange }: P
       // Invocation cycle => onChange -> dispatch(setDataQueries) -> onRunQueries -> setDataQueries Reducer
       // As a workaround we update form values as soon as possible to avoid stale state
       // This way we can access up to date queries in runQueriesPreview without waiting for re-render
-      const previousQueries = getValues('queries');
-      const expressionQueries = previousQueries.filter((query) => isExpressionQuery(query.model));
-      setValue('queries', [...updatedQueries, ...expressionQueries], { shouldValidate: false });
+      setValue('queries', updatedQueries, { shouldValidate: false });
+
       updateExpressionAndDatasource(updatedQueries);
 
       dispatch(setDataQueries(updatedQueries));
@@ -201,7 +199,7 @@ export const QueryAndExpressionsStep = ({ editingExistingRule, onDataChange }: P
         dispatch(rewireExpressions({ oldRefId, newRefId }));
       }
     },
-    [queries, updateExpressionAndDatasource, getValues, setValue]
+    [queries, setValue, updateExpressionAndDatasource]
   );
 
   const onChangeRecordingRulesQueries = useCallback(
@@ -244,7 +242,6 @@ export const QueryAndExpressionsStep = ({ editingExistingRule, onDataChange }: P
         queryType: '',
         relativeTimeRange: getDefaultRelativeTimeRange(),
         expr,
-        instant: true,
         model: {
           refId: 'A',
           hide: false,
@@ -372,22 +369,23 @@ export const QueryAndExpressionsStep = ({ editingExistingRule, onDataChange }: P
     condition,
   ]);
 
-  const { sectionTitle, helpLabel, helpContent, helpLink } = DESCRIPTIONS[type ?? RuleFormType.grafana];
-
   return (
     <RuleEditorSection
       stepNo={2}
-      title={sectionTitle}
+      title={type !== RuleFormType.cloudRecording ? 'Define query and alert condition' : 'Define query'}
       description={
-        <Stack direction="row" gap={0.5} alignItems="center">
+        <Stack direction="row" gap={0.5} alignItems="baseline">
           <Text variant="bodySmall" color="secondary">
-            {helpLabel}
+            Define queries and/or expressions and then choose one of them as the alert rule condition. This is the
+            threshold that an alert rule must meet or exceed in order to fire.
           </Text>
           <NeedHelpInfo
-            contentText={helpContent}
-            externalLink={helpLink}
-            linkText={'Read more on our documentation website'}
-            title={helpLabel}
+            contentText={`An alert rule consists of one or more queries and expressions that select the data you want to measure.
+          Define queries and/or expressions and then choose one of them as the alert rule condition. This is the threshold that an alert rule must meet or exceed in order to fire.
+          For more information on queries and expressions, see Query and transform data.`}
+            externalLink={`https://grafana.com/docs/grafana/latest/panels-visualizations/query-transform-data/`}
+            linkText={`Read about query and condition`}
+            title="Define query and alert condition"
           />
         </Stack>
       }

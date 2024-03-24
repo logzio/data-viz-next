@@ -1,5 +1,3 @@
-import uFuzzy from '@leeoniya/ufuzzy';
-
 import { PluginSignatureStatus, dateTimeParse, PluginError, PluginType, PluginErrorCode } from '@grafana/data';
 import { config, featureEnabled } from '@grafana/runtime';
 import configCore, { Settings } from 'app/core/config';
@@ -7,40 +5,25 @@ import { contextSrv } from 'app/core/core';
 import { getBackendSrv } from 'app/core/services/backend_srv';
 import { AccessControlAction } from 'app/types';
 
-import {
-  CatalogPlugin,
-  InstancePlugin,
-  LocalPlugin,
-  ProvisionedPlugin,
-  RemotePlugin,
-  RemotePluginStatus,
-  Version,
-} from './types';
+import { CatalogPlugin, InstancePlugin, LocalPlugin, RemotePlugin, RemotePluginStatus, Version } from './types';
 
 export function mergeLocalsAndRemotes({
   local = [],
   remote = [],
   instance = [],
-  provisioned = [],
   pluginErrors: errors,
 }: {
   local: LocalPlugin[];
   remote?: RemotePlugin[];
   instance?: InstancePlugin[];
-  provisioned?: ProvisionedPlugin[];
   pluginErrors?: PluginError[];
 }): CatalogPlugin[] {
   const catalogPlugins: CatalogPlugin[] = [];
   const errorByPluginId = groupErrorsByPluginId(errors);
 
-  const instancesMap = instance.reduce((map, instancePlugin) => {
-    map.set(instancePlugin.pluginSlug, instancePlugin);
-    return map;
-  }, new Map<string, InstancePlugin>());
-
-  const provisionedSet = provisioned.reduce((map, provisionedPlugin) => {
-    map.add(provisionedPlugin.slug);
-    return map;
+  const instancesSet = instance.reduce((set, instancePlugin) => {
+    set.add(instancePlugin.pluginSlug);
+    return set;
   }, new Set<string>());
 
   // add locals
@@ -64,19 +47,8 @@ export function mergeLocalsAndRemotes({
 
       // for managed instances, check if plugin is installed, but not yet present in the current instance
       if (configCore.featureToggles.managedPluginsInstall && config.pluginAdminExternalManageEnabled) {
-        catalogPlugin.isFullyInstalled = catalogPlugin.isCore
-          ? true
-          : (instancesMap.has(remotePlugin.slug) || provisionedSet.has(remotePlugin.slug)) && catalogPlugin.isInstalled;
-
-        catalogPlugin.isInstalled = instancesMap.has(remotePlugin.slug) || catalogPlugin.isInstalled;
-
-        const instancePlugin = instancesMap.get(remotePlugin.slug);
-        catalogPlugin.isUpdatingFromInstance =
-          instancesMap.has(remotePlugin.slug) &&
-          catalogPlugin.hasUpdate &&
-          catalogPlugin.installedVersion !== instancePlugin?.version;
-
-        catalogPlugin.isUninstallingFromInstance = Boolean(localCounterpart) && !instancesMap.has(remotePlugin.slug);
+        catalogPlugin.isFullyInstalled = instancesSet.has(remotePlugin.slug) && catalogPlugin.isInstalled;
+        catalogPlugin.isInstalled = instancesSet.has(remotePlugin.slug) || catalogPlugin.isInstalled;
       }
 
       catalogPlugins.push(catalogPlugin);
@@ -112,7 +84,6 @@ export function mapRemoteToCatalog(plugin: RemotePlugin, error?: PluginError): C
     createdAt: publishedAt,
     status,
     angularDetected,
-    keywords,
   } = plugin;
 
   const isDisabled = !!error || isDisabledSecretsPlugin(typeCode);
@@ -125,7 +96,6 @@ export function mapRemoteToCatalog(plugin: RemotePlugin, error?: PluginError): C
         small: `https://grafana.com/api/plugins/${id}/versions/${version}/logos/small`,
         large: `https://grafana.com/api/plugins/${id}/versions/${version}/logos/large`,
       },
-      keywords,
     },
     name,
     orgName,
@@ -151,7 +121,7 @@ export function mapRemoteToCatalog(plugin: RemotePlugin, error?: PluginError): C
 export function mapLocalToCatalog(plugin: LocalPlugin, error?: PluginError): CatalogPlugin {
   const {
     name,
-    info: { description, version, logos, updated, author, keywords },
+    info: { description, version, logos, updated, author },
     id,
     dev,
     type,
@@ -168,7 +138,7 @@ export function mapLocalToCatalog(plugin: LocalPlugin, error?: PluginError): Cat
     description,
     downloads: 0,
     id,
-    info: { logos, keywords },
+    info: { logos },
     name,
     orgName: author.name,
     popularity: 0,
@@ -201,7 +171,6 @@ export function mapToCatalogPlugin(local?: LocalPlugin, remote?: RemotePlugin, e
   const id = remote?.slug || local?.id || '';
   const type = local?.type || remote?.typeCode;
   const isDisabled = !!error || isDisabledSecretsPlugin(type);
-  const keywords = remote?.keywords || local?.info.keywords || [];
 
   let logos = {
     small: `/public/img/icn-${type}.svg`,
@@ -224,7 +193,6 @@ export function mapToCatalogPlugin(local?: LocalPlugin, remote?: RemotePlugin, e
     id,
     info: {
       logos,
-      keywords,
     },
     isCore: Boolean(remote?.internal || local?.signature === PluginSignatureStatus.internal),
     isDev: Boolean(local?.dev),
@@ -374,27 +342,4 @@ function isDisabledSecretsPlugin(type?: PluginType): boolean {
 
 export function isLocalCorePlugin(local?: LocalPlugin): boolean {
   return Boolean(local?.signature === 'internal');
-}
-
-function getId(inputString: string): string {
-  const parts = inputString.split(' - ');
-  return parts[0];
-}
-
-function getPluginDetailsForFuzzySearch(plugins: CatalogPlugin[]): string[] {
-  return plugins.reduce((result: string[], { id, name, type, orgName, info }: CatalogPlugin) => {
-    const keywordsForSearch = info.keywords?.join(' ').toLowerCase();
-    const pluginString = `${id} - ${name} - ${type} - ${orgName} - ${keywordsForSearch}`;
-    result.push(pluginString);
-    return result;
-  }, []);
-}
-export function filterByKeyword(plugins: CatalogPlugin[], query: string) {
-  const dataArray = getPluginDetailsForFuzzySearch(plugins);
-  let uf = new uFuzzy({ intraMode: 1, intraSub: 0 });
-  let idxs = uf.filter(dataArray, query);
-  if (idxs === null) {
-    return null;
-  }
-  return idxs.map((id) => getId(dataArray[id]));
 }

@@ -1,3 +1,5 @@
+import { makeArrayIndexableVector } from '../types';
+
 import { FunctionalVector } from './FunctionalVector';
 
 interface CircularOptions<T> {
@@ -34,27 +36,7 @@ export class CircularVector<T = any> extends FunctionalVector<T> {
     if (options.capacity) {
       this.setCapacity(options.capacity);
     }
-    return new Proxy(this, {
-      get(target: CircularVector<T>, property: string, receiver: CircularVector<T>) {
-        if (typeof property !== 'symbol') {
-          const idx = +property;
-          if (String(idx) === property) {
-            return target.get(idx);
-          }
-        }
-        return Reflect.get(target, property, receiver);
-      },
-      set(target: CircularVector<T>, property: string, value: T, receiver: CircularVector<T>) {
-        if (typeof property !== 'symbol') {
-          const idx = +property;
-          if (String(idx) === property) {
-            target.set(idx, value);
-            return true;
-          }
-        }
-        return Reflect.set(target, property, value, receiver);
-      },
-    });
+    return makeArrayIndexableVector(this);
   }
 
   /**

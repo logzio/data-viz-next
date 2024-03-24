@@ -19,8 +19,9 @@ export function GetStartedWithApp({ plugin }: Props): React.ReactElement | null 
   if (!pluginConfig) {
     return null;
   }
+
   // Enforce RBAC
-  if (!contextSrv.hasPermission(AccessControlAction.PluginsWrite)) {
+  if (!contextSrv.hasPermissionInMetadata(AccessControlAction.PluginsWrite, plugin)) {
     return null;
   }
 

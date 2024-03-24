@@ -17,7 +17,7 @@ type Initializer interface {
 type InitializeFunc func(ctx context.Context, p *plugins.Plugin) (*plugins.Plugin, error)
 
 type Initialize struct {
-	cfg             *config.PluginManagementCfg
+	cfg             *config.Cfg
 	initializeSteps []InitializeFunc
 	log             log.Logger
 }
@@ -27,7 +27,7 @@ type Opts struct {
 }
 
 // New returns a new Initialization stage.
-func New(cfg *config.PluginManagementCfg, opts Opts) *Initialize {
+func New(cfg *config.Cfg, opts Opts) *Initialize {
 	if opts.InitializeFuncs == nil {
 		opts.InitializeFuncs = []InitializeFunc{}
 	}

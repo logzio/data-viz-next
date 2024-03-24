@@ -1,10 +1,10 @@
 import { css, cx } from '@emotion/css';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { FixedSizeList as List } from 'react-window';
 
-import { GrafanaTheme2, formattedValueToString, getValueFormat, SelectableValue } from '@grafana/data';
+import { GrafanaTheme2, SelectableValue } from '@grafana/data';
 
-import { ButtonSelect, Checkbox, FilterInput, Label, Stack } from '..';
+import { Checkbox, FilterInput, Label, VerticalGroup } from '..';
 import { useStyles2, useTheme2 } from '../../themes';
 
 interface Props {
@@ -12,116 +12,23 @@ interface Props {
   options: SelectableValue[];
   onChange: (options: SelectableValue[]) => void;
   caseSensitive?: boolean;
-  showOperators?: boolean;
-  searchFilter: string;
-  setSearchFilter: (value: string) => void;
-  operator: SelectableValue<string>;
-  setOperator: (item: SelectableValue<string>) => void;
 }
 
 const ITEM_HEIGHT = 28;
 const MIN_HEIGHT = ITEM_HEIGHT * 5;
 
-const operatorSelectableValues: { [key: string]: SelectableValue<string> } = {
-  Contains: { label: 'Contains', value: 'Contains', description: 'Contains' },
-  '=': { label: '=', value: '=', description: 'Equals' },
-  '!=': { label: '!=', value: '!=', description: 'Not equals' },
-  '>': { label: '>', value: '>', description: 'Greater' },
-  '>=': { label: '>=', value: '>=', description: 'Greater or Equal' },
-  '<': { label: '<', value: '<', description: 'Less' },
-  '<=': { label: '<=', value: '<=', description: 'Less or Equal' },
-  Expression: {
-    label: 'Expression',
-    value: 'Expression',
-    description: 'Bool Expression (Char $ represents the column value in the expression, e.g. "$ >= 10 && $ <= 12")',
-  },
-};
-const OPERATORS = Object.values(operatorSelectableValues);
-export const REGEX_OPERATOR = operatorSelectableValues['Contains'];
-const XPR_OPERATOR = operatorSelectableValues['Expression'];
-
-const comparableValue = (value: string): string | number | Date | boolean => {
-  value = value.trim().replace(/\\/g, '');
-
-  // Does it look like a Date (Starting with pattern YYYY-MM-DD* or YYYY/MM/DD*)?
-  if (/^(\d{4}-\d{2}-\d{2}|\d{4}\/\d{2}\/\d{2})/.test(value)) {
-    const date = new Date(value);
-    if (!isNaN(date.getTime())) {
-      const fmt = getValueFormat('dateTimeAsIso');
-      return formattedValueToString(fmt(date.getTime()));
-    }
-  }
-  // Does it look like a Number?
-  const num = parseFloat(value);
-  if (!isNaN(num)) {
-    return num;
-  }
-  // Does it look like a Bool?
-  const lvalue = value.toLowerCase();
-  if (lvalue === 'true' || lvalue === 'false') {
-    return lvalue === 'true';
-  }
-  // Anything else
-  return value;
-};
-
-export const FilterList = ({
-  options,
-  values,
-  caseSensitive,
-  showOperators,
-  onChange,
-  searchFilter,
-  setSearchFilter,
-  operator,
-  setOperator,
-}: Props) => {
+export const FilterList = ({ options, values, caseSensitive, onChange }: Props) => {
+  const [searchFilter, setSearchFilter] = useState('');
   const regex = useMemo(() => new RegExp(searchFilter, caseSensitive ? undefined : 'i'), [searchFilter, caseSensitive]);
   const items = useMemo(
     () =>
       options.filter((option) => {
-        if (!showOperators || !searchFilter || operator.value === REGEX_OPERATOR.value) {
-          if (option.label === undefined) {
-            return false;
-          }
-          return regex.test(option.label);
-        } else if (operator.value === XPR_OPERATOR.value) {
-          if (option.value === undefined) {
-            return false;
-          }
-          try {
-            const xpr = searchFilter.replace(/\\/g, '');
-            const fnc = new Function('$', `'use strict'; return ${xpr};`);
-            const val = comparableValue(option.value);
-            return fnc(val);
-          } catch (_) {}
-          return false;
-        } else {
-          if (option.value === undefined) {
-            return false;
-          }
-
-          const value1 = comparableValue(option.value);
-          const value2 = comparableValue(searchFilter);
-
-          switch (operator.value) {
-            case '=':
-              return value1 === value2;
-            case '!=':
-              return value1 !== value2;
-            case '>':
-              return value1 > value2;
-            case '>=':
-              return value1 >= value2;
-            case '<':
-              return value1 < value2;
-            case '<=':
-              return value1 <= value2;
-          }
+        if (option.label === undefined) {
           return false;
         }
+        return regex.test(option.label);
       }),
-    [options, regex, showOperators, operator, searchFilter]
+    [options, regex]
   );
   const selectedItems = useMemo(() => items.filter((item) => values.includes(item)), [items, values]);
 
@@ -169,20 +76,8 @@ export const FilterList = ({
   }, [onChange, values, items, selectedItems]);
 
   return (
-    <Stack direction="column" gap={0.25}>
-      {!showOperators && <FilterInput placeholder="Filter values" onChange={setSearchFilter} value={searchFilter} />}
-      {showOperators && (
-        <Stack direction="row" gap={0}>
-          <ButtonSelect
-            variant="canvas"
-            options={OPERATORS}
-            onChange={setOperator}
-            value={operator}
-            tooltip={operator.description}
-          />
-          <FilterInput placeholder="Filter values" onChange={setSearchFilter} value={searchFilter} />
-        </Stack>
-      )}
+    <VerticalGroup spacing="md">
+      <FilterInput placeholder="Filter values" onChange={setSearchFilter} value={searchFilter} />
       {!items.length && <Label>No values</Label>}
       {items.length && (
         <List
@@ -206,7 +101,7 @@ export const FilterList = ({
         </List>
       )}
       {items.length && (
-        <Stack direction="column" gap={0.25}>
+        <VerticalGroup spacing="xs">
           <div className={cx(styles.selectDivider)} />
           <div className={cx(styles.filterListRow)}>
             <Checkbox
@@ -217,9 +112,9 @@ export const FilterList = ({
               onChange={onSelectChanged}
             />
           </div>
-        </Stack>
+        </VerticalGroup>
       )}
-    </Stack>
+    </VerticalGroup>
   );
 };
 

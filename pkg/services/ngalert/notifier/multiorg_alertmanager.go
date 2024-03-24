@@ -16,7 +16,6 @@ import (
 
 	"github.com/grafana/grafana/pkg/infra/kvstore"
 	"github.com/grafana/grafana/pkg/infra/log"
-	"github.com/grafana/grafana/pkg/services/featuremgmt"
 	apimodels "github.com/grafana/grafana/pkg/services/ngalert/api/tooling/definitions"
 	"github.com/grafana/grafana/pkg/services/ngalert/metrics"
 	"github.com/grafana/grafana/pkg/services/ngalert/models"
@@ -68,9 +67,8 @@ type MultiOrgAlertmanager struct {
 	alertmanagersMtx sync.RWMutex
 	alertmanagers    map[int64]Alertmanager
 
-	settings       *setting.Cfg
-	featureManager featuremgmt.FeatureToggles
-	logger         log.Logger
+	settings *setting.Cfg
+	logger   log.Logger
 
 	// clusterPeer represents the clustering peers of Alertmanagers between Grafana instances.
 	peer         alertingNotify.ClusterPeer
@@ -97,35 +95,24 @@ func WithAlertmanagerOverride(f func(OrgAlertmanagerFactory) OrgAlertmanagerFact
 	}
 }
 
-func NewMultiOrgAlertmanager(
-	cfg *setting.Cfg,
-	configStore AlertingStore,
-	orgStore store.OrgStore,
-	kvStore kvstore.KVStore,
-	provStore provisioningStore,
-	decryptFn alertingNotify.GetDecryptedValueFn,
-	m *metrics.MultiOrgAlertmanager,
-	ns notifications.Service,
-	l log.Logger,
-	s secrets.Service,
-	featureManager featuremgmt.FeatureToggles,
-	opts ...Option,
+func NewMultiOrgAlertmanager(cfg *setting.Cfg, configStore AlertingStore, orgStore store.OrgStore,
+	kvStore kvstore.KVStore, provStore provisioningStore, decryptFn alertingNotify.GetDecryptedValueFn,
+	m *metrics.MultiOrgAlertmanager, ns notifications.Service, l log.Logger, s secrets.Service, opts ...Option,
 ) (*MultiOrgAlertmanager, error) {
 	moa := &MultiOrgAlertmanager{
 		Crypto:    NewCrypto(s, configStore, l),
 		ProvStore: provStore,
 
-		logger:         l,
-		settings:       cfg,
-		featureManager: featureManager,
-		alertmanagers:  map[int64]Alertmanager{},
-		configStore:    configStore,
-		orgStore:       orgStore,
-		kvStore:        kvStore,
-		decryptFn:      decryptFn,
-		metrics:        m,
-		ns:             ns,
-		peer:           &NilPeer{},
+		logger:        l,
+		settings:      cfg,
+		alertmanagers: map[int64]Alertmanager{},
+		configStore:   configStore,
+		orgStore:      orgStore,
+		kvStore:       kvStore,
+		decryptFn:     decryptFn,
+		metrics:       m,
+		ns:            ns,
+		peer:          &NilPeer{},
 	}
 
 	if err := moa.setupClustering(cfg); err != nil {
@@ -135,7 +122,7 @@ func NewMultiOrgAlertmanager(
 	// Set up the default per tenant Alertmanager factory.
 	moa.factory = func(ctx context.Context, orgID int64) (Alertmanager, error) {
 		m := metrics.NewAlertmanagerMetrics(moa.metrics.GetOrCreateOrgRegistry(orgID))
-		return NewAlertmanager(ctx, orgID, moa.settings, moa.configStore, moa.kvStore, moa.peer, moa.decryptFn, moa.ns, m, featureManager.IsEnabled(ctx, featuremgmt.FlagAlertingSimplifiedRouting))
+		return NewAlertmanager(ctx, orgID, moa.settings, moa.configStore, moa.kvStore, moa.peer, moa.decryptFn, moa.ns, m)
 	}
 
 	for _, opt := range opts {

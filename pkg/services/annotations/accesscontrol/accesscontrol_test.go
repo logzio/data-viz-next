@@ -5,22 +5,15 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/grafana/grafana/pkg/components/simplejson"
 	"github.com/grafana/grafana/pkg/infra/db"
 	"github.com/grafana/grafana/pkg/services/accesscontrol"
-	"github.com/grafana/grafana/pkg/services/annotations"
 	"github.com/grafana/grafana/pkg/services/annotations/testutil"
 	"github.com/grafana/grafana/pkg/services/dashboards"
 	"github.com/grafana/grafana/pkg/services/featuremgmt"
 	"github.com/grafana/grafana/pkg/services/user"
-	"github.com/grafana/grafana/pkg/tests/testsuite"
+	"github.com/stretchr/testify/require"
 )
-
-func TestMain(m *testing.M) {
-	testsuite.Run(m)
-}
 
 func TestIntegrationAuthorize(t *testing.T) {
 	if testing.Short() {
@@ -175,8 +168,7 @@ func TestIntegrationAuthorize(t *testing.T) {
 
 			authz := NewAuthService(sql, featuremgmt.WithFeatures(tc.featureToggle))
 
-			query := &annotations.ItemQuery{SignedInUser: u}
-			resources, err := authz.Authorize(context.Background(), 1, query)
+			resources, err := authz.Authorize(context.Background(), 1, u)
 			require.NoError(t, err)
 
 			if tc.expectedResources.Dashboards != nil {

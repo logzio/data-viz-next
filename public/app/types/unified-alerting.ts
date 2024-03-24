@@ -26,11 +26,8 @@ export function hasAlertState(alert: Alert, state: PromAlertingRuleState | Grafa
   return mapStateWithReasonToBaseState(alert.state) === state;
 }
 
-// Prometheus API uses "err" but grafana API uses "error" *sigh*
-export type RuleHealth = 'nodata' | 'error' | 'err' | string;
-
 interface RuleBase {
-  health: RuleHealth;
+  health: string;
   name: string;
   query: string;
   lastEvaluation?: string;

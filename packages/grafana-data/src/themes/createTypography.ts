@@ -114,7 +114,6 @@ export function createTypography(colors: ThemeColors, typographyInput: ThemeTypo
     h6: buildVariant(fontWeightMedium, 14, 22, 0.15),
     body: buildVariant(fontWeightRegular, fontSize, 22, 0.15),
     bodySmall: buildVariant(fontWeightRegular, 12, 18, 0.15),
-    code: { ...buildVariant(fontWeightRegular, 14, 16, 0.15), fontFamily: fontFamilyMonospace },
   };
 
   const size = {
@@ -153,5 +152,4 @@ export interface ThemeTypographyVariantTypes {
   h6: ThemeTypographyVariant;
   body: ThemeTypographyVariant;
   bodySmall: ThemeTypographyVariant;
-  code: ThemeTypographyVariant;
 }

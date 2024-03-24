@@ -34,6 +34,14 @@ export const cardStyle = (theme: GrafanaTheme2, complete: boolean) => {
 `;
 };
 
+export const iconStyle = (theme: GrafanaTheme2, complete: boolean) => css`
+  color: ${complete ? theme.v1.palette.blue95 : theme.colors.text.secondary};
+
+  ${theme.breakpoints.down('sm')} {
+    display: none;
+  }
+`;
+
 export const cardContent = css`
   padding: 16px;
 `;

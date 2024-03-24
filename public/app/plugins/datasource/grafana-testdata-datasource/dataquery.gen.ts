@@ -4,7 +4,7 @@
 //     public/app/plugins/gen.go
 // Using jennies:
 //     TSTypesJenny
-//     PluginTsTypesJenny
+//     PluginTSTypesJenny
 //
 // Run 'make gen-cue' from repository root to regenerate.
 
@@ -47,7 +47,7 @@ export interface StreamingQuery {
   noise: number;
   speed: number;
   spread: number;
-  type: ('signal' | 'logs' | 'fetch' | 'traces');
+  type: ('signal' | 'logs' | 'fetch');
   url?: string;
 }
 
@@ -72,8 +72,7 @@ export interface SimulationQuery {
 
 export interface NodesQuery {
   count?: number;
-  seed?: number;
-  type?: ('random' | 'response_small' | 'response_medium' | 'random edges');
+  type?: ('random' | 'response' | 'random edges');
 }
 
 export interface USAQuery {
@@ -106,7 +105,7 @@ export interface Scenario {
   stringInput: string;
 }
 
-export interface TestDataDataQuery extends common.DataQuery {
+export interface TestData extends common.DataQuery {
   alias?: string;
   channel?: string;
   csvContent?: string;
@@ -134,7 +133,7 @@ export interface TestDataDataQuery extends common.DataQuery {
   usa?: USAQuery;
 }
 
-export const defaultTestDataDataQuery: Partial<TestDataDataQuery> = {
+export const defaultTestData: Partial<TestData> = {
   csvWave: [],
   points: [],
   scenarioId: TestDataQueryType.RandomWalk,

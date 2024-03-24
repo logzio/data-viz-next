@@ -1,7 +1,6 @@
 package api
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/grafana/grafana/pkg/api/apierrors"
@@ -11,7 +10,6 @@ import (
 	"github.com/grafana/grafana/pkg/services/accesscontrol"
 	contextmodel "github.com/grafana/grafana/pkg/services/contexthandler/model"
 	"github.com/grafana/grafana/pkg/services/dashboardimport"
-	"github.com/grafana/grafana/pkg/services/dashboardimport/utils"
 	"github.com/grafana/grafana/pkg/services/dashboards"
 	"github.com/grafana/grafana/pkg/services/pluginsintegration/pluginstore"
 	"github.com/grafana/grafana/pkg/services/quota"
@@ -73,15 +71,12 @@ func (api *ImportDashboardAPI) ImportDashboard(c *contextmodel.ReqContext) respo
 	}
 
 	if limitReached {
-		return response.Error(http.StatusForbidden, "Quota reached", nil)
+		return response.Error(403, "Quota reached", nil)
 	}
 
 	req.User = c.SignedInUser
 	resp, err := api.dashboardImportService.ImportDashboard(c.Req.Context(), &req)
 	if err != nil {
-		if errors.Is(err, utils.ErrDashboardInputMissing) {
-			return response.Error(http.StatusBadRequest, err.Error(), err)
-		}
 		return apierrors.ToDashboardErrorResponse(c.Req.Context(), api.pluginStore, err)
 	}
 

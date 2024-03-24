@@ -3,7 +3,6 @@ package dashboardsnapshots
 import (
 	"time"
 
-	dashboardsnapshot "github.com/grafana/grafana/pkg/apis/dashboardsnapshot/v0alpha1"
 	"github.com/grafana/grafana/pkg/components/simplejson"
 	"github.com/grafana/grafana/pkg/services/auth/identity"
 )
@@ -48,17 +47,28 @@ type DashboardSnapshotDTO struct {
 
 // swagger:model
 type CreateDashboardSnapshotCommand struct {
-	// The "public" fields are defined in this struct while the private/SQL/response params are
-	// defied in the rest of this command
-	dashboardsnapshot.DashboardCreateCommand
+	// The complete dashboard model.
+	// required:true
+	Dashboard *simplejson.Json `json:"dashboard" binding:"Required"`
+	// Snapshot name
+	// required:false
+	Name string `json:"name"`
+	// When the snapshot should expire in seconds in seconds. Default is never to expire.
+	// required:false
+	// default:0
+	Expires int64 `json:"expires"`
 
+	// these are passed when storing an external snapshot ref
+	// Save the snapshot on an external server rather than locally.
+	// required:false
+	// default: false
+	External          bool   `json:"external"`
 	ExternalURL       string `json:"-"`
 	ExternalDeleteURL string `json:"-"`
 
 	// Define the unique key. Required if `external` is `true`.
 	// required:false
 	Key string `json:"key"`
-
 	// Unique key used to delete the snapshot. It is different from the `key` so that only the creator can delete the snapshot. Required if `external` is `true`.
 	// required:false
 	DeleteKey string `json:"deleteKey"`
@@ -89,11 +99,4 @@ type GetDashboardSnapshotsQuery struct {
 	Limit        int
 	OrgID        int64
 	SignedInUser identity.Requester
-}
-
-type CreateExternalSnapshotResponse struct {
-	Key       string `json:"key"`
-	DeleteKey string `json:"deleteKey"`
-	Url       string `json:"url"`
-	DeleteUrl string `json:"deleteUrl"`
 }

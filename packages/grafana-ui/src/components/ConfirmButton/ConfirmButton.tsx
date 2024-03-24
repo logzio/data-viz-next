@@ -1,13 +1,14 @@
 import { cx, css } from '@emotion/css';
-import React, { ReactElement, useEffect, useRef, useState } from 'react';
+import React, { PureComponent, ReactElement } from 'react';
 
 import { GrafanaTheme2 } from '@grafana/data';
 
-import { useStyles2 } from '../../themes';
+import { stylesFactory, withTheme2 } from '../../themes';
+import { Themeable2 } from '../../types';
 import { ComponentSize } from '../../types/size';
 import { Button, ButtonVariant } from '../Button';
 
-export interface Props {
+export interface Props extends Themeable2 {
   /** Confirm action callback */
   onConfirm(): void;
   children: string | ReactElement;
@@ -23,161 +24,182 @@ export interface Props {
   confirmVariant?: ButtonVariant;
   /** Hide confirm actions when after of them is clicked */
   closeOnConfirm?: boolean;
+  /** Move focus to button when mounted */
+  autoFocus?: boolean;
+
   /** Optional on click handler for the original button */
   onClick?(): void;
   /** Callback for the cancel action */
   onCancel?(): void;
 }
 
-export const ConfirmButton = ({
-  children,
-  className,
-  closeOnConfirm,
-  confirmText = 'Save',
-  confirmVariant = 'primary',
-  disabled = false,
-  onCancel,
-  onClick,
-  onConfirm,
-  size = 'md',
-}: Props) => {
-  const mainButtonRef = useRef<HTMLButtonElement>(null);
-  const confirmButtonRef = useRef<HTMLButtonElement>(null);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [shouldRestoreFocus, setShouldRestoreFocus] = useState(false);
-  const styles = useStyles2(getStyles);
+interface State {
+  showConfirm: boolean;
+}
 
-  useEffect(() => {
-    if (showConfirm) {
-      confirmButtonRef.current?.focus();
-      setShouldRestoreFocus(true);
-    } else {
-      if (shouldRestoreFocus) {
-        mainButtonRef.current?.focus();
-        setShouldRestoreFocus(false);
+class UnThemedConfirmButton extends PureComponent<Props, State> {
+  mainButtonRef = React.createRef<HTMLButtonElement>();
+  confirmButtonRef = React.createRef<HTMLButtonElement>();
+  state: State = {
+    showConfirm: false,
+  };
+
+  onClickButton = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (event) {
+      event.preventDefault();
+    }
+
+    this.setState(
+      {
+        showConfirm: true,
+      },
+      () => {
+        if (this.props.autoFocus && this.confirmButtonRef.current) {
+          this.confirmButtonRef.current.focus();
+        }
       }
-    }
-  }, [shouldRestoreFocus, showConfirm]);
+    );
 
-  const onClickButton = (event: React.MouseEvent<HTMLButtonElement>) => {
-    if (event) {
-      event.preventDefault();
-    }
-
-    setShowConfirm(true);
-    onClick?.();
-  };
-
-  const onClickCancel = (event: React.MouseEvent<HTMLButtonElement>) => {
-    if (event) {
-      event.preventDefault();
-    }
-    setShowConfirm(false);
-    mainButtonRef.current?.focus();
-    onCancel?.();
-  };
-
-  const onClickConfirm = (event: React.MouseEvent<HTMLButtonElement>) => {
-    if (event) {
-      event.preventDefault();
-    }
-    onConfirm?.();
-    if (closeOnConfirm) {
-      setShowConfirm(false);
+    if (this.props.onClick) {
+      this.props.onClick();
     }
   };
 
-  const buttonClass = cx(className, styles.mainButton, {
-    [styles.mainButtonHide]: showConfirm,
-  });
-  const confirmButtonClass = cx(styles.confirmButton, {
-    [styles.confirmButtonHide]: !showConfirm,
-  });
-  const confirmButtonContainerClass = cx(styles.confirmButtonContainer, {
-    [styles.confirmButtonContainerHide]: !showConfirm,
-  });
+  onClickCancel = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (event) {
+      event.preventDefault();
+    }
+    this.setState(
+      {
+        showConfirm: false,
+      },
+      () => {
+        this.mainButtonRef.current?.focus();
+      }
+    );
+    if (this.props.onCancel) {
+      this.props.onCancel();
+    }
+  };
+  onConfirm = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (event) {
+      event.preventDefault();
+    }
+    this.props.onConfirm();
+    if (this.props.closeOnConfirm) {
+      this.setState({
+        showConfirm: false,
+      });
+    }
+  };
 
-  return (
-    <div className={styles.container}>
-      <span className={buttonClass}>
-        {typeof children === 'string' ? (
-          <Button disabled={disabled} size={size} fill="text" onClick={onClickButton} ref={mainButtonRef}>
-            {children}
-          </Button>
-        ) : (
-          React.cloneElement(children, { disabled, onClick: onClickButton, ref: mainButtonRef })
-        )}
-      </span>
-      <div className={confirmButtonContainerClass}>
+  render() {
+    const {
+      theme,
+      className,
+      size,
+      disabled,
+      confirmText,
+      confirmVariant: confirmButtonVariant,
+      children,
+    } = this.props;
+    const styles = getStyles(theme);
+    const buttonClass = cx(
+      className,
+      this.state.showConfirm ? styles.buttonHide : styles.buttonShow,
+      disabled && styles.buttonDisabled
+    );
+    const confirmButtonClass = cx(
+      styles.confirmButton,
+      this.state.showConfirm ? styles.confirmButtonShow : styles.confirmButtonHide
+    );
+
+    const onClick = disabled ? () => {} : this.onClickButton;
+
+    return (
+      <span className={styles.buttonContainer}>
+        <div className={cx(disabled && styles.disabled)}>
+          <span className={buttonClass}>
+            {typeof children === 'string' ? (
+              <Button size={size} fill="text" onClick={onClick} ref={this.mainButtonRef}>
+                {children}
+              </Button>
+            ) : (
+              React.cloneElement(children, { onClick, ref: this.mainButtonRef })
+            )}
+          </span>
+        </div>
         <span className={confirmButtonClass}>
-          <Button size={size} variant={confirmVariant} onClick={onClickConfirm} ref={confirmButtonRef}>
+          <Button size={size} variant={confirmButtonVariant} onClick={this.onConfirm} ref={this.confirmButtonRef}>
             {confirmText}
           </Button>
-          <Button size={size} fill="text" onClick={onClickCancel}>
+          <Button size={size} fill="text" onClick={this.onClickCancel}>
             Cancel
           </Button>
         </span>
-      </div>
-    </div>
-  );
-};
-ConfirmButton.displayName = 'ConfirmButton';
+      </span>
+    );
+  }
+}
 
-const getStyles = (theme: GrafanaTheme2) => {
+export const ConfirmButton = withTheme2(UnThemedConfirmButton);
+
+const getStyles = stylesFactory((theme: GrafanaTheme2) => {
   return {
-    container: css({
-      alignItems: 'center',
+    buttonContainer: css({
       display: 'flex',
+      alignItems: 'center',
       justifyContent: 'flex-end',
-      position: 'relative',
     }),
-    mainButton: css({
+    buttonDisabled: css({
+      textDecoration: 'none',
+      color: theme.colors.text.primary,
+      opacity: 0.65,
+      pointerEvents: 'none',
+    }),
+    buttonShow: css({
       opacity: 1,
-      transition: theme.transitions.create(['opacity'], {
-        duration: theme.transitions.duration.shortest,
-        easing: theme.transitions.easing.easeOut,
-      }),
+      transition: 'opacity 0.1s ease',
       zIndex: 2,
     }),
-    mainButtonHide: css({
+    buttonHide: css({
       opacity: 0,
-      transition: theme.transitions.create(['opacity', 'visibility'], {
-        duration: theme.transitions.duration.shortest,
-        easing: theme.transitions.easing.easeIn,
-      }),
+      transition: 'opacity 0.1s ease, visibility 0 0.1s',
       visibility: 'hidden',
       zIndex: 0,
-    }),
-    confirmButtonContainer: css({
-      overflow: 'visible',
-      position: 'absolute',
-      right: 0,
-    }),
-    confirmButtonContainerHide: css({
-      overflow: 'hidden',
     }),
     confirmButton: css({
       alignItems: 'flex-start',
       background: theme.colors.background.primary,
       display: 'flex',
-      opacity: 1,
-      pointerEvents: 'all',
-      transform: 'translateX(0)',
-      transition: theme.transitions.create(['opacity', 'transform'], {
-        duration: theme.transitions.duration.shortest,
-        easing: theme.transitions.easing.easeOut,
-      }),
+      position: 'absolute',
+      pointerEvents: 'none',
+    }),
+    confirmButtonShow: css({
       zIndex: 1,
+      opacity: 1,
+      transition: 'opacity 0.08s ease-out, transform 0.1s ease-out',
+      transform: 'translateX(0)',
+      pointerEvents: 'all',
     }),
     confirmButtonHide: css({
       opacity: 0,
-      pointerEvents: 'none',
-      transform: 'translateX(100%)',
-      transition: theme.transitions.create(['opacity', 'transform', 'visibility'], {
-        duration: theme.transitions.duration.shortest,
-        easing: theme.transitions.easing.easeIn,
-      }),
       visibility: 'hidden',
+      transition: 'opacity 0.12s ease-in, transform 0.14s ease-in, visibility 0s 0.12s',
+      transform: 'translateX(100px)',
+    }),
+    disabled: css({
+      cursor: 'not-allowed',
     }),
   };
+});
+
+// Declare defaultProps directly on the themed component so they are displayed
+// in the props table
+ConfirmButton.defaultProps = {
+  size: 'md',
+  confirmText: 'Save',
+  disabled: false,
+  confirmVariant: 'primary',
 };
+ConfirmButton.displayName = 'ConfirmButton';

@@ -2,6 +2,8 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React, { ComponentPropsWithoutRef } from 'react';
 
+import { selectors } from '@grafana/e2e-selectors';
+
 import { QueryOperationAction, QueryOperationToggleAction } from './QueryOperationAction';
 
 describe('QueryOperationAction tests', () => {
@@ -20,7 +22,9 @@ describe('QueryOperationAction tests', () => {
   it('should render component', () => {
     setup();
 
-    expect(screen.getByRole('button', { name: 'test' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: selectors.components.QueryEditorRow.actionButton('test') })
+    ).toBeInTheDocument();
   });
 
   it('should call on click handler', async () => {
@@ -28,7 +32,7 @@ describe('QueryOperationAction tests', () => {
     setup({ disabled: false, onClick: clickSpy });
 
     expect(clickSpy).not.toHaveBeenCalled();
-    const queryButton = screen.getByRole('button', { name: 'test' });
+    const queryButton = screen.getByRole('button', { name: selectors.components.QueryEditorRow.actionButton('test') });
 
     await userEvent.click(queryButton);
 
@@ -40,7 +44,7 @@ describe('QueryOperationAction tests', () => {
     setup({ disabled: true, onClick: clickSpy });
 
     expect(clickSpy).not.toHaveBeenCalled();
-    const queryButton = screen.getByRole('button', { name: 'test' });
+    const queryButton = screen.getByRole('button', { name: selectors.components.QueryEditorRow.actionButton('test') });
 
     await userEvent.click(queryButton);
 
@@ -65,7 +69,7 @@ describe('QueryOperationToggleAction', () => {
 
     expect(
       screen.getByRole('button', {
-        name: 'test',
+        name: selectors.components.QueryEditorRow.actionButton('test'),
         pressed: false,
       })
     ).toBeInTheDocument();
@@ -74,7 +78,7 @@ describe('QueryOperationToggleAction', () => {
 
     expect(
       screen.getByRole('button', {
-        name: 'test',
+        name: selectors.components.QueryEditorRow.actionButton('test'),
         pressed: true,
       })
     ).toBeInTheDocument();

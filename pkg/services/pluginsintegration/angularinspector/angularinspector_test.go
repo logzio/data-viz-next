@@ -17,14 +17,14 @@ import (
 
 func TestProvideService(t *testing.T) {
 	t.Run("uses hardcoded inspector if feature flag is not present", func(t *testing.T) {
-		features := featuremgmt.WithFeatures()
+		pCfg := &config.Cfg{Features: featuremgmt.WithFeatures()}
 		dynamic, err := angulardetectorsprovider.ProvideDynamic(
-			&config.PluginManagementCfg{},
+			pCfg,
 			angularpatternsstore.ProvideService(kvstore.NewFakeKVStore()),
-			features,
+			featuremgmt.WithFeatures(featuremgmt.FlagPluginsDynamicAngularDetectionPatterns),
 		)
 		require.NoError(t, err)
-		inspector, err := ProvideService(features, dynamic)
+		inspector, err := ProvideService(pCfg, dynamic)
 		require.NoError(t, err)
 		require.IsType(t, inspector.Inspector, &angularinspector.PatternsListInspector{})
 		patternsListInspector := inspector.Inspector.(*angularinspector.PatternsListInspector)
@@ -33,16 +33,16 @@ func TestProvideService(t *testing.T) {
 	})
 
 	t.Run("uses dynamic inspector with hardcoded fallback if feature flag is present", func(t *testing.T) {
-		features := featuremgmt.WithFeatures(
+		pCfg := &config.Cfg{Features: featuremgmt.WithFeatures(
 			featuremgmt.FlagPluginsDynamicAngularDetectionPatterns,
-		)
+		)}
 		dynamic, err := angulardetectorsprovider.ProvideDynamic(
-			&config.PluginManagementCfg{},
+			pCfg,
 			angularpatternsstore.ProvideService(kvstore.NewFakeKVStore()),
-			features,
+			featuremgmt.WithFeatures(),
 		)
 		require.NoError(t, err)
-		inspector, err := ProvideService(features, dynamic)
+		inspector, err := ProvideService(pCfg, dynamic)
 		require.NoError(t, err)
 		require.IsType(t, inspector.Inspector, &angularinspector.PatternsListInspector{})
 		require.IsType(t, inspector.Inspector.(*angularinspector.PatternsListInspector).DetectorsProvider, angulardetector.SequenceDetectorsProvider{})

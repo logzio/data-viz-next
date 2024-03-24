@@ -57,10 +57,9 @@ composableKinds: PanelCfg: {
 
 				ScatterSeriesConfig: {
 					FieldConfig
-					x?:     string
-					y?:     string
-					name?:  string
-					frame?: number
+					x?:    string
+					y?:    string
+					name?: string
 				} @cuetsy(kind="interface")
 
 				Options: {

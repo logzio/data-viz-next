@@ -6,20 +6,11 @@ import {
   findMatchingAlertGroups,
   findMatchingRoutes,
   normalizeRoute,
-  unquoteRouteMatchers,
 } from './utils/notification-policies';
 
-export interface MatchOptions {
-  unquoteMatchers?: boolean;
-}
-
 export const routeGroupsMatcher = {
-  getRouteGroupsMap(
-    rootRoute: RouteWithID,
-    groups: AlertmanagerGroup[],
-    options?: MatchOptions
-  ): Map<string, AlertmanagerGroup[]> {
-    const normalizedRootRoute = getNormalizedRoute(rootRoute, options);
+  getRouteGroupsMap(rootRoute: RouteWithID, groups: AlertmanagerGroup[]): Map<string, AlertmanagerGroup[]> {
+    const normalizedRootRoute = normalizeRoute(rootRoute);
 
     function addRouteGroups(route: RouteWithID, acc: Map<string, AlertmanagerGroup[]>) {
       const routeGroups = findMatchingAlertGroups(normalizedRootRoute, route, groups);
@@ -34,14 +25,10 @@ export const routeGroupsMatcher = {
     return routeGroupsMap;
   },
 
-  matchInstancesToRoute(
-    routeTree: RouteWithID,
-    instancesToMatch: Labels[],
-    options?: MatchOptions
-  ): Map<string, AlertInstanceMatch[]> {
+  matchInstancesToRoute(routeTree: RouteWithID, instancesToMatch: Labels[]): Map<string, AlertInstanceMatch[]> {
     const result = new Map<string, AlertInstanceMatch[]>();
 
-    const normalizedRootRoute = getNormalizedRoute(routeTree, options);
+    const normalizedRootRoute = normalizeRoute(routeTree);
 
     instancesToMatch.forEach((instance) => {
       const matchingRoutes = findMatchingRoutes(normalizedRootRoute, Object.entries(instance));
@@ -59,9 +46,5 @@ export const routeGroupsMatcher = {
     return result;
   },
 };
-
-function getNormalizedRoute(route: RouteWithID, options?: MatchOptions): RouteWithID {
-  return options?.unquoteMatchers ? unquoteRouteMatchers(normalizeRoute(route)) : normalizeRoute(route);
-}
 
 export type RouteGroupsMatcher = typeof routeGroupsMatcher;

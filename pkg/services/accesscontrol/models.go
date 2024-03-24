@@ -13,15 +13,7 @@ import (
 	"github.com/grafana/grafana/pkg/util/errutil"
 )
 
-const (
-	CacheHit  = "hit"
-	CacheMiss = "miss"
-)
-
-var (
-	ErrInternal        = errutil.Internal("accesscontrol.internal")
-	CacheUsageStatuses = []string{CacheHit, CacheMiss}
-)
+var ErrInternal = errutil.Internal("accesscontrol.internal")
 
 // RoleRegistration stores a role and its assignments to built-in roles
 // (Viewer, Editor, Admin, Grafana Admin)
@@ -330,7 +322,6 @@ func (cmd *SaveExternalServiceRoleCommand) Validate() error {
 
 const (
 	GlobalOrgID      = 0
-	NoOrgID          = int64(-1)
 	GeneralFolderUID = "general"
 	RoleGrafanaAdmin = "Grafana Admin"
 
@@ -341,8 +332,9 @@ const (
 	ActionAPIKeyDelete = "apikeys:delete"
 
 	// Users actions
-	ActionUsersRead  = "users:read"
-	ActionUsersWrite = "users:write"
+	ActionUsersRead        = "users:read"
+	ActionUsersWrite       = "users:write"
+	ActionUsersImpersonate = "users:impersonate"
 
 	// We can ignore gosec G101 since this does not contain any credentials.
 	// nolint:gosec
@@ -443,15 +435,6 @@ const (
 	// Alerting Notification policies actions
 	ActionAlertingNotificationsRead  = "alert.notifications:read"
 	ActionAlertingNotificationsWrite = "alert.notifications:write"
-
-	// Alerting notifications time interval actions
-	ActionAlertingNotificationsTimeIntervalsRead  = "alert.notifications.time-intervals:read"
-	ActionAlertingNotificationsTimeIntervalsWrite = "alert.notifications.time-intervals:write"
-
-	// Alerting receiver actions
-	ActionAlertingReceiversList        = "alert.notifications.receivers:list"
-	ActionAlertingReceiversRead        = "alert.notifications.receivers:read"
-	ActionAlertingReceiversReadSecrets = "alert.notifications.receivers.secrets:read"
 
 	// External alerting rule actions. We can only narrow it down to writes or reads, as we don't control the atomicity in the external system.
 	ActionAlertingRuleExternalWrite = "alert.rules.external:write"
@@ -562,8 +545,3 @@ var OrgsCreateAccessEvaluator = EvalAll(
 
 // ApiKeyAccessEvaluator is used to protect the "Configuration > API keys" page access
 var ApiKeyAccessEvaluator = EvalPermission(ActionAPIKeyRead)
-
-type QueryWithOrg struct {
-	OrgId  *int64 `json:"orgId"`
-	Global bool   `json:"global"`
-}

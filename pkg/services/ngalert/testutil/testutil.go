@@ -20,14 +20,17 @@ import (
 	"github.com/grafana/grafana/pkg/services/guardian"
 	"github.com/grafana/grafana/pkg/services/quota/quotatest"
 	"github.com/grafana/grafana/pkg/services/sqlstore"
-	"github.com/grafana/grafana/pkg/services/supportbundles/supportbundlestest"
 	"github.com/grafana/grafana/pkg/services/tag/tagimpl"
 	"github.com/grafana/grafana/pkg/setting"
 )
 
-func SetupFolderService(tb testing.TB, cfg *setting.Cfg, db db.DB, dashboardStore dashboards.Store, folderStore *folderimpl.DashboardFolderStoreImpl, bus *bus.InProcBus, features featuremgmt.FeatureToggles, ac accesscontrol.AccessControl) folder.Service {
+func SetupFolderService(tb testing.TB, cfg *setting.Cfg, db db.DB, dashboardStore dashboards.Store, folderStore *folderimpl.DashboardFolderStoreImpl, bus *bus.InProcBus) folder.Service {
 	tb.Helper()
-	return folderimpl.ProvideService(ac, bus, cfg, dashboardStore, folderStore, db, features, supportbundlestest.NewFakeBundleService(), nil)
+
+	ac := acmock.New()
+	features := featuremgmt.WithFeatures()
+
+	return folderimpl.ProvideService(ac, bus, cfg, dashboardStore, folderStore, db, features, nil)
 }
 
 func SetupDashboardService(tb testing.TB, sqlStore *sqlstore.SQLStore, fs *folderimpl.DashboardFolderStoreImpl, cfg *setting.Cfg) (*dashboardservice.DashboardServiceImpl, dashboards.Store) {
@@ -55,7 +58,7 @@ func SetupDashboardService(tb testing.TB, sqlStore *sqlstore.SQLStore, fs *folde
 	require.NoError(tb, err)
 
 	dashboardService, err := dashboardservice.ProvideDashboardServiceImpl(
-		cfg, dashboardStore, fs,
+		cfg, dashboardStore, fs, nil,
 		features, folderPermissions, dashboardPermissions, ac,
 		foldertest.NewFakeService(),
 		nil,

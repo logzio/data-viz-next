@@ -1,7 +1,6 @@
 import { Observable, of, throwError } from 'rxjs';
 
 import { AnnotationQuery, DataSourceApi, getDefaultTimeRange } from '@grafana/data';
-import { AnnotationQueryResponse } from 'app/features/annotations/types';
 import { createDashboardModelFixture } from 'app/features/dashboard/state/__fixtures__/dashboardFixtures';
 
 import { silenceConsoleOutput } from '../../../../../test/core/utils/silenceConsoleOutput';
@@ -24,7 +23,7 @@ function getDefaultOptions(): AnnotationQueryRunnerOptions {
   return { annotation, datasource, dashboard, range };
 }
 
-function getTestContext(result: Observable<AnnotationQueryResponse> = toAsyncOfResult({ events: [{ id: '1' }] })) {
+function getTestContext(result: Observable<any> = toAsyncOfResult({ events: [{ id: '1' }] })) {
   jest.clearAllMocks();
   const dispatchMock = jest.spyOn(store, 'dispatch');
   const options = getDefaultOptions();
@@ -95,7 +94,7 @@ describe('AnnotationsQueryRunner', () => {
 
     describe('but result is missing events prop', () => {
       it('then it should return the correct results', async () => {
-        const { options, executeAnnotationQueryMock } = getTestContext(of({ id: '1' } as AnnotationQueryResponse));
+        const { options, executeAnnotationQueryMock } = getTestContext(of({ id: '1' }));
 
         await expect(runner.run(options)).toEmitValuesWith((received) => {
           expect(received).toHaveLength(1);

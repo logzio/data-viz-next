@@ -2,9 +2,7 @@ import { css } from '@emotion/css';
 import React from 'react';
 
 import { GrafanaTheme2 } from '@grafana/data';
-import { useStyles2 } from '@grafana/ui';
-
-import { GrotNotFound } from '../GrotNotFound/GrotNotFound';
+import { useStyles2, useTheme2 } from '@grafana/ui';
 
 export interface Props {
   /**
@@ -15,6 +13,7 @@ export interface Props {
 
 export function EntityNotFound({ entity = 'Page' }: Props) {
   const styles = useStyles2(getStyles);
+  const theme = useTheme2();
 
   return (
     <div className={styles.container}>
@@ -30,7 +29,7 @@ export function EntityNotFound({ entity = 'Page' }: Props) {
         </a>
       </div>
       <div className={styles.grot}>
-        <GrotNotFound show404={entity === 'Page'} />
+        <img src={`public/img/grot-404-${theme.isDark ? 'dark' : 'light'}.svg`} width="100%" alt="grot" />
       </div>
     </div>
   );
@@ -53,10 +52,9 @@ export function getStyles(theme: GrafanaTheme2) {
       textAlign: 'center',
     }),
     grot: css({
-      alignSelf: 'center',
       maxWidth: '450px',
       paddingTop: theme.spacing(8),
-      width: '100%',
+      margin: '0 auto',
     }),
   };
 }

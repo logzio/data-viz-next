@@ -1,4 +1,4 @@
-import React, { PureComponent, ReactNode, ComponentType, ErrorInfo } from 'react';
+import React, { PureComponent, ReactNode, ComponentType } from 'react';
 
 import { faro } from '@grafana/faro-web-sdk';
 
@@ -6,7 +6,9 @@ import { Alert } from '../Alert/Alert';
 
 import { ErrorWithStack } from './ErrorWithStack';
 
-export type { ErrorInfo };
+export interface ErrorInfo {
+  componentStack: string;
+}
 
 export interface ErrorBoundaryApi {
   error: Error | null;

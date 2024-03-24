@@ -2,7 +2,6 @@ package api
 
 import (
 	"testing"
-	"time"
 
 	amConfig "github.com/prometheus/alertmanager/config"
 	"github.com/prometheus/alertmanager/pkg/labels"
@@ -564,7 +563,6 @@ func defaultInterval(t *testing.T) []timeinterval.TimeInterval {
 	t.Helper()
 	return []timeinterval.TimeInterval{
 		{
-			Location: &timeinterval.Location{Location: time.Local},
 			Years: []timeinterval.YearRange{
 				{
 					InclusiveRange: timeinterval.InclusiveRange{

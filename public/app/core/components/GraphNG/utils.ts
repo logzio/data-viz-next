@@ -1,5 +1,4 @@
 import { DataFrame, Field, FieldType, outerJoinDataFrames, TimeRange } from '@grafana/data';
-import { NULL_EXPAND, NULL_REMOVE, NULL_RETAIN } from '@grafana/data/src/transformations/transformers/joinDataFrames';
 import { applyNullInsertThreshold } from '@grafana/data/src/transformations/transformers/nulls/nullInsertThreshold';
 import { nullToUndefThreshold } from '@grafana/data/src/transformations/transformers/nulls/nullToUndefThreshold';
 import { GraphDrawStyle } from '@grafana/schema';
@@ -69,10 +68,23 @@ export function preparePlotFrame(frames: DataFrame[], dimFields: XYFieldMatchers
     }
   });
 
-  let numBarSeries = frames.reduce(
-    (acc, frame) => acc + frame.fields.reduce((acc, field) => acc + (isVisibleBarField(field) ? 1 : 0), 0),
-    0
-  );
+  let numBarSeries = 0;
+
+  frames.forEach((frame) => {
+    frame.fields.forEach((f) => {
+      if (isVisibleBarField(f)) {
+        // prevent minesweeper-expansion of nulls (gaps) when joining bars
+        // since bar width is determined from the minimum distance between non-undefined values
+        // (this strategy will still retain any original pre-join nulls, though)
+        f.config.custom = {
+          ...f.config.custom,
+          spanNulls: -1,
+        };
+
+        numBarSeries++;
+      }
+    });
+  });
 
   // to make bar widths of all series uniform (equal to narrowest bar series), find smallest distance between x points
   let minXDelta = Infinity;
@@ -98,23 +110,6 @@ export function preparePlotFrame(frames: DataFrame[], dimFields: XYFieldMatchers
     joinBy: dimFields.x,
     keep: dimFields.y,
     keepOriginIndices: true,
-
-    // the join transformer force-deletes our state.displayName cache unless keepDisplayNames: true
-    // https://github.com/grafana/grafana/pull/31121
-    // https://github.com/grafana/grafana/pull/71806
-    keepDisplayNames: true,
-
-    // prevent minesweeper-expansion of nulls (gaps) when joining bars
-    // since bar width is determined from the minimum distance between non-undefined values
-    // (this strategy will still retain any original pre-join nulls, though)
-    nullMode: (field) => {
-      if (isVisibleBarField(field)) {
-        return NULL_RETAIN;
-      }
-
-      let spanNulls = field.config.custom?.spanNulls;
-      return spanNulls === true ? NULL_REMOVE : spanNulls === -1 ? NULL_RETAIN : NULL_EXPAND;
-    },
   });
 
   if (alignedFrame) {

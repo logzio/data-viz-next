@@ -6,7 +6,11 @@ describe('Docked Navigation', () => {
     cy.viewport(1280, 800);
     e2e.flows.login(Cypress.env('USERNAME'), Cypress.env('PASSWORD'));
 
-    cy.visit(fromBaseUrl('/'));
+    cy.visit(fromBaseUrl('/'), {
+      onBeforeLoad(window) {
+        window.localStorage.setItem('grafana.featureToggles', 'dockedMegaMenu=1');
+      },
+    });
   });
 
   it('should remain docked when reloading the page', () => {

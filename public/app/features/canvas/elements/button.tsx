@@ -13,7 +13,7 @@ import { ButtonStyleConfig, ButtonStyleEditor } from 'app/plugins/panel/canvas/e
 import { callApi } from 'app/plugins/panel/canvas/editor/element/utils';
 import { HttpRequestMethod } from 'app/plugins/panel/canvas/panelcfg.gen';
 
-import { CanvasElementItem, CanvasElementOptions, CanvasElementProps, defaultLightTextColor } from '../element';
+import { CanvasElementItem, CanvasElementProps, defaultLightTextColor } from '../element';
 import { Align, TextConfig, TextData } from '../types';
 
 interface ButtonData extends Omit<TextData, 'valign'> {
@@ -130,32 +130,30 @@ export const buttonItem: CanvasElementItem<ButtonConfig, ButtonData> = {
   }),
 
   // Called when data changes
-  prepareData: (dimensionContext: DimensionContext, elementOptions: CanvasElementOptions<ButtonConfig>) => {
-    const buttonConfig = elementOptions.config;
-
-    const getAPIConfig = () => {
-      if (buttonConfig?.api) {
-        buttonConfig.api = {
-          ...buttonConfig.api,
-          method: buttonConfig.api.method ?? defaultApiConfig.method,
-          contentType: buttonConfig.api.contentType ?? defaultApiConfig.contentType,
+  prepareData: (ctx: DimensionContext, cfg: ButtonConfig) => {
+    const getCfgApi = () => {
+      if (cfg?.api) {
+        cfg.api = {
+          ...cfg.api,
+          method: cfg.api.method ?? defaultApiConfig.method,
+          contentType: cfg.api.contentType ?? defaultApiConfig.contentType,
         };
-        return buttonConfig.api;
+        return cfg.api;
       }
 
       return undefined;
     };
 
     const data: ButtonData = {
-      text: buttonConfig?.text ? dimensionContext.getText(buttonConfig.text).value() : '',
-      align: buttonConfig?.align ?? Align.Center,
-      size: buttonConfig?.size ?? 14,
-      api: getAPIConfig(),
-      style: buttonConfig?.style ?? defaultStyleConfig,
+      text: cfg?.text ? ctx.getText(cfg.text).value() : '',
+      align: cfg.align ?? Align.Center,
+      size: cfg.size ?? 14,
+      api: getCfgApi(),
+      style: cfg?.style ?? defaultStyleConfig,
     };
 
-    if (buttonConfig?.color) {
-      data.color = dimensionContext.getColor(buttonConfig.color).value();
+    if (cfg.color) {
+      data.color = ctx.getColor(cfg.color).value();
     }
 
     return data;

@@ -280,7 +280,7 @@ function TemplatingGuideline() {
       </Stack>
 
       <div className={styles.snippets}>
-        For auto-completion of common templating code, type the following keywords in the content editor:
+        To make templating easier, we provide a few snippets in the content editor to help you speed up your workflow.
         <div className={styles.code}>
           {Object.values(snippets)
             .map((s) => s.label)

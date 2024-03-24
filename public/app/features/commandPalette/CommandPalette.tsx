@@ -19,7 +19,6 @@ import { reportInteraction } from '@grafana/runtime';
 import { Icon, LoadingBar, useStyles2 } from '@grafana/ui';
 import { t } from 'app/core/internationalization';
 
-import { EmptyState } from './EmptyState';
 import { KBarResults } from './KBarResults';
 import { ResultItem } from './ResultItem';
 import { useSearchResults } from './actions/dashboardActions';
@@ -69,7 +68,7 @@ export function CommandPalette() {
                 </div>
               </div>
               <div className={styles.resultsContainer}>
-                <RenderResults isFetchingSearchResults={isFetchingSearchResults} searchResults={searchResults} />
+                <RenderResults searchResults={searchResults} />
               </div>
             </div>
           </FocusScope>
@@ -80,11 +79,10 @@ export function CommandPalette() {
 }
 
 interface RenderResultsProps {
-  isFetchingSearchResults: boolean;
   searchResults: CommandPaletteAction[];
 }
 
-const RenderResults = ({ isFetchingSearchResults, searchResults }: RenderResultsProps) => {
+const RenderResults = ({ searchResults }: RenderResultsProps) => {
   const { results: kbarResults, rootActionId } = useMatches();
   const styles = useStyles2(getSearchStyles);
   const dashboardsSectionTitle = t('command-palette.section.dashboard-search-results', 'Dashboards');
@@ -119,11 +117,7 @@ const RenderResults = ({ isFetchingSearchResults, searchResults }: RenderResults
     return results;
   }, [kbarResults, dashboardsSectionTitle, dashboardResultItems, foldersSectionTitle, folderResultItems]);
 
-  const showEmptyState = !isFetchingSearchResults && items.length === 0;
-
-  return showEmptyState ? (
-    <EmptyState />
-  ) : (
+  return (
     <KBarResults
       items={items}
       maxHeight={650}

@@ -18,8 +18,6 @@ import {
   ShowModalReactEvent,
   ZoomOutEvent,
   AbsoluteTimeEvent,
-  CopyTimeEvent,
-  PasteTimeEvent,
 } from '../../types/events';
 import { AppChromeService } from '../components/AppChrome/AppChromeService';
 import { HelpModal } from '../components/help/HelpModal';
@@ -40,7 +38,7 @@ export class KeybindingSrv {
 
     // Chromeless pages like login and signup page don't get any global bindings
     if (!route.chromeless) {
-      this.bind(['?', 'mod+h'], this.showHelpModal);
+      this.bind(['?', 'h'], this.showHelpModal);
       this.bind('g h', this.goToHome);
       this.bind('g d', this.goToDashboards);
       this.bind('g e', this.goToExplore);
@@ -204,14 +202,6 @@ export class KeybindingSrv {
 
     this.bind('t right', () => {
       appEvents.publish(new ShiftTimeEvent({ direction: ShiftTimeEventDirection.Right, updateUrl }));
-    });
-
-    this.bind('t c', () => {
-      appEvents.publish(new CopyTimeEvent());
-    });
-
-    this.bind('t v', () => {
-      appEvents.publish(new PasteTimeEvent({ updateUrl }));
     });
   }
 

@@ -20,15 +20,9 @@ export interface PageProps extends HTMLAttributes<HTMLDivElement> {
   subTitle?: React.ReactNode;
   /** Control the page layout. */
   layout?: PageLayoutType;
-  /**
-   * Can be used to get the scroll container element to access scroll position
-   * */
-  // Probably will deprecate this in the future in favor of just scrolling document.body directly
+  /** Can be used to get the scroll container element to access scroll position */
   scrollRef?: RefCallback<HTMLDivElement>;
-  /**
-   * Can be used to update the current scroll position
-   * */
-  // Probably will deprecate this in the future in favor of just scrolling document.body directly
+  /** Can be used to update the current scroll position */
   scrollTop?: number;
 }
 

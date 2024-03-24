@@ -7,7 +7,6 @@ export function dataLayersToAnnotations(layers: SceneDataLayerProvider[]) {
     if (!(layer instanceof dataLayers.AnnotationsDataLayer)) {
       continue;
     }
-
     const result = {
       ...layer.state.query,
       enable: Boolean(layer.state.isEnabled),

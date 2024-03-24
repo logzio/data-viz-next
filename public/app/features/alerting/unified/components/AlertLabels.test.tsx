@@ -12,12 +12,12 @@ describe('AlertLabels', () => {
     render(<AlertLabels labels={labels} commonLabels={commonLabels} />);
     expect(screen.getByText('+2 common labels')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button'));
+    userEvent.click(screen.getByRole('button'));
     await waitFor(() => {
       expect(screen.getByText('Hide common labels')).toBeInTheDocument();
     });
 
-    await userEvent.click(screen.getByRole('button'));
+    userEvent.click(screen.getByRole('button'));
     await waitFor(() => {
       expect(screen.getByText('+2 common labels')).toBeInTheDocument();
     });

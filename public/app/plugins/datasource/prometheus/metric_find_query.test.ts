@@ -58,15 +58,7 @@ describe('PrometheusMetricFindQuery', () => {
     );
   });
 
-  const setupMetricFindQuery = (
-    data: {
-      query: string;
-      response: {
-        data: unknown;
-      };
-    },
-    datasource?: PrometheusDatasource
-  ) => {
+  const setupMetricFindQuery = (data: any, datasource?: PrometheusDatasource) => {
     fetchMock.mockImplementation(() => of({ status: 'success', data: data.response } as unknown as FetchResponse));
     return new PrometheusMetricFindQuery(datasource ?? legacyPrometheusDatasource, data.query);
   };

@@ -657,10 +657,6 @@ exports[`Graph Migrations twoYAxis 1`] = `
             "value": 25,
           },
           {
-            "id": "custom.axisPlacement",
-            "value": "right",
-          },
-          {
             "id": "custom.axisLabel",
             "value": "Y222",
           },

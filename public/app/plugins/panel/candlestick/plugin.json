@@ -4,8 +4,6 @@
   "id": "candlestick",
 
   "info": {
-    "description": "Graphical representation of price movements of a security, derivative, or currency.",
-    "keywords": ["financial", "price", "currency", "k-line"],
     "author": {
       "name": "Grafana Labs",
       "url": "https://grafana.com"

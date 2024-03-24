@@ -67,7 +67,7 @@ export function useCloudCombinedRulesMatching(
   const { dsFeatures, isLoadingDsFeatures } = useDataSourceFeatures(ruleSourceName);
 
   const {
-    currentData,
+    currentData: promRuleNs = [],
     isLoading: isLoadingPromRules,
     error: promRuleNsError,
   } = alertRuleApi.endpoints.prometheusRuleNamespaces.useQuery({
@@ -87,7 +87,6 @@ export function useCloudCombinedRulesMatching(
     if (promRuleNsError) {
       throw new Error('Unable to obtain Prometheus rules');
     }
-    const promRuleNs = currentData || [];
 
     const rulerGroups: RulerRuleGroupDTO[] = [];
     if (dsFeatures?.rulerConfig) {
@@ -115,7 +114,7 @@ export function useCloudCombinedRulesMatching(
     const rules = namespaces.flatMap((ns) => ns.groups.flatMap((group) => group.rules));
 
     return rules;
-  }, [dsSettings, dsFeatures, isLoadingPromRules, promRuleNsError, currentData, fetchRulerRuleGroup]);
+  }, [dsSettings, dsFeatures, isLoadingPromRules, promRuleNsError, promRuleNs, fetchRulerRuleGroup]);
 
   return { loading: isLoadingDsFeatures || loading, error: error, rules: value };
 }

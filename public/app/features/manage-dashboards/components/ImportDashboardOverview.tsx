@@ -3,8 +3,7 @@ import { connect, ConnectedProps } from 'react-redux';
 
 import { dateTimeFormat } from '@grafana/data';
 import { locationService, reportInteraction } from '@grafana/runtime';
-import { Box, Legend } from '@grafana/ui';
-import { Form } from 'app/core/components/Form/Form';
+import { Form, Legend } from '@grafana/ui';
 import { StoreState } from 'app/types';
 
 import { clearLoadedDashboard, importDashboard } from '../state/actions';
@@ -65,7 +64,7 @@ class ImportDashboardOverviewUnConnected extends PureComponent<Props, State> {
     return (
       <>
         {source === DashboardSource.Gcom && (
-          <Box marginBottom={3}>
+          <div style={{ marginBottom: '24px' }}>
             <div>
               <Legend>
                 Importing dashboard from{' '}
@@ -91,7 +90,7 @@ class ImportDashboardOverviewUnConnected extends PureComponent<Props, State> {
                 </tr>
               </tbody>
             </table>
-          </Box>
+          </div>
         )}
         <Form
           onSubmit={this.onSubmit}

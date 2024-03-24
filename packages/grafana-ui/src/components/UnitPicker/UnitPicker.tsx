@@ -62,7 +62,6 @@ export class UnitPicker extends PureComponent<UnitPickerProps> {
         formatCreateLabel={formatCreateLabel}
         options={groupOptions}
         placeholder="Choose"
-        isClearable
         onSelect={this.props.onChange}
       />
     );

@@ -1,7 +1,9 @@
 import React, { FormEvent, PureComponent } from 'react';
 
-import { ConstantVariableForm } from 'app/features/dashboard-scene/settings/variables/components/ConstantVariableForm';
+import { selectors } from '@grafana/e2e-selectors';
 
+import { VariableLegend } from '../../dashboard-scene/settings/variables/components/VariableLegend';
+import { VariableTextField } from '../../dashboard-scene/settings/variables/components/VariableTextField';
 import { VariableEditorProps } from '../editor/types';
 import { ConstantVariableModel } from '../types';
 
@@ -12,11 +14,31 @@ export class ConstantVariableEditor extends PureComponent<Props> {
     this.props.onPropChange({
       propName: 'query',
       propValue: event.currentTarget.value,
+    });
+  };
+
+  onBlur = (event: FormEvent<HTMLInputElement>) => {
+    this.props.onPropChange({
+      propName: 'query',
+      propValue: event.currentTarget.value,
       updateOptions: true,
     });
   };
 
   render() {
-    return <ConstantVariableForm constantValue={this.props.variable.query} onChange={this.onChange} />;
+    return (
+      <>
+        <VariableLegend>Constant options</VariableLegend>
+        <VariableTextField
+          value={this.props.variable.query}
+          name="Value"
+          placeholder="your metric prefix"
+          onChange={this.onChange}
+          onBlur={this.onBlur}
+          testId={selectors.pages.Dashboard.Settings.Variables.Edit.ConstantVariable.constantOptionsQueryInputV2}
+          width={30}
+        />
+      </>
+    );
   }
 }

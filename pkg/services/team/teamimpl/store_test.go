@@ -22,12 +22,7 @@ import (
 	"github.com/grafana/grafana/pkg/services/team/sortopts"
 	"github.com/grafana/grafana/pkg/services/user"
 	"github.com/grafana/grafana/pkg/services/user/userimpl"
-	"github.com/grafana/grafana/pkg/tests/testsuite"
 )
-
-func TestMain(m *testing.M) {
-	testsuite.Run(m)
-}
 
 func TestIntegrationTeamCommandsAndQueries(t *testing.T) {
 	if testing.Short() {
@@ -35,8 +30,7 @@ func TestIntegrationTeamCommandsAndQueries(t *testing.T) {
 	}
 	t.Run("Testing Team commands and queries", func(t *testing.T) {
 		sqlStore := db.InitTestDB(t)
-		teamSvc, err := ProvideService(sqlStore, sqlStore.Cfg)
-		require.NoError(t, err)
+		teamSvc := ProvideService(sqlStore, sqlStore.Cfg)
 		testUser := &user.SignedInUser{
 			OrgID: 1,
 			Permissions: map[int64]map[string][]string{
@@ -92,9 +86,9 @@ func TestIntegrationTeamCommandsAndQueries(t *testing.T) {
 				require.Equal(t, team1.OrgID, testOrgID)
 				require.EqualValues(t, team1.MemberCount, 0)
 
-				err = teamSvc.AddTeamMember(context.Background(), userIds[0], testOrgID, team1.ID, false, 0)
+				err = teamSvc.AddTeamMember(userIds[0], testOrgID, team1.ID, false, 0)
 				require.NoError(t, err)
-				err = teamSvc.AddTeamMember(context.Background(), userIds[1], testOrgID, team1.ID, true, 0)
+				err = teamSvc.AddTeamMember(userIds[1], testOrgID, team1.ID, true, 0)
 				require.NoError(t, err)
 
 				q1 := &team.GetTeamMembersQuery{OrgID: testOrgID, TeamID: team1.ID, SignedInUser: testUser}
@@ -152,7 +146,7 @@ func TestIntegrationTeamCommandsAndQueries(t *testing.T) {
 
 				team1 := teamQueryResult.Teams[0]
 
-				err = teamSvc.AddTeamMember(context.Background(), userId, testOrgID, team1.ID, true, 0)
+				err = teamSvc.AddTeamMember(userId, testOrgID, team1.ID, true, 0)
 				require.NoError(t, err)
 
 				memberQuery := &team.GetTeamMembersQuery{OrgID: testOrgID, TeamID: team1.ID, External: true, SignedInUser: testUser}
@@ -168,7 +162,7 @@ func TestIntegrationTeamCommandsAndQueries(t *testing.T) {
 			t.Run("Should be able to update users in a team", func(t *testing.T) {
 				userId := userIds[0]
 
-				err = teamSvc.AddTeamMember(context.Background(), userId, testOrgID, team1.ID, false, 0)
+				err = teamSvc.AddTeamMember(userId, testOrgID, team1.ID, false, 0)
 				require.NoError(t, err)
 
 				qBeforeUpdate := &team.GetTeamMembersQuery{OrgID: testOrgID, TeamID: team1.ID, SignedInUser: testUser}
@@ -195,7 +189,7 @@ func TestIntegrationTeamCommandsAndQueries(t *testing.T) {
 				sqlStore = db.InitTestDB(t)
 				setup()
 				userID := userIds[0]
-				err = teamSvc.AddTeamMember(context.Background(), userID, testOrgID, team1.ID, false, 0)
+				err = teamSvc.AddTeamMember(userID, testOrgID, team1.ID, false, 0)
 				require.NoError(t, err)
 
 				qBeforeUpdate := &team.GetTeamMembersQuery{OrgID: testOrgID, TeamID: team1.ID, SignedInUser: testUser}
@@ -251,7 +245,7 @@ func TestIntegrationTeamCommandsAndQueries(t *testing.T) {
 				require.NoError(t, err)
 
 				// Add a team member
-				err = teamSvc.AddTeamMember(context.Background(), userIds[0], testOrgID, team2.ID, false, 0)
+				err = teamSvc.AddTeamMember(userIds[0], testOrgID, team2.ID, false, 0)
 				require.NoError(t, err)
 				defer func() {
 					err := teamSvc.RemoveTeamMember(context.Background(),
@@ -304,7 +298,7 @@ func TestIntegrationTeamCommandsAndQueries(t *testing.T) {
 				sqlStore = db.InitTestDB(t)
 				setup()
 				groupId := team2.ID
-				err := teamSvc.AddTeamMember(context.Background(), userIds[0], testOrgID, groupId, false, 0)
+				err := teamSvc.AddTeamMember(userIds[0], testOrgID, groupId, false, 0)
 				require.NoError(t, err)
 
 				query := &team.GetTeamsByUserQuery{
@@ -323,7 +317,7 @@ func TestIntegrationTeamCommandsAndQueries(t *testing.T) {
 			})
 
 			t.Run("Should be able to remove users from a group", func(t *testing.T) {
-				err = teamSvc.AddTeamMember(context.Background(), userIds[0], testOrgID, team1.ID, false, 0)
+				err = teamSvc.AddTeamMember(userIds[0], testOrgID, team1.ID, false, 0)
 				require.NoError(t, err)
 
 				err = teamSvc.RemoveTeamMember(context.Background(), &team.RemoveTeamMemberCommand{OrgID: testOrgID, TeamID: team1.ID, UserID: userIds[0]})
@@ -336,7 +330,7 @@ func TestIntegrationTeamCommandsAndQueries(t *testing.T) {
 			})
 
 			t.Run("Should have empty teams", func(t *testing.T) {
-				err = teamSvc.AddTeamMember(context.Background(), userIds[0], testOrgID, team1.ID, false, dashboardaccess.PERMISSION_ADMIN)
+				err = teamSvc.AddTeamMember(userIds[0], testOrgID, team1.ID, false, dashboardaccess.PERMISSION_ADMIN)
 				require.NoError(t, err)
 
 				t.Run("A user should be able to remove the admin permission for the last admin", func(t *testing.T) {
@@ -353,10 +347,10 @@ func TestIntegrationTeamCommandsAndQueries(t *testing.T) {
 					sqlStore = db.InitTestDB(t)
 					setup()
 
-					err = teamSvc.AddTeamMember(context.Background(), userIds[0], testOrgID, team1.ID, false, dashboardaccess.PERMISSION_ADMIN)
+					err = teamSvc.AddTeamMember(userIds[0], testOrgID, team1.ID, false, dashboardaccess.PERMISSION_ADMIN)
 					require.NoError(t, err)
 
-					err = teamSvc.AddTeamMember(context.Background(), userIds[1], testOrgID, team1.ID, false, dashboardaccess.PERMISSION_ADMIN)
+					err = teamSvc.AddTeamMember(userIds[1], testOrgID, team1.ID, false, dashboardaccess.PERMISSION_ADMIN)
 					require.NoError(t, err)
 					err = teamSvc.UpdateTeamMember(context.Background(), &team.UpdateTeamMemberCommand{OrgID: testOrgID, TeamID: team1.ID, UserID: userIds[0], Permission: 0})
 					require.NoError(t, err)
@@ -379,11 +373,11 @@ func TestIntegrationTeamCommandsAndQueries(t *testing.T) {
 				hiddenUsers := map[string]struct{}{"loginuser0": {}, "loginuser1": {}}
 
 				teamId := team1.ID
-				err = teamSvc.AddTeamMember(context.Background(), userIds[0], testOrgID, teamId, false, 0)
+				err = teamSvc.AddTeamMember(userIds[0], testOrgID, teamId, false, 0)
 				require.NoError(t, err)
-				err = teamSvc.AddTeamMember(context.Background(), userIds[1], testOrgID, teamId, false, 0)
+				err = teamSvc.AddTeamMember(userIds[1], testOrgID, teamId, false, 0)
 				require.NoError(t, err)
-				err = teamSvc.AddTeamMember(context.Background(), userIds[2], testOrgID, teamId, false, 0)
+				err = teamSvc.AddTeamMember(userIds[2], testOrgID, teamId, false, 0)
 				require.NoError(t, err)
 
 				searchQuery := &team.SearchTeamsQuery{OrgID: testOrgID, Page: 1, Limit: 10, SignedInUser: signedInUser, HiddenUsers: hiddenUsers}
@@ -418,11 +412,11 @@ func TestIntegrationTeamCommandsAndQueries(t *testing.T) {
 
 				groupId := team2.ID
 				// add service account to team
-				err = teamSvc.AddTeamMember(context.Background(), serviceAccount.ID, testOrgID, groupId, false, 0)
+				err = teamSvc.AddTeamMember(serviceAccount.ID, testOrgID, groupId, false, 0)
 				require.NoError(t, err)
 
 				// add user to team
-				err = teamSvc.AddTeamMember(context.Background(), userIds[0], testOrgID, groupId, false, 0)
+				err = teamSvc.AddTeamMember(userIds[0], testOrgID, groupId, false, 0)
 				require.NoError(t, err)
 
 				teamMembersQuery := &team.GetTeamMembersQuery{
@@ -490,8 +484,7 @@ func TestIntegrationSQLStore_SearchTeams(t *testing.T) {
 	}
 
 	store := db.InitTestDB(t, db.InitTestDBOpt{})
-	teamSvc, err := ProvideService(store, store.Cfg)
-	require.NoError(t, err)
+	teamSvc := ProvideService(store, store.Cfg)
 
 	// Seed 10 teams
 	for i := 1; i <= 10; i++ {
@@ -527,8 +520,7 @@ func TestIntegrationSQLStore_GetTeamMembers_ACFilter(t *testing.T) {
 
 	// Seed 2 teams with 2 members
 	setup := func(store *sqlstore.SQLStore) {
-		teamSvc, err := ProvideService(store, store.Cfg)
-		require.NoError(t, err)
+		teamSvc := ProvideService(store, store.Cfg)
 		team1, errCreateTeam := teamSvc.CreateTeam("group1 name", "test1@example.org", testOrgID)
 		require.NoError(t, errCreateTeam)
 		team2, errCreateTeam := teamSvc.CreateTeam("group2 name", "test2@example.org", testOrgID)
@@ -550,20 +542,19 @@ func TestIntegrationSQLStore_GetTeamMembers_ACFilter(t *testing.T) {
 			userIds[i] = user.ID
 		}
 
-		errAddMember := teamSvc.AddTeamMember(context.Background(), userIds[0], testOrgID, team1.ID, false, 0)
+		errAddMember := teamSvc.AddTeamMember(userIds[0], testOrgID, team1.ID, false, 0)
 		require.NoError(t, errAddMember)
-		errAddMember = teamSvc.AddTeamMember(context.Background(), userIds[1], testOrgID, team1.ID, false, 0)
+		errAddMember = teamSvc.AddTeamMember(userIds[1], testOrgID, team1.ID, false, 0)
 		require.NoError(t, errAddMember)
-		errAddMember = teamSvc.AddTeamMember(context.Background(), userIds[2], testOrgID, team2.ID, false, 0)
+		errAddMember = teamSvc.AddTeamMember(userIds[2], testOrgID, team2.ID, false, 0)
 		require.NoError(t, errAddMember)
-		errAddMember = teamSvc.AddTeamMember(context.Background(), userIds[3], testOrgID, team2.ID, false, 0)
+		errAddMember = teamSvc.AddTeamMember(userIds[3], testOrgID, team2.ID, false, 0)
 		require.NoError(t, errAddMember)
 	}
 
 	store := db.InitTestDB(t, db.InitTestDBOpt{})
 	setup(store)
-	teamSvc, err := ProvideService(store, store.Cfg)
-	require.NoError(t, err)
+	teamSvc := ProvideService(store, store.Cfg)
 
 	type getTeamMembersTestCase struct {
 		desc             string

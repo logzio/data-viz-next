@@ -9,7 +9,6 @@ import { Button, getTagColorIndexFromName, TagList, useStyles2 } from '@grafana/
 
 import { Receiver } from '../../../../../../plugins/datasource/alertmanager/types';
 import { Stack } from '../../../../../../plugins/datasource/parca/QueryEditor/Stack';
-import { getAmMatcherFormatter } from '../../../utils/alertmanager';
 import { AlertInstanceMatch } from '../../../utils/notification-policies';
 import { CollapseToggle } from '../../CollapseToggle';
 import { MetaText } from '../../MetaText';
@@ -59,10 +58,7 @@ function NotificationRouteHeader({
         <div onClick={() => onExpandRouteClick(!expandRoute)} className={styles.expandable}>
           <Stack gap={1} direction="row" alignItems="center">
             Notification policy
-            <NotificationPolicyMatchers
-              route={route}
-              matcherFormatter={getAmMatcherFormatter(alertManagerSourceName)}
-            />
+            <NotificationPolicyMatchers route={route} />
           </Stack>
         </div>
         <Spacer />

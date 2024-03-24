@@ -7,17 +7,17 @@
 //          0
 //      ]
 //  }
-//  Name: val3 Max float
+//  Name: 
 //  Dimensions: 2 Fields by 3 Rows
-//  +-------------------------------+-------------------+
-//  | Name: Time                    | Name: Value       |
-//  | Labels:                       | Labels:           |
-//  | Type: []time.Time             | Type: []*float64  |
-//  +-------------------------------+-------------------+
-//  | 2022-11-22 12:45:00 +0000 UTC | 97.85990905761719 |
-//  | 2022-11-22 12:46:00 +0000 UTC | 98.39459228515625 |
-//  | 2022-11-22 12:47:00 +0000 UTC | 99.76652526855469 |
-//  +-------------------------------+-------------------+
+//  +-------------------------------+--------------------+
+//  | Name: Time                    | Name: Value        |
+//  | Labels:                       | Labels: label=val3 |
+//  | Type: []time.Time             | Type: []*float64   |
+//  +-------------------------------+--------------------+
+//  | 2022-11-22 12:45:00 +0000 UTC | 97.85990905761719  |
+//  | 2022-11-22 12:46:00 +0000 UTC | 98.39459228515625  |
+//  | 2022-11-22 12:47:00 +0000 UTC | 99.76652526855469  |
+//  +-------------------------------+--------------------+
 //  
 //  
 //  
@@ -28,11 +28,11 @@
 //          0
 //      ]
 //  }
-//  Name: val3 Min float
+//  Name: 
 //  Dimensions: 2 Fields by 3 Rows
 //  +-------------------------------+--------------------+
 //  | Name: Time                    | Name: Value        |
-//  | Labels:                       | Labels:            |
+//  | Labels:                       | Labels: label=val3 |
 //  | Type: []time.Time             | Type: []*float64   |
 //  +-------------------------------+--------------------+
 //  | 2022-11-22 12:45:00 +0000 UTC | 8.375883102416992  |
@@ -49,17 +49,17 @@
 //          0
 //      ]
 //  }
-//  Name: val2 Max float
+//  Name: 
 //  Dimensions: 2 Fields by 3 Rows
-//  +-------------------------------+-------------------+
-//  | Name: Time                    | Name: Value       |
-//  | Labels:                       | Labels:           |
-//  | Type: []time.Time             | Type: []*float64  |
-//  +-------------------------------+-------------------+
-//  | 2022-11-22 12:45:00 +0000 UTC | 87.77692413330078 |
-//  | 2022-11-22 12:46:00 +0000 UTC | 98.47160339355469 |
-//  | 2022-11-22 12:47:00 +0000 UTC | 92.53878784179688 |
-//  +-------------------------------+-------------------+
+//  +-------------------------------+--------------------+
+//  | Name: Time                    | Name: Value        |
+//  | Labels:                       | Labels: label=val2 |
+//  | Type: []time.Time             | Type: []*float64   |
+//  +-------------------------------+--------------------+
+//  | 2022-11-22 12:45:00 +0000 UTC | 87.77692413330078  |
+//  | 2022-11-22 12:46:00 +0000 UTC | 98.47160339355469  |
+//  | 2022-11-22 12:47:00 +0000 UTC | 92.53878784179688  |
+//  +-------------------------------+--------------------+
 //  
 //  
 //  
@@ -70,11 +70,11 @@
 //          0
 //      ]
 //  }
-//  Name: val2 Min float
+//  Name: 
 //  Dimensions: 2 Fields by 3 Rows
 //  +-------------------------------+--------------------+
 //  | Name: Time                    | Name: Value        |
-//  | Labels:                       | Labels:            |
+//  | Labels:                       | Labels: label=val2 |
 //  | Type: []time.Time             | Type: []*float64   |
 //  +-------------------------------+--------------------+
 //  | 2022-11-22 12:45:00 +0000 UTC | 4.540984630584717  |
@@ -91,17 +91,17 @@
 //          0
 //      ]
 //  }
-//  Name: val1 Max float
+//  Name: 
 //  Dimensions: 2 Fields by 3 Rows
-//  +-------------------------------+-------------------+
-//  | Name: Time                    | Name: Value       |
-//  | Labels:                       | Labels:           |
-//  | Type: []time.Time             | Type: []*float64  |
-//  +-------------------------------+-------------------+
-//  | 2022-11-22 12:45:00 +0000 UTC | 98.57181549072266 |
-//  | 2022-11-22 12:46:00 +0000 UTC | 97.99356079101562 |
-//  | 2022-11-22 12:47:00 +0000 UTC | 94.45416259765625 |
-//  +-------------------------------+-------------------+
+//  +-------------------------------+--------------------+
+//  | Name: Time                    | Name: Value        |
+//  | Labels:                       | Labels: label=val1 |
+//  | Type: []time.Time             | Type: []*float64   |
+//  +-------------------------------+--------------------+
+//  | 2022-11-22 12:45:00 +0000 UTC | 98.57181549072266  |
+//  | 2022-11-22 12:46:00 +0000 UTC | 97.99356079101562  |
+//  | 2022-11-22 12:47:00 +0000 UTC | 94.45416259765625  |
+//  +-------------------------------+--------------------+
 //  
 //  
 //  
@@ -112,11 +112,11 @@
 //          0
 //      ]
 //  }
-//  Name: val1 Min float
+//  Name: 
 //  Dimensions: 2 Fields by 3 Rows
 //  +-------------------------------+--------------------+
 //  | Name: Time                    | Name: Value        |
-//  | Labels:                       | Labels:            |
+//  | Labels:                       | Labels: label=val1 |
 //  | Type: []time.Time             | Type: []*float64   |
 //  +-------------------------------+--------------------+
 //  | 2022-11-22 12:45:00 +0000 UTC | 2.859630584716797  |
@@ -131,7 +131,6 @@
   "frames": [
     {
       "schema": {
-        "name": "val3 Max float",
         "meta": {
           "type": "timeseries-multi",
           "typeVersion": [
@@ -153,6 +152,12 @@
             "typeInfo": {
               "frame": "float64",
               "nullable": true
+            },
+            "labels": {
+              "label": "val3"
+            },
+            "config": {
+              "displayNameFromDS": "val3 Max float"
             }
           }
         ]
@@ -174,7 +179,6 @@
     },
     {
       "schema": {
-        "name": "val3 Min float",
         "meta": {
           "type": "timeseries-multi",
           "typeVersion": [
@@ -196,6 +200,12 @@
             "typeInfo": {
               "frame": "float64",
               "nullable": true
+            },
+            "labels": {
+              "label": "val3"
+            },
+            "config": {
+              "displayNameFromDS": "val3 Min float"
             }
           }
         ]
@@ -217,7 +227,6 @@
     },
     {
       "schema": {
-        "name": "val2 Max float",
         "meta": {
           "type": "timeseries-multi",
           "typeVersion": [
@@ -239,6 +248,12 @@
             "typeInfo": {
               "frame": "float64",
               "nullable": true
+            },
+            "labels": {
+              "label": "val2"
+            },
+            "config": {
+              "displayNameFromDS": "val2 Max float"
             }
           }
         ]
@@ -260,7 +275,6 @@
     },
     {
       "schema": {
-        "name": "val2 Min float",
         "meta": {
           "type": "timeseries-multi",
           "typeVersion": [
@@ -282,6 +296,12 @@
             "typeInfo": {
               "frame": "float64",
               "nullable": true
+            },
+            "labels": {
+              "label": "val2"
+            },
+            "config": {
+              "displayNameFromDS": "val2 Min float"
             }
           }
         ]
@@ -303,7 +323,6 @@
     },
     {
       "schema": {
-        "name": "val1 Max float",
         "meta": {
           "type": "timeseries-multi",
           "typeVersion": [
@@ -325,6 +344,12 @@
             "typeInfo": {
               "frame": "float64",
               "nullable": true
+            },
+            "labels": {
+              "label": "val1"
+            },
+            "config": {
+              "displayNameFromDS": "val1 Max float"
             }
           }
         ]
@@ -346,7 +371,6 @@
     },
     {
       "schema": {
-        "name": "val1 Min float",
         "meta": {
           "type": "timeseries-multi",
           "typeVersion": [
@@ -368,6 +392,12 @@
             "typeInfo": {
               "frame": "float64",
               "nullable": true
+            },
+            "labels": {
+              "label": "val1"
+            },
+            "config": {
+              "displayNameFromDS": "val1 Min float"
             }
           }
         ]

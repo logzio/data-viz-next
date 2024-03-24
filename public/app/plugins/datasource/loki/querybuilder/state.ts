@@ -1,5 +1,4 @@
-import { QueryEditorMode } from '@grafana/experimental';
-
+import { QueryEditorMode } from '../../prometheus/querybuilder/shared/types';
 import { LokiQuery, LokiQueryType } from '../types';
 
 const queryEditorModeDefaultLocalStorageKey = 'LokiQueryEditorModeDefault';

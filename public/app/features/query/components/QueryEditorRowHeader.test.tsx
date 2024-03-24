@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
+import { openMenu } from 'react-select-event';
 
 import { DataSourceInstanceSettings } from '@grafana/data';
 import { selectors } from '@grafana/e2e-selectors';
@@ -83,7 +84,7 @@ describe('QueryEditorRowHeader', () => {
     renderScenario({ onChangeDataSource: () => {} });
 
     const dsSelect = screen.getByTestId(selectors.components.DataSourcePicker.container).querySelector('input')!;
-    await userEvent.click(dsSelect);
+    openMenu(dsSelect);
     expect(await screen.findByText('${dsVariable}')).toBeInTheDocument();
   });
 });

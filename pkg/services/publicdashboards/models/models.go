@@ -24,11 +24,10 @@ func (e PublicDashboardErr) Error() string {
 }
 
 const (
-	QuerySuccess                                  = "success"
-	QueryFailure                                  = "failure"
-	EmailShareType                      ShareType = "email"
-	PublicShareType                     ShareType = "public"
-	FeaturePublicDashboardsEmailSharing           = "publicDashboardsEmailSharing"
+	QuerySuccess              = "success"
+	QueryFailure              = "failure"
+	EmailShareType  ShareType = "email"
+	PublicShareType ShareType = "public"
 )
 
 var (

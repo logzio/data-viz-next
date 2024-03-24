@@ -31,12 +31,7 @@ import (
 	secretskvs "github.com/grafana/grafana/pkg/services/secrets/kvstore"
 	secretsmng "github.com/grafana/grafana/pkg/services/secrets/manager"
 	"github.com/grafana/grafana/pkg/setting"
-	"github.com/grafana/grafana/pkg/tests/testsuite"
 )
-
-func TestMain(m *testing.M) {
-	testsuite.Run(m)
-}
 
 type dataSourceMockRetriever struct {
 	res []*datasources.DataSource
@@ -613,7 +608,7 @@ func TestService_GetHttpTransport(t *testing.T) {
 			},
 		})
 
-		cfg.SecretKey = "password"
+		setting.SecretKey = "password"
 
 		sjson := simplejson.New()
 		sjson.Set("tlsAuthWithCACert", true)
@@ -664,7 +659,7 @@ func TestService_GetHttpTransport(t *testing.T) {
 			},
 		})
 
-		cfg.SecretKey = "password"
+		setting.SecretKey = "password"
 
 		sjson := simplejson.New()
 		sjson.Set("tlsAuth", true)
@@ -711,7 +706,7 @@ func TestService_GetHttpTransport(t *testing.T) {
 			},
 		})
 
-		cfg.SecretKey = "password"
+		setting.SecretKey = "password"
 
 		sjson := simplejson.New()
 		sjson.Set("tlsAuthWithCACert", true)
@@ -833,7 +828,7 @@ func TestService_GetHttpTransport(t *testing.T) {
 		require.NoError(t, err)
 
 		headers := dsService.getCustomHeaders(sjson, map[string]string{"httpHeaderValue1": "Bearer xf5yhfkpsnmgo"})
-		require.Equal(t, "Bearer xf5yhfkpsnmgo", headers.Get("Authorization"))
+		require.Equal(t, "Bearer xf5yhfkpsnmgo", headers["Authorization"])
 
 		// 1. Start HTTP test server which checks the request headers
 		backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -902,7 +897,7 @@ func TestService_GetHttpTransport(t *testing.T) {
 		require.NoError(t, err)
 
 		headers := dsService.getCustomHeaders(sjson, map[string]string{"httpHeaderValue1": "example.com"})
-		require.Equal(t, "example.com", headers.Get("Host"))
+		require.Equal(t, "example.com", headers["Host"])
 
 		// 1. Start HTTP test server which checks the request headers
 		backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -973,10 +968,10 @@ func TestService_GetHttpTransport(t *testing.T) {
 			},
 		})
 
-		origSigV4Enabled := cfg.SigV4AuthEnabled
-		cfg.SigV4AuthEnabled = true
+		origSigV4Enabled := setting.SigV4AuthEnabled
+		setting.SigV4AuthEnabled = true
 		t.Cleanup(func() {
-			cfg.SigV4AuthEnabled = origSigV4Enabled
+			setting.SigV4AuthEnabled = origSigV4Enabled
 		})
 
 		sjson, err := simplejson.NewJson([]byte(`{ "sigV4Auth": true }`))
@@ -1192,7 +1187,7 @@ func TestDataSource_CustomHeaders(t *testing.T) {
 		name             string
 		jsonData         *simplejson.Json
 		secureJsonData   map[string][]byte
-		expectedHeaders  http.Header
+		expectedHeaders  map[string]string
 		expectedErrorMsg string
 	}{
 		{
@@ -1203,8 +1198,8 @@ func TestDataSource_CustomHeaders(t *testing.T) {
 			secureJsonData: map[string][]byte{
 				"httpHeaderValue1": encryptedValue,
 			},
-			expectedHeaders: http.Header{
-				"X-Test-Header1": []string{testValue},
+			expectedHeaders: map[string]string{
+				"X-Test-Header1": testValue,
 			},
 		},
 		{
@@ -1213,7 +1208,7 @@ func TestDataSource_CustomHeaders(t *testing.T) {
 				"httpHeaderName1": "X-Test-Header1",
 			}),
 			secureJsonData:  map[string][]byte{},
-			expectedHeaders: http.Header{},
+			expectedHeaders: map[string]string{},
 		},
 		{
 			name: "non customer header value",
@@ -1221,21 +1216,7 @@ func TestDataSource_CustomHeaders(t *testing.T) {
 				"someotherheader": "X-Test-Header1",
 			}),
 			secureJsonData:  map[string][]byte{},
-			expectedHeaders: http.Header{},
-		},
-		{
-			name: "add multiple header value",
-			jsonData: simplejson.NewFromAny(map[string]any{
-				"httpHeaderName1": "X-Test-Header1",
-				"httpHeaderName2": "X-Test-Header1",
-			}),
-			secureJsonData: map[string][]byte{
-				"httpHeaderValue1": encryptedValue,
-				"httpHeaderValue2": encryptedValue,
-			},
-			expectedHeaders: http.Header{
-				"X-Test-Header1": []string{testValue, testValue},
-			},
+			expectedHeaders: map[string]string{},
 		},
 	}
 

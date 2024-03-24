@@ -1,4 +1,4 @@
-import { DataFrame, Field, FieldType } from '@grafana/data';
+import { DataFrame, Field, FieldType, SortedVector } from '@grafana/data';
 
 export enum SortDirection {
   Ascending,
@@ -85,12 +85,10 @@ export function sortDataFrameByTime(frame: DataFrame, dir: SortDirection): DataF
     ...rest,
     fields: fields.map((field) => ({
       ...field,
-      values: sorted(field.values, index),
-      nanos: field.nanos === undefined ? undefined : sorted(field.nanos, index),
+      values: new SortedVector(field.values, index).toArray(),
+      nanos: field.nanos === undefined ? undefined : new SortedVector(field.nanos, index).toArray(),
     })),
   };
-}
 
-function sorted<T>(vals: T[], index: number[]): T[] {
-  return vals.map((_, idx) => vals[index[idx]]);
+  return frame;
 }

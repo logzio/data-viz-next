@@ -3,10 +3,9 @@ package login
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/grafana/grafana/pkg/login/social"
 	"github.com/grafana/grafana/pkg/setting"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestIsExternallySynced(t *testing.T) {
@@ -83,20 +82,20 @@ func TestIsExternallySynced(t *testing.T) {
 		// jwt
 		{
 			name:     "JWT synced user should return that it is externally synced",
-			cfg:      &setting.Cfg{JWTAuth: setting.AuthJWTSettings{Enabled: true, SkipOrgRoleSync: false}},
+			cfg:      &setting.Cfg{JWTAuthEnabled: true, JWTAuthSkipOrgRoleSync: false},
 			provider: JWTModule,
 			expected: true,
 		},
 		{
 			name:     "JWT synced user should return that it is not externally synced when org role sync is set",
-			cfg:      &setting.Cfg{JWTAuth: setting.AuthJWTSettings{Enabled: true, SkipOrgRoleSync: true}},
+			cfg:      &setting.Cfg{JWTAuthEnabled: true, JWTAuthSkipOrgRoleSync: true},
 			provider: JWTModule,
 			expected: false,
 		},
 		// IsProvider test
 		{
 			name:     "If no provider enabled should return false",
-			cfg:      &setting.Cfg{JWTAuth: setting.AuthJWTSettings{Enabled: false, SkipOrgRoleSync: true}},
+			cfg:      &setting.Cfg{JWTAuthSkipOrgRoleSync: true},
 			provider: JWTModule,
 			expected: false,
 		},

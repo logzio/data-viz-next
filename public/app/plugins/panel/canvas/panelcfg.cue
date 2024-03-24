@@ -70,7 +70,6 @@ composableKinds: PanelCfg: {
 					path:        ConnectionPath
 					color?:      ui.ColorDimensionConfig
 					size?:       ui.ScaleDimensionConfig
-					vertices?: [...ConnectionCoordinates]
 				} @cuetsy(kind="interface")
 				CanvasElementOptions: {
 					name: string

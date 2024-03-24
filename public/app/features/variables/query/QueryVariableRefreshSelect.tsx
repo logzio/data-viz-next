@@ -7,7 +7,6 @@ import { useMediaQueryChange } from 'app/core/hooks/useMediaQueryChange';
 interface Props {
   onChange: (option: VariableRefresh) => void;
   refresh: VariableRefresh;
-  testId?: string;
 }
 
 const REFRESH_OPTIONS = [
@@ -15,7 +14,7 @@ const REFRESH_OPTIONS = [
   { label: 'On time range change', value: VariableRefresh.onTimeRangeChanged },
 ];
 
-export function QueryVariableRefreshSelect({ onChange, refresh, testId }: PropsWithChildren<Props>) {
+export function QueryVariableRefreshSelect({ onChange, refresh }: PropsWithChildren<Props>) {
   const theme = useTheme2();
 
   const [isSmallScreen, setIsSmallScreen] = useState(false);
@@ -32,7 +31,7 @@ export function QueryVariableRefreshSelect({ onChange, refresh, testId }: PropsW
   );
 
   return (
-    <Field label="Refresh" description="When to update the values of this variable" data-testid={testId}>
+    <Field label="Refresh" description="When to update the values of this variable">
       <RadioButtonGroup
         options={REFRESH_OPTIONS}
         onChange={onChange}

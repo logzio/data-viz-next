@@ -3,6 +3,8 @@ package pfs
 import (
 	"cuelang.org/go/cue/ast"
 	"github.com/grafana/kindsys"
+
+	"github.com/grafana/grafana/pkg/plugins/plugindef"
 )
 
 // ParsedPlugin represents everything knowable about a single plugin from static
@@ -12,7 +14,7 @@ import (
 // struct returned from [ParsePluginFS].
 type ParsedPlugin struct {
 	// Properties contains the plugin's definition, as declared in plugin.json.
-	Properties Metadata
+	Properties plugindef.PluginDef
 
 	// ComposableKinds is a map of all the composable kinds declared in this plugin.
 	// Keys are the name of the [kindsys.SchemaInterface] implemented by the value.

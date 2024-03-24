@@ -49,13 +49,13 @@ type keySetHTTP struct {
 
 func (s *AuthService) checkKeySetConfiguration() error {
 	var count int
-	if s.Cfg.JWTAuth.KeyFile != "" {
+	if s.Cfg.JWTAuthKeyFile != "" {
 		count++
 	}
-	if s.Cfg.JWTAuth.JWKSetFile != "" {
+	if s.Cfg.JWTAuthJWKSetFile != "" {
 		count++
 	}
-	if s.Cfg.JWTAuth.JWKSetURL != "" {
+	if s.Cfg.JWTAuthJWKSetURL != "" {
 		count++
 	}
 
@@ -75,7 +75,7 @@ func (s *AuthService) initKeySet() error {
 		return err
 	}
 
-	if keyFilePath := s.Cfg.JWTAuth.KeyFile; keyFilePath != "" {
+	if keyFilePath := s.Cfg.JWTAuthKeyFile; keyFilePath != "" {
 		// nolint:gosec
 		// We can ignore the gosec G304 warning on this one because `fileName` comes from grafana configuration file
 		file, err := os.Open(keyFilePath)
@@ -125,10 +125,10 @@ func (s *AuthService) initKeySet() error {
 
 		s.keySet = &keySetJWKS{
 			jose.JSONWebKeySet{
-				Keys: []jose.JSONWebKey{{Key: key, KeyID: s.Cfg.JWTAuth.KeyID}},
+				Keys: []jose.JSONWebKey{{Key: key, KeyID: s.Cfg.JWTAuthKeyID}},
 			},
 		}
-	} else if keyFilePath := s.Cfg.JWTAuth.JWKSetFile; keyFilePath != "" {
+	} else if keyFilePath := s.Cfg.JWTAuthJWKSetFile; keyFilePath != "" {
 		// nolint:gosec
 		// We can ignore the gosec G304 warning on this one because `fileName` comes from grafana configuration file
 		file, err := os.Open(keyFilePath)
@@ -147,12 +147,12 @@ func (s *AuthService) initKeySet() error {
 		}
 
 		s.keySet = &keySetJWKS{jwks}
-	} else if urlStr := s.Cfg.JWTAuth.JWKSetURL; urlStr != "" {
+	} else if urlStr := s.Cfg.JWTAuthJWKSetURL; urlStr != "" {
 		urlParsed, err := url.Parse(urlStr)
 		if err != nil {
 			return err
 		}
-		if urlParsed.Scheme != "https" && s.Cfg.Env != setting.Dev {
+		if urlParsed.Scheme != "https" && setting.Env != setting.Dev {
 			return ErrJWTSetURLMustHaveHTTPSScheme
 		}
 		s.keySet = &keySetHTTP{
@@ -176,7 +176,7 @@ func (s *AuthService) initKeySet() error {
 				Timeout: time.Second * 30,
 			},
 			cacheKey:        fmt.Sprintf("auth-jwt:jwk-%s", urlStr),
-			cacheExpiration: s.Cfg.JWTAuth.CacheTTL,
+			cacheExpiration: s.Cfg.JWTAuthCacheTTL,
 			cache:           s.RemoteCache,
 		}
 	}

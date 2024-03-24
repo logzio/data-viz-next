@@ -39,5 +39,5 @@ export function userAgentIsApple() {
 }
 
 export function getModKey() {
-  return userAgentIsApple() ? '⌘' : 'ctrl';
+  return userAgentIsApple() ? 'cmd' : 'ctrl';
 }

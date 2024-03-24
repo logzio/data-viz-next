@@ -1,5 +1,4 @@
 import React, { FormEvent, useState, useEffect } from 'react';
-import { usePrevious } from 'react-use';
 
 import { QueryEditorProps, SelectableValue } from '@grafana/data';
 import { InlineField, InlineFieldRow, Input, Select } from '@grafana/ui';
@@ -17,12 +16,11 @@ export type Props = QueryEditorProps<LokiDatasource, LokiQuery, LokiOptions, Lok
 
 const refId = 'LokiVariableQueryEditor-VariableQuery';
 
-export const LokiVariableQueryEditor = ({ onChange, query, datasource, range }: Props) => {
+export const LokiVariableQueryEditor = ({ onChange, query, datasource }: Props) => {
   const [type, setType] = useState<number | undefined>(undefined);
   const [label, setLabel] = useState('');
   const [labelOptions, setLabelOptions] = useState<Array<SelectableValue<string>>>([]);
   const [stream, setStream] = useState('');
-  const previousType = usePrevious(type);
 
   useEffect(() => {
     if (!query) {
@@ -36,15 +34,14 @@ export const LokiVariableQueryEditor = ({ onChange, query, datasource, range }: 
   }, [query]);
 
   useEffect(() => {
-    // Fetch label names when the query type is LabelValues, and the previous type was not the same
-    if (type !== QueryType.LabelValues || previousType === type) {
+    if (type !== QueryType.LabelValues) {
       return;
     }
 
-    datasource.languageProvider.fetchLabels({ timeRange: range }).then((labelNames) => {
+    datasource.languageProvider.fetchLabels().then((labelNames: string[]) => {
       setLabelOptions(labelNames.map((labelName) => ({ label: labelName, value: labelName })));
     });
-  }, [datasource, type, range, previousType]);
+  }, [datasource, type]);
 
   const onQueryTypeChange = (newType: SelectableValue<QueryType>) => {
     setType(newType.value);

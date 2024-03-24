@@ -53,10 +53,10 @@ export const plugin = new PanelPlugin<Options, FieldConfig>(TablePanel)
           name: 'Column alignment',
           settings: {
             options: [
-              { label: 'Auto', value: 'auto' },
-              { label: 'Left', value: 'left' },
-              { label: 'Center', value: 'center' },
-              { label: 'Right', value: 'right' },
+              { label: 'auto', value: 'auto' },
+              { label: 'left', value: 'left' },
+              { label: 'center', value: 'center' },
+              { label: 'right', value: 'right' },
             ],
           },
           defaultValue: defaultTableFieldOptions.align,
@@ -169,7 +169,9 @@ export const plugin = new PanelPlugin<Options, FieldConfig>(TablePanel)
           },
         },
         defaultValue: '',
-        showIf: (cfg) => cfg.footer?.show && !cfg.footer?.countRows,
+        showIf: (cfg) =>
+          (cfg.footer?.show && !cfg.footer?.countRows) ||
+          (cfg.footer?.reducer?.length === 1 && cfg.footer?.reducer[0] !== ReducerID.count),
       })
       .addCustomEditor({
         id: 'footer.enablePagination',

@@ -12,23 +12,18 @@ type FakePublicDashboardMiddleware struct {
 	mock.Mock
 }
 
-// HandleAccessView provides a mock function with given fields: c
-func (_m *FakePublicDashboardMiddleware) HandleAccessView(c *contextmodel.ReqContext) {
-	_m.Called(c)
-}
-
 // HandleApi provides a mock function with given fields: c
 func (_m *FakePublicDashboardMiddleware) HandleApi(c *contextmodel.ReqContext) {
 	_m.Called(c)
 }
 
-// HandleConfirmAccessView provides a mock function with given fields: c
-func (_m *FakePublicDashboardMiddleware) HandleConfirmAccessView(c *contextmodel.ReqContext) {
+// HandleGet provides a mock function with given fields: c
+func (_m *FakePublicDashboardMiddleware) HandleView(c *contextmodel.ReqContext) {
 	_m.Called(c)
 }
 
-// HandleView provides a mock function with given fields: c
-func (_m *FakePublicDashboardMiddleware) HandleView(c *contextmodel.ReqContext) {
+// HandleRequestOrConfirmAccess provides a mock function with given fields: c
+func (_m *FakePublicDashboardMiddleware) HandleAccessView(c *contextmodel.ReqContext) {
 	_m.Called(c)
 }
 

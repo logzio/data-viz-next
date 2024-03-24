@@ -7,6 +7,7 @@ import {
   SceneGridRow,
   SceneObjectBase,
   SceneObjectState,
+  SceneVariable,
   SceneVariableSet,
   VariableDependencyConfig,
   VariableValueSingle,
@@ -28,8 +29,10 @@ interface RowRepeaterBehaviorState extends SceneObjectState {
 export class RowRepeaterBehavior extends SceneObjectBase<RowRepeaterBehaviorState> {
   protected _variableDependency = new VariableDependencyConfig(this, {
     variableNames: [this.state.variableName],
-    onVariableUpdateCompleted: this._onVariableUpdateCompleted.bind(this),
+    onVariableUpdatesCompleted: this._onVariableChanged.bind(this),
   });
+
+  private _isWaitingForVariables = false;
 
   public constructor(state: RowRepeaterBehaviorState) {
     super(state);
@@ -38,18 +41,28 @@ export class RowRepeaterBehavior extends SceneObjectBase<RowRepeaterBehaviorStat
   }
 
   private _activationHandler() {
-    this._performRepeat();
+    // If we our variable is ready we can process repeats on activation
+    if (sceneGraph.hasVariableDependencyInLoadingState(this)) {
+      this._isWaitingForVariables = true;
+    } else {
+      this._performRepeat();
+    }
   }
 
-  private _onVariableUpdateCompleted(): void {
-    this._performRepeat();
-  }
-
-  private _performRepeat() {
-    if (this._variableDependency.hasDependencyInLoadingState()) {
+  private _onVariableChanged(changedVariables: Set<SceneVariable>, dependencyChanged: boolean): void {
+    if (dependencyChanged) {
+      this._performRepeat();
       return;
     }
 
+    // If we are waiting for variables and the variable is no longer loading then we are ready to repeat as well
+    if (this._isWaitingForVariables && !sceneGraph.hasVariableDependencyInLoadingState(this)) {
+      this._isWaitingForVariables = false;
+      this._performRepeat();
+    }
+  }
+
+  private _performRepeat() {
     const variable = sceneGraph.lookupVariable(this.state.variableName, this.parent?.parent!);
 
     if (!variable) {
@@ -180,12 +193,8 @@ function updateLayout(layout: SceneGridLayout, rows: SceneGridRow[], maxYOfRows:
     const diff = maxYOfRows - firstChildAfterY;
 
     for (const child of childrenAfter) {
-      child.setState({ y: child.state.y! + diff });
-
-      if (child instanceof SceneGridRow) {
-        for (const rowChild of child.state.children) {
-          rowChild.setState({ y: rowChild.state.y! + diff });
-        }
+      if (child.state.y! < maxYOfRows) {
+        child.setState({ y: child.state.y! + diff });
       }
     }
   }

@@ -13,12 +13,7 @@ import (
 	"github.com/grafana/grafana/pkg/services/login"
 	secretstest "github.com/grafana/grafana/pkg/services/secrets/fakes"
 	"github.com/grafana/grafana/pkg/services/user"
-	"github.com/grafana/grafana/pkg/tests/testsuite"
 )
-
-func TestMain(m *testing.M) {
-	testsuite.Run(m)
-}
 
 func TestIntegrationAuthInfoStore(t *testing.T) {
 	if testing.Short() {

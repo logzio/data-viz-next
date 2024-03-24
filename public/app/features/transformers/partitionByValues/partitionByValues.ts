@@ -67,9 +67,7 @@ export const partitionByValuesTransformer: SynchronousDataTransformerInfo<Partit
   id: DataTransformerID.partitionByValues,
   name: 'Partition by values',
   description: `Splits a one-frame dataset into multiple series discriminated by unique/enum values in one or more fields.`,
-  defaultOptions: {
-    keepFields: false,
-  },
+  defaultOptions: {},
 
   operator: (options, ctx) => (source) =>
     source.pipe(map((data) => partitionByValuesTransformer.transformer(options, ctx)(data))),

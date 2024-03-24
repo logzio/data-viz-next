@@ -8,16 +8,16 @@ import {
   FieldType,
   PluginType,
   ScopedVars,
-} from '@grafana/data';
+} from '@grafana/data/src';
 import {
   BackendDataSourceResponse,
   FetchResponse,
   getBackendSrv,
   setBackendSrv,
   VariableInterpolation,
-} from '@grafana/runtime';
-import { SQLQuery } from '@grafana/sql';
+} from '@grafana/runtime/src';
 
+import { SQLQuery } from '../../../features/plugins/sql';
 import { TemplateSrv } from '../../../features/templating/template_srv';
 
 import InfluxDatasource from './datasource';

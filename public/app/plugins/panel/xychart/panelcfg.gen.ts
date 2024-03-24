@@ -4,7 +4,7 @@
 //     public/app/plugins/gen.go
 // Using jennies:
 //     TSTypesJenny
-//     PluginTsTypesJenny
+//     PluginTSTypesJenny
 //
 // Run 'make gen-cue' from repository root to regenerate.
 
@@ -54,7 +54,6 @@ export const defaultFieldConfig: Partial<FieldConfig> = {
 };
 
 export interface ScatterSeriesConfig extends FieldConfig {
-  frame?: number;
   name?: string;
   x?: string;
   y?: string;

@@ -67,6 +67,7 @@ export const getStyles = (theme: GrafanaTheme2) => {
   return {
     modal: css({
       zIndex: theme.zIndex.modal,
+      position: 'absolute',
       boxShadow: theme.shadows.z3,
       backgroundColor: theme.colors.background.primary,
       border: `1px solid ${theme.colors.border.weak}`,

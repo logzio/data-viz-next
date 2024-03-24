@@ -60,13 +60,11 @@ type Service struct {
 	dataService  backend.QueryDataHandler
 	pCtxProvider pluginContextProvider
 	features     featuremgmt.FeatureToggles
-	converter    *ResultConverter
 
 	pluginsClient backend.CallResourceHandler
 
-	tracer          tracing.Tracer
-	metrics         *metrics
-	allowLongFrames bool
+	tracer  tracing.Tracer
+	metrics *metrics
 }
 
 type pluginContextProvider interface {
@@ -84,10 +82,6 @@ func ProvideService(cfg *setting.Cfg, pluginClient plugins.Client, pCtxProvider 
 		tracer:        tracer,
 		metrics:       newMetrics(registerer),
 		pluginsClient: pluginClient,
-		converter: &ResultConverter{
-			Features: features,
-			Tracer:   tracer,
-		},
 	}
 }
 

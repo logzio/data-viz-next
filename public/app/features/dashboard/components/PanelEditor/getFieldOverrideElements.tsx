@@ -11,8 +11,6 @@ import {
   ConfigOverrideRule,
   GrafanaTheme2,
   fieldMatchers,
-  FieldConfigSource,
-  DataFrame,
 } from '@grafana/data';
 import { fieldMatchersUI, useStyles2, ValuePicker } from '@grafana/ui';
 import { getDataLinksVariableSuggestions } from 'app/features/panel/panellinks/link_srv';
@@ -21,31 +19,31 @@ import { DynamicConfigValueEditor } from './DynamicConfigValueEditor';
 import { OptionsPaneCategoryDescriptor } from './OptionsPaneCategoryDescriptor';
 import { OptionsPaneItemDescriptor } from './OptionsPaneItemDescriptor';
 import { OverrideCategoryTitle } from './OverrideCategoryTitle';
+import { OptionPaneRenderProps } from './types';
 
 export function getFieldOverrideCategories(
-  fieldConfig: FieldConfigSource,
-  registry: FieldConfigOptionsRegistry,
-  data: DataFrame[],
-  searchQuery: string,
-  onFieldConfigsChange: (config: FieldConfigSource) => void
+  props: OptionPaneRenderProps,
+  searchQuery: string
 ): OptionsPaneCategoryDescriptor[] {
   const categories: OptionsPaneCategoryDescriptor[] = [];
-  const currentFieldConfig = fieldConfig;
+  const currentFieldConfig = props.panel.fieldConfig;
+  const registry = props.plugin.fieldConfigRegistry;
+  const data = props.data?.series ?? [];
 
-  if (!registry || registry.isEmpty()) {
+  if (registry.isEmpty()) {
     return [];
   }
 
   const onOverrideChange = (index: number, override: ConfigOverrideRule) => {
     let overrides = cloneDeep(currentFieldConfig.overrides);
     overrides[index] = override;
-    onFieldConfigsChange({ ...currentFieldConfig, overrides });
+    props.onFieldConfigsChange({ ...currentFieldConfig, overrides });
   };
 
   const onOverrideRemove = (overrideIndex: number) => {
     let overrides = cloneDeep(currentFieldConfig.overrides);
     overrides.splice(overrideIndex, 1);
-    onFieldConfigsChange({ ...currentFieldConfig, overrides });
+    props.onFieldConfigsChange({ ...currentFieldConfig, overrides });
   };
 
   const onOverrideAdd = (value: SelectableValue<string>) => {
@@ -54,7 +52,7 @@ export function getFieldOverrideCategories(
       return;
     }
 
-    onFieldConfigsChange({
+    props.onFieldConfigsChange({
       ...currentFieldConfig,
       overrides: [
         ...currentFieldConfig.overrides,
@@ -137,7 +135,7 @@ export function getFieldOverrideCategories(
             <matcherUi.component
               id={`${matcherUi.matcher.id}-${idx}`}
               matcher={matcherUi.matcher}
-              data={data ?? []}
+              data={props.data?.series ?? []}
               options={override.matcher.options}
               onChange={onMatcherConfigChange}
             />

@@ -1,8 +1,6 @@
 import { CanvasConnection } from '../../../features/canvas';
 import { ElementState } from '../../../features/canvas/runtime/element';
 
-import { ConnectionCoordinates } from './panelcfg.gen';
-
 export enum LayerActionID {
   Delete = 'delete',
   Duplicate = 'duplicate',
@@ -41,5 +39,4 @@ export interface ConnectionState {
   source: ElementState;
   target: ElementState;
   info: CanvasConnection;
-  vertices?: ConnectionCoordinates[];
 }

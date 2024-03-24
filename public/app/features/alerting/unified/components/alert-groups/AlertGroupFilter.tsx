@@ -39,11 +39,13 @@ export const AlertGroupFilter = ({ groups }: Props) => {
     <div className={styles.wrapper}>
       <div className={styles.filterSection}>
         <MatcherFilter
+          className={styles.filterInput}
           key={matcherFilterKey}
           defaultQueryString={queryString}
           onFilterChange={(value) => setQueryParams({ queryString: value ? value : null })}
         />
         <GroupBy
+          className={styles.filterInput}
           groups={groups}
           groupBy={groupBy}
           onGroupingChange={(keys) => setQueryParams({ groupBy: keys.length ? keys.join(',') : null })}
@@ -71,7 +73,12 @@ const getStyles = (theme: GrafanaTheme2) => ({
     display: flex;
     flex-direction: row;
     margin-bottom: ${theme.spacing(3)};
-    gap: ${theme.spacing(1)};
+  `,
+  filterInput: css`
+    width: 340px;
+    & + & {
+      margin-left: ${theme.spacing(1)};
+    }
   `,
   clearButton: css`
     margin-left: ${theme.spacing(1)};

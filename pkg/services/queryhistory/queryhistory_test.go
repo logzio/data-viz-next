@@ -23,7 +23,6 @@ import (
 	"github.com/grafana/grafana/pkg/services/user"
 	"github.com/grafana/grafana/pkg/services/user/userimpl"
 	"github.com/grafana/grafana/pkg/setting"
-	"github.com/grafana/grafana/pkg/tests/testsuite"
 	"github.com/grafana/grafana/pkg/web"
 )
 
@@ -33,10 +32,6 @@ var (
 	testDsUID1 = "NCzh67i"
 	testDsUID2 = "ABch1a1"
 )
-
-func TestMain(m *testing.M) {
-	testsuite.Run(m)
-}
 
 type scenarioContext struct {
 	ctx           *web.Context

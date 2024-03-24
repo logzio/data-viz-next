@@ -20,7 +20,6 @@ import { AlertInfo, getAlertInfo, isRecordingRulerRule } from '../../utils/rules
 import { parsePrometheusDuration, safeParseDurationstr } from '../../utils/time';
 import { DynamicTable, DynamicTableColumnProps, DynamicTableItemProps } from '../DynamicTable';
 import { EvaluationIntervalLimitExceeded } from '../InvalidIntervalWarning';
-import { decodeGrafanaNamespace, encodeGrafanaNamespace } from '../expressions/util';
 import { MIN_TIME_RANGE_STEP_S } from '../rule-editor/GrafanaEvaluationBehavior';
 
 const ITEMS_PER_PAGE = 10;
@@ -83,7 +82,7 @@ export const RulesForGroupTable = ({ rulesWithoutRecordingRules }: { rulesWithou
       },
       {
         id: 'for',
-        label: 'Pending period',
+        label: 'For',
         renderCell: ({ data: { forDuration } }) => {
           return <>{forDuration}</>;
         },
@@ -174,7 +173,7 @@ export function EditCloudGroupModal(props: ModalProps): React.ReactElement {
 
   const defaultValues = useMemo(
     (): FormValues => ({
-      namespaceName: decodeGrafanaNamespace(namespace).name,
+      namespaceName: namespace.name,
       groupName: group.name,
       groupInterval: group.interval ?? '',
     }),
@@ -183,9 +182,6 @@ export function EditCloudGroupModal(props: ModalProps): React.ReactElement {
 
   const rulesSourceName = getRulesSourceName(namespace.rulesSource);
   const isGrafanaManagedGroup = rulesSourceName === GRAFANA_RULES_SOURCE_NAME;
-
-  // parse any parent folders the alert rule might be stored in
-  const nestedFolderParents = decodeGrafanaNamespace(namespace).parents;
 
   const nameSpaceLabel = isGrafanaManagedGroup ? 'Folder' : 'Namespace';
 
@@ -198,18 +194,13 @@ export function EditCloudGroupModal(props: ModalProps): React.ReactElement {
 
   useCleanup((state) => (state.unifiedAlerting.updateLotexNamespaceAndGroup = initialAsyncRequestState));
   const onSubmit = (values: FormValues) => {
-    // make sure that when dealing with a nested folder for Grafana managed rules we encode the folder properly
-    const newNamespaceName = isGrafanaManagedGroup
-      ? encodeGrafanaNamespace(values.namespaceName, nestedFolderParents)
-      : values.namespaceName;
-
     dispatch(
       updateLotexNamespaceAndGroupAction({
         rulesSourceName: rulesSourceName,
         groupName: group.name,
         newGroupName: values.groupName,
         namespaceName: namespace.name,
-        newNamespaceName: newNamespaceName,
+        newNamespaceName: values.namespaceName,
         groupInterval: values.groupInterval || undefined,
         folderUid,
       })
@@ -221,7 +212,6 @@ export function EditCloudGroupModal(props: ModalProps): React.ReactElement {
     defaultValues,
     shouldFocusError: true,
   });
-
   const {
     handleSubmit,
     register,

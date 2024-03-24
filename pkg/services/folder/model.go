@@ -4,10 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/grafana/grafana/pkg/infra/metrics"
 	"github.com/grafana/grafana/pkg/infra/slugify"
 	"github.com/grafana/grafana/pkg/services/auth/identity"
-	"github.com/grafana/grafana/pkg/services/dashboards/dashboardaccess"
 	"github.com/grafana/grafana/pkg/setting"
 	"github.com/grafana/grafana/pkg/util/errutil"
 )
@@ -15,7 +13,6 @@ import (
 var ErrMaximumDepthReached = errutil.BadRequest("folder.maximum-depth-reached", errutil.WithPublicMessage("Maximum nested folder depth reached"))
 var ErrBadRequest = errutil.BadRequest("folder.bad-request")
 var ErrDatabaseError = errutil.Internal("folder.database-error")
-var ErrConflict = errutil.Conflict("folder.conflict")
 var ErrInternal = errutil.Internal("folder.internal")
 var ErrCircularReference = errutil.BadRequest("folder.circular-reference", errutil.WithPublicMessage("Circular reference detected"))
 var ErrTargetRegistrySrvConflict = errutil.Internal("folder.target-registry-srv-conflict")
@@ -44,17 +41,15 @@ type Folder struct {
 
 	// TODO: validate if this field is required/relevant to folders.
 	// currently there is no such column
-	Version      int
-	URL          string
-	UpdatedBy    int64
-	CreatedBy    int64
-	HasACL       bool
-	Fullpath     string `xorm:"fullpath"`
-	FullpathUIDs string `xorm:"fullpath_uids"`
+	Version   int
+	URL       string
+	UpdatedBy int64
+	CreatedBy int64
+	HasACL    bool
 }
 
 var GeneralFolder = Folder{ID: 0, Title: "General"}
-var RootFolder = &Folder{ID: 0, Title: "Root", UID: GeneralFolderUID, ParentUID: ""}
+
 var SharedWithMeFolder = Folder{
 	Title:       "Shared with me",
 	Description: "Dashboards and folders shared with me",
@@ -64,7 +59,6 @@ var SharedWithMeFolder = Folder{
 }
 
 func (f *Folder) IsGeneral() bool {
-	metrics.MFolderIDsServiceCount.WithLabelValues(metrics.Folder).Inc()
 	// nolint:staticcheck
 	return f.ID == GeneralFolder.ID && f.Title == GeneralFolder.Title
 }
@@ -148,26 +142,10 @@ type DeleteFolderCommand struct {
 type GetFolderQuery struct {
 	UID *string
 	// Deprecated: use FolderUID instead
-	ID           *int64
-	Title        *string
-	ParentUID    *string
-	OrgID        int64
-	WithFullpath bool
+	ID    *int64
+	Title *string
+	OrgID int64
 
-	SignedInUser identity.Requester `json:"-"`
-}
-
-type GetFoldersQuery struct {
-	OrgID            int64
-	UIDs             []string
-	WithFullpath     bool
-	WithFullpathUIDs bool
-	BatchSize        uint64
-
-	// OrderByTitle is used to sort the folders by title
-	// Set to true when ordering is meaningful (used for listing folders)
-	// otherwise better to keep it false since ordering can have a performance impact
-	OrderByTitle bool
 	SignedInUser identity.Requester `json:"-"`
 }
 
@@ -189,9 +167,6 @@ type GetChildrenQuery struct {
 	// Pagination options
 	Limit int64
 	Page  int64
-
-	// Permission to filter by
-	Permission dashboardaccess.PermissionType
 
 	SignedInUser identity.Requester `json:"-"`
 

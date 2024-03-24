@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 
 import { getBackendSrv, locationService } from '@grafana/runtime';
-import { Button, Input, Field, FieldSet } from '@grafana/ui';
-import { Form } from 'app/core/components/Form/Form';
+import { Form, Button, Input, Field, FieldSet } from '@grafana/ui';
 import { Page } from 'app/core/components/Page/Page';
 import { UserRolePicker } from 'app/core/components/RolePicker/UserRolePicker';
 import { fetchRoleOptions, updateUserRoles } from 'app/core/components/RolePicker/api';

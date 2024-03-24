@@ -3,7 +3,6 @@ import React, { useRef } from 'react';
 import { Observable } from 'rxjs';
 
 import { DataSourceInstanceSettings, DataSourceRef, GrafanaTheme2 } from '@grafana/data';
-import { selectors } from '@grafana/e2e-selectors';
 import { getTemplateSrv } from '@grafana/runtime';
 import { useStyles2, useTheme2 } from '@grafana/ui';
 import { Trans } from 'app/core/internationalization';
@@ -73,11 +72,7 @@ export function DataSourceList(props: DataSourceListProps) {
   const filteredDataSources = props.filter ? dataSources.filter(props.filter) : dataSources;
 
   return (
-    <div
-      ref={containerRef}
-      className={cx(className, styles.container)}
-      data-testid={selectors.components.DataSourcePicker.dataSourceList}
-    >
+    <div ref={containerRef} className={cx(className, styles.container)} data-testid="data-sources-list">
       {filteredDataSources.length === 0 && (
         <EmptyState className={styles.emptyState} onClickCTA={onClickEmptyStateCTA} />
       )}

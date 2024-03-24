@@ -10,7 +10,8 @@ import {
   createDataFrame,
 } from '@grafana/data';
 import { FetchResponse } from '@grafana/runtime';
-import { SQLQuery, makeVariable } from '@grafana/sql';
+import { SQLQuery } from 'app/features/plugins/sql/types';
+import { makeVariable } from 'app/features/plugins/sql/utils/testHelpers';
 
 import { MySqlDatasource } from '../MySqlDatasource';
 import { MySQLOptions } from '../types';

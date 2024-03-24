@@ -1,5 +1,5 @@
 import { cx, css } from '@emotion/css';
-import React, { FormEventHandler, KeyboardEventHandler, ReactNode, useCallback } from 'react';
+import React, { FormEventHandler, KeyboardEventHandler, ReactNode } from 'react';
 
 import {
   DataFrame,
@@ -8,7 +8,6 @@ import {
   TransformationApplicabilityLevels,
   GrafanaTheme2,
   standardTransformersRegistry,
-  SelectableValue,
 } from '@grafana/data';
 import { selectors } from '@grafana/e2e-selectors';
 import { Card, Drawer, FilterPill, IconButton, Input, Switch, useStyles2 } from '@grafana/ui';
@@ -27,10 +26,10 @@ const filterCategoriesLabels: Array<[FilterCategory, string]> = [
 ];
 
 interface TransformationPickerNgProps {
-  onTransformationAdd: (selectedItem: SelectableValue<string>) => void;
+  onTransformationAdd: Function;
+  setState: Function;
   onSearchChange: FormEventHandler<HTMLInputElement>;
   onSearchKeyDown: KeyboardEventHandler<HTMLInputElement>;
-  onClose?: () => void;
   noTransforms: boolean;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   xforms: Array<TransformerRegistryItem<any>>;
@@ -38,15 +37,15 @@ interface TransformationPickerNgProps {
   suffix: ReactNode;
   data: DataFrame[];
   showIllustrations?: boolean;
-  onShowIllustrationsChange?: (showIllustrations: boolean) => void;
-  onSelectedFilterChange?: (category: FilterCategory) => void;
   selectedFilter?: FilterCategory;
 }
 
 export function TransformationPickerNg(props: TransformationPickerNgProps) {
   const styles = useStyles2(getTransformationPickerStyles);
   const {
+    noTransforms,
     suffix,
+    setState,
     xforms,
     search,
     onSearchChange,
@@ -55,42 +54,24 @@ export function TransformationPickerNg(props: TransformationPickerNgProps) {
     onTransformationAdd,
     selectedFilter,
     data,
-    onClose,
-    onShowIllustrationsChange,
-    onSelectedFilterChange,
   } = props;
 
-  // Use a callback ref to call "click" on the search input
-  // This will focus it when it's opened
-  const searchInputRef = useCallback((input: HTMLInputElement) => {
-    input?.click();
-  }, []);
-
   return (
-    <Drawer
-      size="md"
-      onClose={() => {
-        onClose && onClose();
-      }}
-      title="Add another transformation"
-    >
+    <Drawer size="md" onClose={() => setState({ showPicker: false })} title="Add another transformation">
       <div className={styles.searchWrapper}>
         <Input
           data-testid={selectors.components.Transforms.searchInput}
           className={styles.searchInput}
           value={search ?? ''}
+          autoFocus={!noTransforms}
           placeholder="Search for transformation"
           onChange={onSearchChange}
           onKeyDown={onSearchKeyDown}
           suffix={suffix}
-          ref={searchInputRef}
         />
         <div className={styles.showImages}>
           <span className={styles.illustationSwitchLabel}>Show images</span>{' '}
-          <Switch
-            value={showIllustrations}
-            onChange={() => onShowIllustrationsChange && onShowIllustrationsChange(!showIllustrations)}
-          />
+          <Switch value={showIllustrations} onChange={() => setState({ showIllustrations: !showIllustrations })} />
         </div>
       </div>
 
@@ -99,7 +80,7 @@ export function TransformationPickerNg(props: TransformationPickerNgProps) {
           return (
             <FilterPill
               key={slug}
-              onClick={() => onSelectedFilterChange && onSelectedFilterChange(slug)}
+              onClick={() => setState({ selectedFilter: slug })}
               label={label}
               selected={selectedFilter === slug}
             />

@@ -17,16 +17,13 @@ export enum ColorPlacement {
   trailing = 'trailing',
 }
 
-export interface VizTooltipItem {
+export interface LabelValue {
   label: string;
-  value: string;
+  value: string | number | null;
   color?: string;
   colorIndicator?: ColorIndicator;
   colorPlacement?: ColorPlacement;
   isActive?: boolean;
-
-  // internal/tmp for sorting
-  numeric?: number;
 }
 
 export const DEFAULT_COLOR_INDICATOR = ColorIndicator.series;

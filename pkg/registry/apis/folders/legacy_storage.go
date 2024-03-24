@@ -11,13 +11,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/rest"
 
-	"github.com/grafana/grafana/pkg/apis/folder/v0alpha1"
+	"github.com/grafana/grafana/pkg/apis/folders/v0alpha1"
 	"github.com/grafana/grafana/pkg/infra/appcontext"
-	"github.com/grafana/grafana/pkg/services/apiserver/endpoints/request"
-	"github.com/grafana/grafana/pkg/services/apiserver/storage/entity"
-	"github.com/grafana/grafana/pkg/services/apiserver/utils"
 	"github.com/grafana/grafana/pkg/services/dashboards"
 	"github.com/grafana/grafana/pkg/services/folder"
+	"github.com/grafana/grafana/pkg/services/grafana-apiserver/endpoints/request"
+	"github.com/grafana/grafana/pkg/services/grafana-apiserver/storage/entity"
+	"github.com/grafana/grafana/pkg/services/grafana-apiserver/utils"
 	"github.com/grafana/grafana/pkg/util"
 )
 
@@ -67,16 +67,15 @@ func (s *legacyStorage) List(ctx context.Context, options *internalversion.ListO
 	}
 
 	parentUID := ""
-	// translate grafana.app/* label selectors into field requirements
-	requirements, newSelector, err := entity.ReadLabelSelectors(options.LabelSelector)
+	fieldRequirements, fieldSelector, err := entity.ReadFieldRequirements(options.FieldSelector)
 	if err != nil {
 		return nil, err
 	}
-	if requirements.Folder != nil {
-		parentUID = *requirements.Folder
+	if fieldRequirements.Folder != nil {
+		parentUID = *fieldRequirements.Folder
 	}
-	// Update the selector to remove the unneeded requirements
-	options.LabelSelector = newSelector
+	// Update the field selector to remove the unneeded selectors
+	options.FieldSelector = fieldSelector
 
 	paging, err := readContinueToken(options)
 	if err != nil {

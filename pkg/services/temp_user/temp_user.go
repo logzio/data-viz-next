@@ -11,6 +11,4 @@ type Service interface {
 	GetTempUsersQuery(ctx context.Context, query *GetTempUsersQuery) ([]*TempUserDTO, error)
 	GetTempUserByCode(ctx context.Context, query *GetTempUserByCodeQuery) (*TempUserDTO, error)
 	ExpireOldUserInvites(ctx context.Context, cmd *ExpireTempUsersCommand) error
-	ExpireOldVerifications(ctx context.Context, cmd *ExpireTempUsersCommand) error
-	ExpirePreviousVerifications(ctx context.Context, cmd *ExpirePreviousVerificationsCommand) error
 }

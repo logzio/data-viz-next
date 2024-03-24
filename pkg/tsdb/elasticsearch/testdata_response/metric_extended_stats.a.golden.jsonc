@@ -7,7 +7,7 @@
 //          0
 //      ]
 //  }
-//  Name: Std Dev Lower counter
+//  Name: 
 //  Dimensions: 2 Fields by 3 Rows
 //  +-----------------------------------+--------------------+
 //  | Name: Time                        | Name: Value        |
@@ -28,7 +28,7 @@
 //          0
 //      ]
 //  }
-//  Name: Std Dev Upper counter
+//  Name: 
 //  Dimensions: 2 Fields by 3 Rows
 //  +-----------------------------------+--------------------+
 //  | Name: Time                        | Name: Value        |
@@ -47,7 +47,6 @@
   "frames": [
     {
       "schema": {
-        "name": "Std Dev Lower counter",
         "meta": {
           "type": "timeseries-multi",
           "typeVersion": [
@@ -69,6 +68,10 @@
             "typeInfo": {
               "frame": "float64",
               "nullable": true
+            },
+            "labels": {},
+            "config": {
+              "displayNameFromDS": "Std Dev Lower counter"
             }
           }
         ]
@@ -90,7 +93,6 @@
     },
     {
       "schema": {
-        "name": "Std Dev Upper counter",
         "meta": {
           "type": "timeseries-multi",
           "typeVersion": [
@@ -112,6 +114,10 @@
             "typeInfo": {
               "frame": "float64",
               "nullable": true
+            },
+            "labels": {},
+            "config": {
+              "displayNameFromDS": "Std Dev Upper counter"
             }
           }
         ]

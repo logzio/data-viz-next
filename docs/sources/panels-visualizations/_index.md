@@ -30,13 +30,8 @@ Panels can be dragged, dropped, and resized to rearrange them on the dashboard.
 
 Before you add a panel, ensure that you have configured a data source.
 
-- For details about using data sources, refer to [Data sources][].
-
-- For more information about managing data sources as an administrator, refer to [Data source management][].
-
-  {{% admonition type="note" %}}
-  [Data source management](https://grafana.com/docs/grafana/<GRAFANA_VERSION>/administration/data-source-management/) is only available in [Grafana Enterprise](https://grafana.com/docs/grafana/<GRAFANA_VERSION>/introduction/grafana-enterprise/) and [Grafana Cloud](https://grafana.com/docs/grafana-cloud/).
-  {{% /admonition %}}
+- For more information about adding and managing data sources as an administrator, refer to [Data source management][].
+- For details about using specific data sources, refer to [Data sources][].
 
 This section includes the following sub topics:
 

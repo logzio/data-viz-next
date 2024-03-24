@@ -6,23 +6,14 @@ import (
 	"fmt"
 
 	"github.com/grafana/grafana/pkg/plugins/backendplugin/pluginextensionv2"
-	"github.com/grafana/grafana/pkg/services/featuremgmt"
 )
 
-func (rs *RenderingService) renderViaPlugin(ctx context.Context, renderType RenderType, renderKey string, opts Opts) (*RenderResult, error) {
-	if renderType == RenderPDF {
-		if !rs.features.IsEnabled(ctx, featuremgmt.FlagNewPDFRendering) {
-			return nil, fmt.Errorf("feature 'newPDFRendering' disabled")
-		}
-
-		opts.Encoding = "pdf"
-	}
-
+func (rs *RenderingService) renderViaPlugin(ctx context.Context, renderKey string, opts Opts) (*RenderResult, error) {
 	// gives plugin some additional time to timeout and return possible errors.
 	ctx, cancel := context.WithTimeout(ctx, getRequestTimeout(opts.TimeoutOpts))
 	defer cancel()
 
-	filePath, err := rs.getNewFilePath(renderType)
+	filePath, err := rs.getNewFilePath(RenderPNG)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +38,6 @@ func (rs *RenderingService) renderViaPlugin(ctx context.Context, renderType Rend
 		Domain:            rs.domain,
 		Headers:           headers,
 		AuthToken:         rs.Cfg.RendererAuthToken,
-		Encoding:          opts.Encoding,
 	}
 	rs.log.Debug("Calling renderer plugin", "req", req)
 

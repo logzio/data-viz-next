@@ -7,15 +7,8 @@ import { config } from 'app/core/config';
 import { DimensionContext } from 'app/features/dimensions/context';
 import { ColorDimensionEditor } from 'app/features/dimensions/editors/ColorDimensionEditor';
 import { TextDimensionEditor } from 'app/features/dimensions/editors/TextDimensionEditor';
-import { getDataLinks } from 'app/plugins/panel/canvas/utils';
 
-import {
-  CanvasElementItem,
-  CanvasElementOptions,
-  CanvasElementProps,
-  defaultBgColor,
-  defaultTextColor,
-} from '../element';
+import { CanvasElementItem, CanvasElementProps, defaultBgColor, defaultTextColor } from '../element';
 import { Align, TextConfig, TextData, VAlign } from '../types';
 
 class RectangleDisplay extends PureComponent<CanvasElementProps<TextConfig, TextData>> {
@@ -76,21 +69,17 @@ export const rectangleItem: CanvasElementItem<TextConfig, TextData> = {
   }),
 
   // Called when data changes
-  prepareData: (dimensionContext: DimensionContext, elementOptions: CanvasElementOptions<TextConfig>) => {
-    const textConfig = elementOptions.config;
-
+  prepareData: (ctx: DimensionContext, cfg: TextConfig) => {
     const data: TextData = {
-      text: textConfig?.text ? dimensionContext.getText(textConfig.text).value() : '',
-      align: textConfig?.align ?? Align.Center,
-      valign: textConfig?.valign ?? VAlign.Middle,
-      size: textConfig?.size,
+      text: cfg.text ? ctx.getText(cfg.text).value() : '',
+      align: cfg.align ?? Align.Center,
+      valign: cfg.valign ?? VAlign.Middle,
+      size: cfg.size,
     };
 
-    if (textConfig?.color) {
-      data.color = dimensionContext.getColor(textConfig.color).value();
+    if (cfg.color) {
+      data.color = ctx.getColor(cfg.color).value();
     }
-
-    data.links = getDataLinks(dimensionContext, elementOptions, data.text);
 
     return data;
   },

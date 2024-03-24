@@ -5,11 +5,9 @@ import {
   AnnotationEvent,
   AnnotationQueryRequest,
   CoreApp,
-  CustomVariableModel,
   DataQueryRequest,
   DataSourceInstanceSettings,
   dateTime,
-  LoadingState,
   rangeUtil,
   TimeRange,
   VariableHide,
@@ -465,7 +463,7 @@ describe('PrometheusDatasource', () => {
   });
 
   describe('When interpolating variables', () => {
-    let customVariable: CustomVariableModel;
+    let customVariable: any;
     beforeEach(() => {
       customVariable = {
         id: '',
@@ -478,14 +476,11 @@ describe('PrometheusDatasource', () => {
         current: {},
         name: '',
         type: 'custom',
-        error: null,
-        rootStateKey: '',
-        state: LoadingState.Done,
-        description: '',
-        label: undefined,
+        label: null,
         hide: VariableHide.dontHide,
         skipUrlSync: false,
         index: -1,
+        initLock: null,
       };
     });
 
@@ -497,7 +492,7 @@ describe('PrometheusDatasource', () => {
 
     describe('and value is a number', () => {
       it('should return a number', () => {
-        expect(ds.interpolateQueryExpr(1000 as unknown as string, customVariable)).toEqual(1000);
+        expect(ds.interpolateQueryExpr(1000 as any, customVariable)).toEqual(1000);
       });
     });
 
@@ -868,7 +863,7 @@ describe('PrometheusDatasource2', () => {
     });
 
     describe('region annotations for sectors', () => {
-      const options = {
+      const options: any = {
         annotation: {
           expr: 'ALERTS{alertstate="firing"}',
           tagKeys: 'job',
@@ -879,7 +874,7 @@ describe('PrometheusDatasource2', () => {
           from: time({ seconds: 63 }),
           to: time({ seconds: 900 }),
         },
-      } as unknown as AnnotationQueryRequest;
+      };
 
       async function runAnnotationQuery(data: number[][]) {
         let response = createAnnotationResponse();

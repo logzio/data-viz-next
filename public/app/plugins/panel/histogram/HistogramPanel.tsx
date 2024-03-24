@@ -65,7 +65,6 @@ export const HistogramPanel = ({ data, options, width, height }: Props) => {
       height={height}
       alignedFrame={histogram}
       bucketSize={bucketSize}
-      bucketCount={options.bucketCount}
     >
       {(config, alignedFrame) => {
         return null; // <TooltipPlugin data={alignedFrame} config={config} mode={options.tooltip.mode} timeZone={timeZone} />;

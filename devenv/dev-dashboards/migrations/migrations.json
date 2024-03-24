@@ -21,127 +21,7 @@
   "links": [
     {
       "asDropdown": false,
-      "icon": "external link",
-      "includeVars": false,
-      "keepTime": false,
-      "tags": [],
-      "targetBlank": true,
-      "title": "Auto migrate graph panel (TRUE)",
-      "tooltip": "",
-      "type": "link",
-      "url": " /d/cdd412c4/?__feature.autoMigrateGraphPanel=true"
-    },
-    {
-      "asDropdown": false,
-      "icon": "external link",
-      "includeVars": false,
-      "keepTime": false,
-      "tags": [],
-      "targetBlank": true,
-      "title": "Auto migrate graph panel (FALSE)",
-      "tooltip": "",
-      "type": "link",
-      "url": " /d/cdd412c4/?__feature.autoMigrateGraphPanel=false"
-    },
-    {
-      "asDropdown": false,
-      "icon": "external link",
-      "includeVars": false,
-      "keepTime": false,
-      "tags": [],
-      "targetBlank": true,
-      "title": "Auto migrate table (old) panel (TRUE)",
-      "tooltip": "",
-      "type": "link",
-      "url": " /d/cdd412c4/?__feature.autoMigrateTablePanel=true"
-    },
-    {
-      "asDropdown": false,
-      "icon": "external link",
-      "includeVars": false,
-      "keepTime": false,
-      "tags": [],
-      "targetBlank": true,
-      "title": "Auto migrate table (old) panel (FALSE)",
-      "tooltip": "",
-      "type": "link",
-      "url": " /d/cdd412c4/?__feature.autoMigrateTablePanel=false"
-    },
-    {
-      "asDropdown": false,
-      "icon": "external link",
-      "includeVars": false,
-      "keepTime": false,
-      "tags": [],
-      "targetBlank": true,
-      "title": "Auto migrate piechart panel (TRUE)",
-      "tooltip": "",
-      "type": "link",
-      "url": " /d/cdd412c4/?__feature.autoMigratePiechartPanel=true"
-    },
-    {
-      "asDropdown": false,
-      "icon": "external link",
-      "includeVars": false,
-      "keepTime": false,
-      "tags": [],
-      "targetBlank": true,
-      "title": "Auto migrate piechart panel (FALSE)",
-      "tooltip": "",
-      "type": "link",
-      "url": " /d/cdd412c4/?__feature.autoMigratePiechartPanel=false"
-    },
-    {
-      "asDropdown": false,
-      "icon": "external link",
-      "includeVars": false,
-      "keepTime": false,
-      "tags": [],
-      "targetBlank": true,
-      "title": "Auto migrate worldmap panel (TRUE)",
-      "tooltip": "",
-      "type": "link",
-      "url": " /d/cdd412c4/?__feature.autoMigrateWorldmapPanel=true"
-    },
-    {
-      "asDropdown": false,
-      "icon": "external link",
-      "includeVars": false,
-      "keepTime": false,
-      "tags": [],
-      "targetBlank": true,
-      "title": "Auto migrate worldmap panel (FALSE)",
-      "tooltip": "",
-      "type": "link",
-      "url": " /d/cdd412c4/?__feature.autoMigrateWorldmapPanel=false"
-    },
-    {
-      "asDropdown": false,
-      "icon": "external link",
-      "includeVars": false,
-      "keepTime": false,
-      "tags": [],
-      "targetBlank": true,
-      "title": "Auto migrate stat panel (TRUE)",
-      "tooltip": "",
-      "type": "link",
-      "url": " /d/cdd412c4/?__feature.autoMigrateStatPanel=true"
-    },
-    {
-      "asDropdown": false,
-      "icon": "external link",
-      "includeVars": false,
-      "keepTime": false,
-      "tags": [],
-      "targetBlank": true,
-      "title": "Auto migrate stat panel (FALSE)",
-      "tooltip": "",
-      "type": "link",
-      "url": " /d/cdd412c4/?__feature.autoMigrateStatPanel=false"
-    },
-    {
-      "asDropdown": false,
-      "icon": "external link",
+      "icon": "dashboard",
       "includeVars": false,
       "keepTime": false,
       "tags": [],
@@ -165,7 +45,7 @@
     },
     {
       "asDropdown": false,
-      "icon": "external link",
+      "icon": "dashboard",
       "includeVars": false,
       "keepTime": false,
       "tags": [],
@@ -201,7 +81,57 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "short"
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short",
+          "unitScale": true
         },
         "overrides": []
       },
@@ -241,7 +171,7 @@
         }
       },
       "percentage": false,
-      "pluginVersion": "11.0.0-pre",
+      "pluginVersion": "9.5.0-pre",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -268,7 +198,7 @@
         "sort": 0,
         "value_type": "individual"
       },
-      "type": "graph",
+      "type": "timeseries",
       "xaxis": {
         "mode": "time",
         "show": true,
@@ -311,281 +241,7 @@
         "content": "# Graph panel >> Timeseries panel\n\nKnown issues:\n* hiding null/empty series\n* time regions",
         "mode": "markdown"
       },
-      "pluginVersion": "11.0.0-pre",
-      "targets": [
-        {
-          "datasource": {
-            "type": "testdata",
-            "uid": "PD8C576611E62080A"
-          },
-          "refId": "A"
-        }
-      ],
-      "title": "Status + Notes",
-      "type": "text"
-    },
-    {
-      "aliasColors": {},
-      "bars": true,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": {
-        "type": "testdata",
-        "uid": "PD8C576611E62080A"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 11,
-        "w": 16,
-        "x": 0,
-        "y": 11
-      },
-      "hiddenSeries": false,
-      "id": 28,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": false,
-        "total": false,
-        "values": false
-      },
-      "lines": false,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true,
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "percentage": false,
-      "pluginVersion": "11.0.0-pre",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "datasource": {
-            "type": "testdata",
-            "uid": "PD8C576611E62080A"
-          },
-          "refId": "A",
-          "scenarioId": "random_walk",
-          "seriesCount": 3
-        }
-      ],
-      "thresholds": [],
-      "timeRegions": [],
-      "title": "Flot graph - x axis series mode",
-      "tooltip": {
-        "shared": false,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "mode": "series",
-        "show": true,
-        "values": [
-          "total"
-        ]
-      },
-      "yaxes": [
-        {
-          "$$hashKey": "object:88",
-          "format": "short",
-          "logBase": 1,
-          "show": true
-        },
-        {
-          "$$hashKey": "object:89",
-          "format": "short",
-          "logBase": 1,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false
-      }
-    },
-    {
-      "datasource": {
-        "type": "testdata",
-        "uid": "PD8C576611E62080A"
-      },
-      "gridPos": {
-        "h": 11,
-        "w": 8,
-        "x": 16,
-        "y": 11
-      },
-      "id": 29,
-      "options": {
-        "code": {
-          "language": "plaintext",
-          "showLineNumbers": false,
-          "showMiniMap": false
-        },
-        "content": "# Graph panel >> Bar chart panel\n",
-        "mode": "markdown"
-      },
-      "pluginVersion": "11.0.0-pre",
-      "targets": [
-        {
-          "datasource": {
-            "type": "testdata",
-            "uid": "PD8C576611E62080A"
-          },
-          "refId": "A"
-        }
-      ],
-      "title": "Status + Notes",
-      "type": "text"
-    },
-    {
-      "aliasColors": {},
-      "bars": true,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": {
-        "type": "testdata",
-        "uid": "PD8C576611E62080A"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 11,
-        "w": 16,
-        "x": 0,
-        "y": 22
-      },
-      "hiddenSeries": false,
-      "id": 30,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": false,
-        "total": false,
-        "values": false
-      },
-      "lines": false,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true,
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "percentage": false,
-      "pluginVersion": "11.0.0-pre",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "datasource": {
-            "type": "testdata",
-            "uid": "PD8C576611E62080A"
-          },
-          "refId": "A",
-          "scenarioId": "random_walk",
-          "seriesCount": 3
-        }
-      ],
-      "thresholds": [],
-      "timeRegions": [],
-      "title": "Flot graph - x axis histogram mode",
-      "tooltip": {
-        "shared": false,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "mode": "histogram",
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "$$hashKey": "object:193",
-          "format": "short",
-          "logBase": 1,
-          "show": true
-        },
-        {
-          "$$hashKey": "object:194",
-          "format": "short",
-          "logBase": 1,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false
-      }
-    },
-    {
-      "datasource": {
-        "type": "testdata",
-        "uid": "PD8C576611E62080A"
-      },
-      "gridPos": {
-        "h": 11,
-        "w": 8,
-        "x": 16,
-        "y": 22
-      },
-      "id": 31,
-      "options": {
-        "code": {
-          "language": "plaintext",
-          "showLineNumbers": false,
-          "showMiniMap": false
-        },
-        "content": "# Graph panel >> Histogram panel\n",
-        "mode": "markdown"
-      },
-      "pluginVersion": "11.0.0-pre",
+      "pluginVersion": "10.3.0-pre",
       "targets": [
         {
           "datasource": {
@@ -609,7 +265,7 @@
         "h": 10,
         "w": 16,
         "x": 0,
-        "y": 33
+        "y": 11
       },
       "id": 2,
       "options": {
@@ -685,7 +341,7 @@
         "h": 10,
         "w": 8,
         "x": 16,
-        "y": 33
+        "y": 11
       },
       "id": 7,
       "options": {
@@ -697,7 +353,7 @@
         "content": "# Table (old) >> Table\n\nKnown issues:\n* wrapping text\n* style changes",
         "mode": "markdown"
       },
-      "pluginVersion": "11.0.0-pre",
+      "pluginVersion": "10.3.0-pre",
       "targets": [
         {
           "datasource": {
@@ -734,9 +390,10 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 43
+        "y": 21
       },
       "id": 9,
+      "links": [],
       "mappingType": 1,
       "mappingTypes": [
         {
@@ -791,65 +448,65 @@
       "valueName": "avg"
     },
     {
+      "colorBackground": false,
+      "colorValue": true,
+      "colors": [
+        "#299c46",
+        "#73BF69",
+        "#d44a3a"
+      ],
       "datasource": {
         "type": "testdata",
         "uid": "PD8C576611E62080A"
       },
-      "fieldConfig": {
-        "defaults": {
-          "mappings": [
-            {
-              "options": {
-                "match": "null",
-                "result": {
-                  "text": "N/A"
-                }
-              },
-              "type": "special"
-            }
-          ],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "ms"
-        },
-        "overrides": []
+      "format": "ms",
+      "gauge": {
+        "maxValue": 100,
+        "minValue": 0,
+        "show": false,
+        "thresholdLabels": false,
+        "thresholdMarkers": true
       },
       "gridPos": {
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 43
+        "y": 21
       },
       "id": 23,
-      "maxDataPoints": 100,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "mean"
-          ],
-          "fields": "",
-          "values": false
+      "links": [],
+      "mappingType": 1,
+      "mappingTypes": [
+        {
+          "name": "value to text",
+          "value": 1
         },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
+        {
+          "name": "range to text",
+          "value": 2
+        }
+      ],
+      "maxDataPoints": 100,
+      "nullPointMode": "connected",
+      "pluginVersion": "6.2.0-pre",
+      "postfix": "",
+      "postfixFontSize": "50%",
+      "prefix": "p95",
+      "prefixFontSize": "80%",
+      "rangeMaps": [
+        {
+          "from": "null",
+          "text": "N/A",
+          "to": "null"
+        }
+      ],
+      "sparkline": {
+        "fillColor": "rgba(31, 118, 189, 0.18)",
+        "full": false,
+        "lineColor": "rgb(31, 120, 193)",
+        "show": true
       },
-      "pluginVersion": "11.0.0-pre",
+      "tableColumn": "",
       "targets": [
         {
           "datasource": {
@@ -859,8 +516,18 @@
           "refId": "A"
         }
       ],
+      "thresholds": "",
       "title": "singlestat (old, internal.  Migrated if schema < 28)",
-      "type": "stat"
+      "type": "singlestat",
+      "valueFontSize": "120%",
+      "valueMaps": [
+        {
+          "op": "=",
+          "text": "N/A",
+          "value": "null"
+        }
+      ],
+      "valueName": "avg"
     },
     {
       "datasource": {
@@ -871,7 +538,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 43
+        "y": 21
       },
       "id": 10,
       "options": {
@@ -883,7 +550,7 @@
         "content": "# Singlestat >> Stat\n\nKnown issues:\n* limited options",
         "mode": "markdown"
       },
-      "pluginVersion": "11.0.0-pre",
+      "pluginVersion": "10.3.0-pre",
       "targets": [
         {
           "datasource": {
@@ -905,7 +572,7 @@
         "h": 10,
         "w": 16,
         "x": 0,
-        "y": 51
+        "y": 29
       },
       "id": 24,
       "options": {
@@ -958,7 +625,7 @@
         "h": 10,
         "w": 8,
         "x": 16,
-        "y": 51
+        "y": 29
       },
       "id": 25,
       "options": {
@@ -970,7 +637,7 @@
         "content": "# grafana-piechart-panel >> piechart\n\nKnown issues:\n* TBD",
         "mode": "markdown"
       },
-      "pluginVersion": "11.0.0-pre",
+      "pluginVersion": "10.3.0-pre",
       "targets": [
         {
           "datasource": {
@@ -1001,7 +668,7 @@
         "h": 10,
         "w": 16,
         "x": 0,
-        "y": 61
+        "y": 39
       },
       "hideEmpty": false,
       "hideZero": false,
@@ -1014,12 +681,8 @@
       "maxDataPoints": 1,
       "mouseWheelZoom": false,
       "options": {
-        "basemap": {
-          "name": "Basemap",
-          "type": "default"
-        },
         "controls": {
-          "mouseWheelZoom": false,
+          "mouseWheelZoom": true,
           "showAttribution": true,
           "showDebug": false,
           "showMeasure": false,
@@ -1043,7 +706,7 @@
                 },
                 "size": {
                   "fixed": 5,
-                  "max": 30,
+                  "max": 15,
                   "min": 2
                 },
                 "symbol": {
@@ -1064,10 +727,9 @@
               }
             },
             "location": {
-              "gazetteer": "public/gazetteer/countries.json",
-              "mode": "lookup"
+              "mode": "auto"
             },
-            "name": "Layer 0",
+            "name": "Layer 1",
             "tooltip": true,
             "type": "markers"
           }
@@ -1083,7 +745,7 @@
           "zoom": 1
         }
       },
-      "pluginVersion": "10.4.0-pre",
+      "pluginVersion": "10.3.0-pre",
       "showLegend": true,
       "stickyLabels": false,
       "tableQueryOptions": {
@@ -1112,14 +774,6 @@
           "options": {
             "reducers": []
           }
-        },
-        {
-          "id": "reduce",
-          "options": {
-            "reducers": [
-              "sum"
-            ]
-          }
         }
       ],
       "type": "grafana-worldmap-panel",
@@ -1136,7 +790,7 @@
         "h": 10,
         "w": 8,
         "x": 16,
-        "y": 61
+        "y": 39
       },
       "id": 27,
       "options": {
@@ -1148,7 +802,7 @@
         "content": "# grafana-worldmap-panel >> geomap\n\nKnown issues:\n* TBD",
         "mode": "markdown"
       },
-      "pluginVersion": "11.0.0-pre",
+      "pluginVersion": "10.3.0-pre",
       "targets": [
         {
           "datasource": {
@@ -1176,11 +830,10 @@
     "from": "now-6h",
     "to": "now"
   },
-  "timeRangeUpdatedDuringEditOrView": false,
   "timepicker": {},
   "timezone": "",
   "title": "Devenv - Panel migrations",
   "uid": "cdd412c4",
-  "version": 68,
+  "version": 34,
   "weekStart": ""
 }

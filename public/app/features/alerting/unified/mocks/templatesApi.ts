@@ -1,13 +1,12 @@
-import 'whatwg-fetch';
-import { http, HttpResponse } from 'msw';
+import { rest } from 'msw';
 import { SetupServer } from 'msw/node';
 
 import { previewTemplateUrl, TemplatePreviewResponse } from '../api/templateApi';
 
 export function mockPreviewTemplateResponse(server: SetupServer, response: TemplatePreviewResponse) {
-  server.use(http.post(previewTemplateUrl, () => HttpResponse.json(response)));
+  server.use(rest.post(previewTemplateUrl, (req, res, ctx) => res(ctx.status(200), ctx.json(response))));
 }
 
 export function mockPreviewTemplateResponseRejected(server: SetupServer) {
-  server.use(http.post(previewTemplateUrl, () => HttpResponse.json('error', { status: 500 })));
+  server.use(rest.post(previewTemplateUrl, (req, res, ctx) => res(ctx.status(500), ctx.json('error'))));
 }

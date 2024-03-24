@@ -3,6 +3,7 @@ import { assertIsDefined } from 'test/helpers/asserts';
 import {
   createTheme,
   DefaultTimeZone,
+  EventBusSrv,
   FieldConfig,
   FieldType,
   getDefaultTimeRange,
@@ -119,6 +120,7 @@ describe('BarChart utils', () => {
         theme: createTheme(),
         timeZones: [DefaultTimeZone],
         getTimeRange: getDefaultTimeRange,
+        eventBus: new EventBusSrv(),
         allFrames: [frame],
       }).getConfig();
       expect(result).toMatchSnapshot();
@@ -133,6 +135,7 @@ describe('BarChart utils', () => {
           theme: createTheme(),
           timeZones: [DefaultTimeZone],
           getTimeRange: getDefaultTimeRange,
+          eventBus: new EventBusSrv(),
           allFrames: [frame],
         }).getConfig()
       ).toMatchSnapshot();
@@ -147,6 +150,7 @@ describe('BarChart utils', () => {
           theme: createTheme(),
           timeZones: [DefaultTimeZone],
           getTimeRange: getDefaultTimeRange,
+          eventBus: new EventBusSrv(),
           allFrames: [frame],
         }).getConfig()
       ).toMatchSnapshot();

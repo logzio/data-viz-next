@@ -22,7 +22,6 @@ import (
 	"github.com/grafana/grafana/pkg/services/user/userimpl"
 	"github.com/grafana/grafana/pkg/setting"
 	"github.com/grafana/grafana/pkg/tests/testinfra"
-	"github.com/grafana/grafana/pkg/tests/testsuite"
 )
 
 const (
@@ -32,10 +31,6 @@ const (
 )
 
 var updateSnapshotFlag = false
-
-func TestMain(m *testing.M) {
-	testsuite.Run(m)
-}
 
 func TestIntegrationPlugins(t *testing.T) {
 	if testing.Short() {

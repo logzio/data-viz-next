@@ -4,13 +4,14 @@
 //     public/app/plugins/gen.go
 // Using jennies:
 //     TSTypesJenny
-//     PluginTsTypesJenny
+//     LatestMajorsOrXJenny
+//     PluginEachMajorJenny
 //
 // Run 'make gen-cue' from repository root to regenerate.
 
 import * as ui from '@grafana/schema';
 
-export const pluginVersion = "11.0.0-pre";
+export const pluginVersion = "10.4.0-pre";
 
 export enum HorizontalConstraint {
   Center = 'center',
@@ -83,12 +84,7 @@ export interface CanvasConnection {
   source: ConnectionCoordinates;
   target: ConnectionCoordinates;
   targetName?: string;
-  vertices?: Array<ConnectionCoordinates>;
 }
-
-export const defaultCanvasConnection: Partial<CanvasConnection> = {
-  vertices: [],
-};
 
 export interface CanvasElementOptions {
   background?: BackgroundConfig;

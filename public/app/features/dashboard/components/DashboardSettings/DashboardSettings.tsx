@@ -8,6 +8,7 @@ import { locationService } from '@grafana/runtime';
 import { Button, ToolbarButtonRow } from '@grafana/ui';
 import { AppChromeUpdate } from 'app/core/components/AppChrome/AppChromeUpdate';
 import { Page } from 'app/core/components/Page/Page';
+import config from 'app/core/config';
 import { t } from 'app/core/internationalization';
 import { contextSrv } from 'app/core/services/context_srv';
 import { AccessControlAction } from 'app/types';
@@ -184,9 +185,13 @@ function getSectionNav(
     text: t('dashboard-settings.settings.title', 'Settings'),
     children: [],
     icon: 'apps',
-    hideFromBreadcrumbs: false,
-    url: locationUtil.getUrlForPartial(location, { editview: 'settings', editIndex: null }),
+    hideFromBreadcrumbs: true,
   };
+
+  if (config.featureToggles.dockedMegaMenu) {
+    main.hideFromBreadcrumbs = false;
+    main.url = locationUtil.getUrlForPartial(location, { editview: 'settings', editIndex: null });
+  }
 
   main.children = pages.map((page) => ({
     text: page.title,

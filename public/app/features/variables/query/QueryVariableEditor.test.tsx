@@ -1,10 +1,8 @@
-import { render, screen, act } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { MockDataSourceApi } from 'test/mocks/datasource_srv';
 
-import { VariableSupportType } from '@grafana/data';
-import { selectors } from '@grafana/e2e-selectors';
+import { DataSourceApi, VariableSupportType } from '@grafana/data';
 import { mockDataSource } from 'app/features/alerting/unified/mocks';
 import { DataSourceType } from 'app/features/alerting/unified/utils/datasource';
 
@@ -16,25 +14,11 @@ import { QueryVariableModel } from '../types';
 import { Props, QueryVariableEditorUnConnected } from './QueryVariableEditor';
 import { initialQueryVariableModelState } from './reducer';
 
-const mockDS = mockDataSource({
-  name: 'CloudManager',
-  type: DataSourceType.Alertmanager,
-});
-const ds = new MockDataSourceApi(mockDS);
-const editor = jest.fn().mockImplementation(LegacyVariableQueryEditor);
-
-ds.variables = {
-  getType: () => VariableSupportType.Custom,
-  query: jest.fn(),
-  editor: editor,
-  getDefaultQuery: jest.fn(),
-};
-
-const setupTestContext = async (options: Partial<Props>) => {
+const setupTestContext = (options: Partial<Props>) => {
   const variableDefaults: Partial<QueryVariableModel> = { rootStateKey: 'key' };
   const extended = {
     VariableQueryEditor: LegacyVariableQueryEditor,
-    dataSource: ds,
+    dataSource: {} as unknown as DataSourceApi,
   };
 
   const defaults: Props = {
@@ -47,16 +31,21 @@ const setupTestContext = async (options: Partial<Props>) => {
     onPropChange: jest.fn(),
   };
 
-  const props: Props & Record<string, unknown> = { ...defaults, ...options };
-  const { rerender } = await act(() => render(<QueryVariableEditorUnConnected {...props} />));
+  const props: Props & Record<string, any> = { ...defaults, ...options };
+  const { rerender } = render(<QueryVariableEditorUnConnected {...props} />);
 
   return { rerender, props };
 };
 
+const mockDS = mockDataSource({
+  name: 'CloudManager',
+  type: DataSourceType.Alertmanager,
+});
+
 jest.mock('@grafana/runtime/src/services/dataSourceSrv', () => {
   return {
     getDataSourceSrv: () => ({
-      get: async () => ds,
+      get: () => Promise.resolve(mockDS),
       getList: () => [mockDS],
       getInstanceSettings: () => mockDS,
     }),
@@ -67,8 +56,8 @@ const defaultIdentifier: KeyedVariableIdentifier = { type: 'query', rootStateKey
 
 describe('QueryVariableEditor', () => {
   describe('when the component is mounted', () => {
-    it('then it should call initQueryVariableEditor', async () => {
-      const { props } = await setupTestContext({});
+    it('then it should call initQueryVariableEditor', () => {
+      const { props } = setupTestContext({});
 
       expect(props.initQueryVariableEditor).toHaveBeenCalledTimes(1);
       expect(props.initQueryVariableEditor).toHaveBeenCalledWith(defaultIdentifier);
@@ -76,29 +65,50 @@ describe('QueryVariableEditor', () => {
   });
 
   describe('when the editor is rendered', () => {
-    beforeEach(() => {
-      jest.clearAllMocks();
+    const extendedCustom = {
+      extended: {
+        VariableQueryEditor: jest.fn().mockImplementation(LegacyVariableQueryEditor),
+        dataSource: {
+          variables: {
+            getType: () => VariableSupportType.Custom,
+            query: jest.fn(),
+            editor: jest.fn(),
+          },
+        } as unknown as DataSourceApi,
+      },
+    };
+    it('should pass down the query with default values if the datasource config defines it', () => {
+      const extended = { ...extendedCustom };
+      extended.extended.dataSource.variables!.getDefaultQuery = jest
+        .fn()
+        .mockImplementation(() => 'some default query');
+      const { props } = setupTestContext(extended);
+      expect(props.extended?.dataSource?.variables?.getDefaultQuery).toBeDefined();
+      expect(props.extended?.dataSource?.variables?.getDefaultQuery).toHaveBeenCalledTimes(1);
+      expect(props.extended?.VariableQueryEditor).toHaveBeenCalledWith(
+        expect.objectContaining({ query: 'some default query' }),
+        expect.anything()
+      );
     });
-
-    it('should pass down the query with default values if the datasource config defines it', async () => {
-      ds.variables!.getDefaultQuery = jest.fn().mockImplementationOnce(() => 'some default query');
-
-      await setupTestContext({});
-      expect(ds.variables?.getDefaultQuery).toBeDefined();
-      expect(ds.variables?.getDefaultQuery).toHaveBeenCalledTimes(1);
-      expect(editor.mock.calls[0][0].query).toBe('some default query');
+    it('should not pass down a default query if the datasource config doesnt define it', () => {
+      extendedCustom.extended.dataSource.variables!.getDefaultQuery = undefined;
+      const { props } = setupTestContext(extendedCustom);
+      expect(props.extended?.dataSource?.variables?.getDefaultQuery).not.toBeDefined();
+      expect(props.extended?.VariableQueryEditor).toHaveBeenCalledWith(
+        expect.objectContaining({ query: '' }),
+        expect.anything()
+      );
     });
   });
-
   describe('when the user changes', () => {
     it.each`
       fieldName  | propName                      | expectedArgs
-      ${'query'} | ${'changeQueryVariableQuery'} | ${[defaultIdentifier, 't', '']}
+      ${'query'} | ${'changeQueryVariableQuery'} | ${[defaultIdentifier, 't', 't']}
       ${'regex'} | ${'onPropChange'}             | ${[{ propName: 'regex', propValue: 't', updateOptions: true }]}
     `(
       '$fieldName field and tabs away then $propName should be called with correct args',
       async ({ fieldName, propName, expectedArgs }) => {
-        const { props } = await setupTestContext({});
+        const { props } = setupTestContext({});
         const propUnderTest = props[propName];
         const fieldAccessor = fieldAccessors[fieldName];
 
@@ -119,7 +129,7 @@ describe('QueryVariableEditor', () => {
     `(
       '$fieldName field but reverts the change and tabs away then $propName should not be called',
       async ({ fieldName, propName }) => {
-        const { props } = await setupTestContext({});
+        const { props } = setupTestContext({});
         const propUnderTest = props[propName];
         const fieldAccessor = fieldAccessors[fieldName];
 
@@ -134,7 +144,7 @@ describe('QueryVariableEditor', () => {
 });
 
 const getQueryField = () =>
-  screen.getByTestId(selectors.pages.Dashboard.Settings.Variables.Edit.QueryVariable.queryOptionsQueryInput);
+  screen.getByRole('textbox', { name: /variable editor form default variable query editor textarea/i });
 
 const getRegExField = () => screen.getByLabelText(/Regex/);
 

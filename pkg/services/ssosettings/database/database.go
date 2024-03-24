@@ -84,7 +84,7 @@ func (s *SSOSettingsStore) List(ctx context.Context) ([]*models.SSOSettings, err
 	return result, nil
 }
 
-func (s *SSOSettingsStore) Upsert(ctx context.Context, settings *models.SSOSettings) error {
+func (s *SSOSettingsStore) Upsert(ctx context.Context, settings models.SSOSettings) error {
 	if settings.Provider == "" {
 		return ssosettings.ErrNotFound
 	}
@@ -110,10 +110,13 @@ func (s *SSOSettingsStore) Upsert(ctx context.Context, settings *models.SSOSetti
 			}
 			_, err = sess.UseBool(isDeletedColumn).Update(updated, existing)
 		} else {
-			settings.ID = uuid.New().String()
-			settings.Created = now
-			settings.Updated = now
-			_, err = sess.Insert(settings)
+			_, err = sess.Insert(&models.SSOSettings{
+				ID:       uuid.New().String(),
+				Provider: settings.Provider,
+				Settings: settings.Settings,
+				Created:  now,
+				Updated:  now,
+			})
 		}
 
 		return err

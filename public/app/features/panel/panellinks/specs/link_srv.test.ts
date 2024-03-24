@@ -33,7 +33,7 @@ describe('linkSrv', () => {
     const timeSrv = new TimeSrv({} as ContextSrv);
     timeSrv.init(_dashboard);
     timeSrv.setTime({ from: 'now-1h', to: 'now' });
-    _dashboard.refresh = undefined;
+    _dashboard.refresh = false;
     setTimeSrv(timeSrv);
 
     templateSrv = initTemplateSrv('key', [

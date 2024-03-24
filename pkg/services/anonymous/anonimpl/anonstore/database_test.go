@@ -9,12 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/grafana/grafana/pkg/infra/db"
-	"github.com/grafana/grafana/pkg/tests/testsuite"
 )
-
-func TestMain(m *testing.M) {
-	testsuite.Run(m)
-}
 
 func TestIntegrationAnonStore_DeleteDevicesOlderThan(t *testing.T) {
 	store := db.InitTestDB(t)

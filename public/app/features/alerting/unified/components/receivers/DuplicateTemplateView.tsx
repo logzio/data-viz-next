@@ -20,7 +20,7 @@ export const DuplicateTemplateView = ({ config, templateName, alertManagerSource
   if (!template) {
     return (
       <Alert severity="error" title="Template not found">
-        Sorry, this template does not seem to exist.
+        Sorry, this template does not seem to exists.
       </Alert>
     );
   }

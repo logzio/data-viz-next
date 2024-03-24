@@ -30,7 +30,6 @@ type LoginCommand struct {
 type CurrentUser struct {
 	IsSignedIn                 bool               `json:"isSignedIn"`
 	Id                         int64              `json:"id"`
-	UID                        string             `json:"uid"`
 	Login                      string             `json:"login"`
 	Email                      string             `json:"email"`
 	Name                       string             `json:"name"`
@@ -109,9 +108,9 @@ func (mr *MetricRequest) CloneWithQueries(queries []*simplejson.Json) MetricRequ
 	}
 }
 
-func GetGravatarUrl(cfg *setting.Cfg, text string) string {
-	if cfg.DisableGravatar {
-		return cfg.AppSubURL + "/public/img/user_profile.png"
+func GetGravatarUrl(text string) string {
+	if setting.DisableGravatar {
+		return setting.AppSubUrl + "/public/img/user_profile.png"
 	}
 
 	if text == "" {
@@ -119,7 +118,7 @@ func GetGravatarUrl(cfg *setting.Cfg, text string) string {
 	}
 
 	hash, _ := GetGravatarHash(text)
-	return fmt.Sprintf(cfg.AppSubURL+"/avatar/%x", hash)
+	return fmt.Sprintf(setting.AppSubUrl+"/avatar/%x", hash)
 }
 
 func GetGravatarHash(text string) ([]byte, bool) {
@@ -134,14 +133,14 @@ func GetGravatarHash(text string) ([]byte, bool) {
 	return hasher.Sum(nil), true
 }
 
-func GetGravatarUrlWithDefault(cfg *setting.Cfg, text string, defaultText string) string {
+func GetGravatarUrlWithDefault(text string, defaultText string) string {
 	if text != "" {
-		return GetGravatarUrl(cfg, text)
+		return GetGravatarUrl(text)
 	}
 
 	text = regNonAlphaNumeric.ReplaceAllString(defaultText, "") + "@localhost"
 
-	return GetGravatarUrl(cfg, text)
+	return GetGravatarUrl(text)
 }
 
 func IsHiddenUser(userLogin string, signedInUser identity.Requester, cfg *setting.Cfg) bool {

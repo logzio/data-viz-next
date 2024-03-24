@@ -1,4 +1,3 @@
-import { PanelTypeChangedHandler } from '@grafana/data';
 import { getPanelPlugin } from '@grafana/data/test/__mocks__/pluginMocks';
 import { PanelModel } from 'app/features/dashboard/state';
 
@@ -7,12 +6,12 @@ import { getAngularPanelMigrationHandler } from './angularMigration';
 describe('getAngularPanelMigrationHandler', () => {
   describe('Given an old angular panel', () => {
     it('Should call migration handler', () => {
-      const onPanelTypeChanged: PanelTypeChangedHandler = (panel, prevPluginId, prevOptions) => {
+      const onPanelTypeChanged = (panel: PanelModel, prevPluginId: string, prevOptions: Record<string, any>) => {
         panel.fieldConfig = { defaults: { unit: 'bytes' }, overrides: [] };
         return { name: prevOptions.angular.oldOptionProp };
       };
 
-      const reactPlugin = getPanelPlugin({ id: 'timeseries' }).setPanelChangeHandler(onPanelTypeChanged);
+      const reactPlugin = getPanelPlugin({ id: 'timeseries' }).setPanelChangeHandler(onPanelTypeChanged as any);
 
       const oldModel = new PanelModel({
         autoMigrateFrom: 'graph',

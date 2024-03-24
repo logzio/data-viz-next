@@ -8,11 +8,14 @@ import { config, reportInteraction } from '@grafana/runtime';
 import {
   Button,
   Field,
+  Form,
+  HorizontalGroup,
   Input,
   Spinner,
   stylesFactory,
   TextArea,
   Themeable2,
+  VerticalGroup,
   FileDropzone,
   withTheme2,
   DropzoneFile,
@@ -20,10 +23,8 @@ import {
   LinkButton,
   TextLink,
   Label,
-  Stack,
 } from '@grafana/ui';
 import appEvents from 'app/core/app_events';
-import { Form } from 'app/core/components/Form/Form';
 import { Page } from 'app/core/components/Page/Page';
 import { t, Trans } from 'app/core/internationalization';
 import { GrafanaRouteComponentProps } from 'app/core/navigation/types';
@@ -207,14 +208,14 @@ class UnthemedDashboardImport extends PureComponent<Props> {
                     placeholder={JSON_PLACEHOLDER}
                   />
                 </Field>
-                <Stack>
+                <HorizontalGroup>
                   <Button type="submit" data-testid={selectors.components.DashboardImportPage.submit}>
                     <Trans i18nKey="dashboard-import.form-actions.load">Load</Trans>
                   </Button>
                   <LinkButton variant="secondary" href={`${config.appSubUrl}/dashboards`}>
                     <Trans i18nKey="dashboard-import.form-actions.cancel">Cancel</Trans>
                   </LinkButton>
-                </Stack>
+                </HorizontalGroup>
               </>
             )}
           </Form>
@@ -235,11 +236,11 @@ class UnthemedDashboardImport extends PureComponent<Props> {
       <Page navId="dashboards/browse" pageNav={this.pageNav}>
         <Page.Contents>
           {loadingState === LoadingState.Loading && (
-            <Stack direction={'column'} justifyContent="center">
-              <Stack justifyContent="center">
+            <VerticalGroup justify="center">
+              <HorizontalGroup justify="center">
                 <Spinner size="xxl" />
-              </Stack>
-            </Stack>
+              </HorizontalGroup>
+            </VerticalGroup>
           )}
           {[LoadingState.Error, LoadingState.NotStarted].includes(loadingState) && this.renderImportForm()}
           {loadingState === LoadingState.Done && <ImportDashboardOverview />}

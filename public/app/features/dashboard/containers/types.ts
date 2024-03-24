@@ -19,5 +19,4 @@ export type DashboardPageRouteSearchParams = {
   refresh?: string;
   kiosk?: string | true;
   scenes?: boolean;
-  shareView?: string;
 };

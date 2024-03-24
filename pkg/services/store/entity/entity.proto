@@ -81,18 +81,6 @@ message Entity {
 
   // When errors exist
   repeated EntityErrorInfo errors = 21;
-
-  // Action code
-  Action action = 3;
-
-  // Status enumeration
-  enum Action {
-    UNKNOWN = 0;
-    CREATED = 1;
-    UPDATED = 2;
-    DELETED = 3;
-    ERROR = 4;
-  }
 }
 
 // This stores additional metadata for items entities that were synced from external systmes
@@ -249,15 +237,6 @@ message EntityHistoryRequest {
 
   // Starting from the requested page
   string next_page_token = 5;
-
-  // Sorting instructions `field ASC/DESC`
-  repeated string sort = 7;
-
-  // Return the full body in each payload
-  bool with_body = 8;
-
-  // Return the status in each payload
-  bool with_status = 10;
 }
 
 message EntityHistoryResponse {
@@ -269,9 +248,6 @@ message EntityHistoryResponse {
 
   // More results exist... pass this in the next request
   string next_page_token = 3;
-
-  // Resource version of the response
-  int64 resource_version = 4;
 }
 
 
@@ -312,9 +288,6 @@ message EntityListRequest {
 
   // Return the full body in each payload
   bool with_status = 10;
-
-  // list deleted entities instead of active ones
-  bool deleted = 12;
 }
 
 message ReferenceRequest {
@@ -340,9 +313,6 @@ message EntityListResponse {
 
   // More results exist... pass this in the next request
   string next_page_token = 2;
-
-  // ResourceVersion of the list response
-  int64 resource_version = 3;
 }
 
 //-----------------------------------------------
@@ -350,10 +320,10 @@ message EntityListResponse {
 //-----------------------------------------------
 
 message EntityWatchRequest {
-  // ResourceVersion of last changes. Empty will default to full history
+  // Timestamp of last changes. Empty will default to
   int64 since = 1;
 
-  // Watch specific entities
+  // Watch sppecific entities
   repeated string key = 2;
 
   // limit to a specific resource (empty is all)
@@ -376,8 +346,18 @@ message EntityWatchResponse {
   // Timestamp the event was sent
   int64 timestamp = 1;
 
-  // Entity that was created, updated, or deleted
-  Entity entity = 2;
+  // List of entities with the same action
+  repeated Entity entity = 2;
+
+  // Action code
+  Action action = 3;
+
+  // Status enumeration
+  enum Action {
+    UNKNOWN = 0;
+    UPDATED = 1;
+    DELETED = 2;
+  }
 }
 
 message EntitySummary {

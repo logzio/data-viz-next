@@ -147,10 +147,10 @@ func TestAddDataSource_InvalidJSONData(t *testing.T) {
 	sc := setupScenarioContext(t, "/api/datasources")
 
 	hs.Cfg = setting.NewCfg()
-	hs.Cfg.AuthProxy.Enabled = true
-	hs.Cfg.AuthProxy.HeaderName = "X-AUTH-PROXY-HEADER"
+	hs.Cfg.AuthProxyEnabled = true
+	hs.Cfg.AuthProxyHeaderName = "X-AUTH-PROXY-HEADER"
 	jsonData := simplejson.New()
-	jsonData.Set("httpHeaderName1", hs.Cfg.AuthProxy.HeaderName)
+	jsonData.Set("httpHeaderName1", hs.Cfg.AuthProxyHeaderName)
 
 	sc.m.Post(sc.url, routing.Wrap(func(c *contextmodel.ReqContext) response.Response {
 		c.Req.Body = mockRequestBody(datasources.AddDataSourceCommand{
@@ -201,10 +201,10 @@ func TestUpdateDataSource_InvalidJSONData(t *testing.T) {
 	}
 	sc := setupScenarioContext(t, "/api/datasources/1234")
 
-	hs.Cfg.AuthProxy.Enabled = true
-	hs.Cfg.AuthProxy.HeaderName = "X-AUTH-PROXY-HEADER"
+	hs.Cfg.AuthProxyEnabled = true
+	hs.Cfg.AuthProxyHeaderName = "X-AUTH-PROXY-HEADER"
 	jsonData := simplejson.New()
-	jsonData.Set("httpHeaderName1", hs.Cfg.AuthProxy.HeaderName)
+	jsonData.Set("httpHeaderName1", hs.Cfg.AuthProxyHeaderName)
 
 	sc.m.Put(sc.url, routing.Wrap(func(c *contextmodel.ReqContext) response.Response {
 		c.Req.Body = mockRequestBody(datasources.AddDataSourceCommand{
@@ -297,7 +297,7 @@ func TestUpdateDataSourceTeamHTTPHeaders_InvalidJSONData(t *testing.T) {
 				},
 			}
 			sc := setupScenarioContext(t, fmt.Sprintf("/api/datasources/%s", tenantID))
-			hs.Cfg.AuthProxy.Enabled = true
+			hs.Cfg.AuthProxyEnabled = true
 
 			jsonData := simplejson.New()
 			jsonData.Set("teamHttpHeaders", tc.data)

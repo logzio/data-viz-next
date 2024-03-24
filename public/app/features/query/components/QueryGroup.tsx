@@ -497,7 +497,7 @@ function DataSourcePickerWithPrompt({ options, onChange, ...otherProps }: DataSo
 
   return (
     <>
-      {isDataSourceModalOpen && (
+      {isDataSourceModalOpen && config.featureToggles.advancedDataSourcePicker && (
         <DataSourceModal {...commonProps} onDismiss={() => setIsDataSourceModalOpen(false)}></DataSourceModal>
       )}
 

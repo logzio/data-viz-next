@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/benbjohnson/clock"
 	"github.com/grafana/dskit/concurrency"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -30,7 +31,7 @@ func NewSyncStatePersisiter(log log.Logger, cfg ManagerCfg) StatePersister {
 	}
 }
 
-func (a *SyncStatePersister) Async(_ context.Context, _ *cache) {
+func (a *SyncStatePersister) Async(_ context.Context, _ *clock.Ticker, _ *cache) {
 	a.log.Debug("Async: No-Op")
 }
 func (a *SyncStatePersister) Sync(ctx context.Context, span trace.Span, states, staleStates []StateTransition) {

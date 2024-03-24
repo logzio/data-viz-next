@@ -12,16 +12,11 @@ import (
 	"github.com/grafana/grafana/pkg/services/sqlstore"
 	"github.com/grafana/grafana/pkg/services/ssosettings"
 	"github.com/grafana/grafana/pkg/services/ssosettings/models"
-	"github.com/grafana/grafana/pkg/tests/testsuite"
 )
 
 const (
 	withinDuration = 5 * time.Minute
 )
-
-func TestMain(m *testing.M) {
-	testsuite.Run(m)
-}
 
 func TestIntegrationGetSSOSettings(t *testing.T) {
 	if testing.Short() {
@@ -110,7 +105,7 @@ func TestIntegrationUpsertSSOSettings(t *testing.T) {
 			},
 		}
 
-		err := ssoSettingsStore.Upsert(context.Background(), &settings)
+		err := ssoSettingsStore.Upsert(context.Background(), settings)
 		require.NoError(t, err)
 
 		actual, err := getSSOSettingsByProvider(sqlStore, settings.Provider, false)
@@ -148,7 +143,7 @@ func TestIntegrationUpsertSSOSettings(t *testing.T) {
 				"client_secret": "this-is-a-new-secret",
 			},
 		}
-		err = ssoSettingsStore.Upsert(context.Background(), &newSettings)
+		err = ssoSettingsStore.Upsert(context.Background(), newSettings)
 		require.NoError(t, err)
 
 		actual, err := getSSOSettingsByProvider(sqlStore, provider, false)
@@ -186,7 +181,7 @@ func TestIntegrationUpsertSSOSettings(t *testing.T) {
 			},
 		}
 
-		err = ssoSettingsStore.Upsert(context.Background(), &newSettings)
+		err = ssoSettingsStore.Upsert(context.Background(), newSettings)
 		require.NoError(t, err)
 
 		actual, err := getSSOSettingsByProvider(sqlStore, provider, false)
@@ -222,7 +217,7 @@ func TestIntegrationUpsertSSOSettings(t *testing.T) {
 				"client_secret": "this-is-my-new-secret",
 			},
 		}
-		err = ssoSettingsStore.Upsert(context.Background(), &newSettings)
+		err = ssoSettingsStore.Upsert(context.Background(), newSettings)
 		require.NoError(t, err)
 
 		actual, err := getSSOSettingsByProvider(sqlStore, providers[0], false)
@@ -259,7 +254,7 @@ func TestIntegrationUpsertSSOSettings(t *testing.T) {
 			},
 		}
 
-		err = ssoSettingsStore.Upsert(context.Background(), &settings)
+		err = ssoSettingsStore.Upsert(context.Background(), settings)
 		require.Error(t, err)
 		require.ErrorIs(t, err, ssosettings.ErrNotFound)
 	})

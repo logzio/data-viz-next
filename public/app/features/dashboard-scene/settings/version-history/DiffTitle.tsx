@@ -19,14 +19,13 @@ export const DiffTitle = ({ diff, title }: DiffTitleProps) => {
 
   return diff ? (
     <>
-      <Icon type="mono" name="circle" className={styles[diff.op]} size="xs" />{' '}
-      <span className={styles.embolden}>{title}</span> <span>{getDiffText(diff, diff.path.length > 1)}</span>{' '}
-      <DiffValues diff={diff} />
+      <Icon type="mono" name="circle" className={styles[diff.op]} /> <span className={styles.embolden}>{title}</span>{' '}
+      <span>{getDiffText(diff, diff.path.length > 1)}</span> <DiffValues diff={diff} />
     </>
   ) : (
     <div className={styles.withoutDiff}>
-      <Icon type="mono" name="circle" className={styles.replace} size="xs" />{' '}
-      <span className={styles.embolden}>{title}</span> <span>{getDiffText(replaceDiff, false)}</span>
+      <Icon type="mono" name="circle" className={styles.replace} /> <span className={styles.embolden}>{title}</span>{' '}
+      <span>{getDiffText(replaceDiff, false)}</span>
     </div>
   );
 };
@@ -57,6 +56,6 @@ const getDiffTitleStyles = (theme: GrafanaTheme2) => ({
     color: theme.colors.success.main,
   }),
   withoutDiff: css({
-    marginBottom: theme.spacing(1),
+    marginBottom: theme.spacing(2),
   }),
 });

@@ -13,8 +13,8 @@ func TestResampleSeries(t *testing.T) {
 	var tests = []struct {
 		name             string
 		interval         time.Duration
-		downsampler      ReducerID
-		upsampler        Upsampler
+		downsampler      string
+		upsampler        string
 		timeRange        backend.TimeRange
 		seriesToResample Series
 		series           Series

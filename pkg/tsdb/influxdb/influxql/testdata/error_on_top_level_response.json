@@ -1,1 +1,3 @@
-{"error": "error parsing query: found THING"}
+{
+  "error": "error parsing query: found THING"
+}

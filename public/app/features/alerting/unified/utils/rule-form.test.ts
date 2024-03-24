@@ -1,4 +1,3 @@
-import { config } from '@grafana/runtime';
 import { PromQuery } from 'app/plugins/datasource/prometheus/types';
 import { GrafanaAlertStateDecision, GrafanaRuleDefinition, RulerAlertingRuleDTO } from 'app/types/unified-alerting-dto';
 
@@ -6,13 +5,11 @@ import { AlertManagerManualRouting, RuleFormType, RuleFormValues } from '../type
 
 import { GRAFANA_RULES_SOURCE_NAME } from './datasource';
 import {
-  MANUAL_ROUTING_KEY,
   alertingRulerRuleToRuleForm,
   formValuesToRulerGrafanaRuleDTO,
   formValuesToRulerRuleDTO,
   getContactPointsFromDTO,
   getDefaultFormValues,
-  getDefautManualRouting,
   getNotificationSettingsForDTO,
 } from './rule-form';
 
@@ -133,7 +130,7 @@ describe('getContactPointsFromDTO', () => {
       ],
       notification_settings: {
         receiver: 'receiver',
-        mute_time_intervals: ['mute_timing'],
+        mute_timings: ['mute_timing'],
         group_by: ['group_by'],
         group_wait: 'group_wait',
         group_interval: 'group_interval',
@@ -202,41 +199,11 @@ describe('getNotificationSettingsForDTO', () => {
     const result = getNotificationSettingsForDTO(manualRouting, contactPoints);
     expect(result).toEqual({
       receiver: 'receiver',
-      mute_time_intervals: ['mute_timing'],
+      mute_timings: ['mute_timing'],
       group_by: ['group_by'],
       group_wait: 'group_wait',
       group_interval: 'group_interval',
       repeat_interval: 'repeat_interval',
     });
-  });
-});
-
-describe('getDefautManualRouting', () => {
-  afterEach(() => {
-    window.localStorage.clear();
-  });
-
-  it('returns false if the feature toggle is not enabled', () => {
-    config.featureToggles.alertingSimplifiedRouting = false;
-    expect(getDefautManualRouting()).toBe(false);
-  });
-
-  it('returns true if the feature toggle is enabled and localStorage is not set', () => {
-    config.featureToggles.alertingSimplifiedRouting = true;
-    expect(getDefautManualRouting()).toBe(true);
-  });
-
-  it('returns false if the feature toggle is enabled and localStorage is set to "false"', () => {
-    config.featureToggles.alertingSimplifiedRouting = true;
-    localStorage.setItem(MANUAL_ROUTING_KEY, 'false');
-    expect(getDefautManualRouting()).toBe(false);
-  });
-
-  it('returns true if the feature toggle is enabled and localStorage is set to any value other than "false"', () => {
-    config.featureToggles.alertingSimplifiedRouting = true;
-    localStorage.setItem(MANUAL_ROUTING_KEY, 'true');
-    expect(getDefautManualRouting()).toBe(true);
-    localStorage.removeItem(MANUAL_ROUTING_KEY);
-    expect(getDefautManualRouting()).toBe(true);
   });
 });

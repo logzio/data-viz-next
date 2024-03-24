@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
-	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/resource/httpadapter"
 
 	"github.com/grafana/grafana/pkg/tsdb/azuremonitor/types"
@@ -25,7 +24,6 @@ func getTarget(original string) (target string, err error) {
 }
 
 type httpServiceProxy struct {
-	logger log.Logger
 }
 
 func (s *httpServiceProxy) Do(rw http.ResponseWriter, req *http.Request, cli *http.Client) (http.ResponseWriter, error) {
@@ -40,7 +38,7 @@ func (s *httpServiceProxy) Do(rw http.ResponseWriter, req *http.Request, cli *ht
 	}
 	defer func() {
 		if err := res.Body.Close(); err != nil {
-			s.logger.Warn("Failed to close response body", "err", err)
+			backend.Logger.Warn("Failed to close response body", "err", err)
 		}
 	}()
 
@@ -93,7 +91,7 @@ func writeResponse(rw http.ResponseWriter, code int, msg string) {
 
 func (s *Service) handleResourceReq(subDataSource string) func(rw http.ResponseWriter, req *http.Request) {
 	return func(rw http.ResponseWriter, req *http.Request) {
-		s.logger.Debug("Received resource call", "url", req.URL.String(), "method", req.Method)
+		backend.Logger.Debug("Received resource call", "url", req.URL.String(), "method", req.Method)
 
 		newPath, err := getTarget(req.URL.Path)
 		if err != nil {

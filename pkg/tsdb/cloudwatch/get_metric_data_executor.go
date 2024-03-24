@@ -6,7 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
-	"github.com/grafana/grafana/pkg/tsdb/cloudwatch/utils"
+	"github.com/grafana/grafana/pkg/infra/metrics"
 )
 
 func (e *cloudWatchExecutor) executeRequest(ctx context.Context, client cloudwatchiface.CloudWatchAPI,
@@ -24,7 +24,8 @@ func (e *cloudWatchExecutor) executeRequest(ctx context.Context, client cloudwat
 		}
 
 		mdo = append(mdo, resp)
-		utils.QueriesTotalCounter.WithLabelValues(utils.GetMetricDataLabel).Add(float64(len(metricDataInput.MetricDataQueries)))
+		metrics.MAwsCloudWatchGetMetricData.Add(float64(len(metricDataInput.MetricDataQueries)))
+
 		if resp.NextToken == nil || *resp.NextToken == "" {
 			break
 		}

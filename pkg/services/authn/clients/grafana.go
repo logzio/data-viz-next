@@ -40,11 +40,11 @@ func (c *Grafana) AuthenticateProxy(ctx context.Context, r *authn.Request, usern
 			FetchSyncedUser: true,
 			SyncOrgRoles:    true,
 			SyncPermissions: true,
-			AllowSignUp:     c.cfg.AuthProxy.AutoSignUp,
+			AllowSignUp:     c.cfg.AuthProxyAutoSignUp,
 		},
 	}
 
-	switch c.cfg.AuthProxy.HeaderProperty {
+	switch c.cfg.AuthProxyHeaderProperty {
 	case "username":
 		identity.Login = username
 		addr, err := mail.ParseAddress(username)
@@ -55,7 +55,7 @@ func (c *Grafana) AuthenticateProxy(ctx context.Context, r *authn.Request, usern
 		identity.Login = username
 		identity.Email = username
 	default:
-		return nil, errInvalidProxyHeader.Errorf("invalid auth proxy header property, expected username or email but got: %s", c.cfg.AuthProxy.HeaderProperty)
+		return nil, errInvalidProxyHeader.Errorf("invalid auth proxy header property, expected username or email but got: %s", c.cfg.AuthProxyHeaderProperty)
 	}
 
 	if v, ok := additional[proxyFieldName]; ok {
@@ -100,7 +100,7 @@ func (c *Grafana) AuthenticatePassword(ctx context.Context, r *authn.Request, us
 	// user was found so set auth module in req metadata
 	r.SetMeta(authn.MetaKeyAuthModule, "grafana")
 
-	if ok := comparePassword(password, usr.Salt, string(usr.Password)); !ok {
+	if ok := comparePassword(password, usr.Salt, usr.Password); !ok {
 		return nil, errInvalidPassword.Errorf("invalid password")
 	}
 

@@ -7,10 +7,11 @@ import {
   FieldType,
   DataFrame,
 } from '@grafana/data';
-import { TraceToLogsOptionsV2, TraceToMetricsOptions } from '@grafana/o11y-ds-frontend';
-import { DataSourceSrv, setDataSourceSrv, setTemplateSrv } from '@grafana/runtime';
+import { config, DataSourceSrv, setDataSourceSrv, setTemplateSrv } from '@grafana/runtime';
+import { TraceToMetricsOptions } from 'app/core/components/TraceToMetrics/TraceToMetricsSettings';
 import { DatasourceSrv } from 'app/features/plugins/datasource_srv';
 
+import { TraceToLogsOptionsV2 } from '../../../core/components/TraceToLogs/TraceToLogsSettings';
 import { LinkSrv, setLinkSrv } from '../../panel/panellinks/link_srv';
 import { TemplateSrv } from '../../templating/template_srv';
 
@@ -1280,6 +1281,7 @@ describe('createSpanLinkFactory', () => {
 
       setLinkSrv(new LinkSrv());
       setTemplateSrv(new TemplateSrv());
+      config.featureToggles.traceToProfiles = true;
     });
 
     it('with default keys when tags not configured', () => {

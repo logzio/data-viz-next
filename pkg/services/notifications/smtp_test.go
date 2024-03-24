@@ -2,14 +2,12 @@ package notifications
 
 import (
 	"bytes"
-	"context"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/grafana/grafana/pkg/infra/tracing"
 	"github.com/grafana/grafana/pkg/setting"
 )
 
@@ -32,10 +30,8 @@ func TestBuildMail(t *testing.T) {
 		ReplyTo: []string{"from@address.com"},
 	}
 
-	ctx := context.Background()
-
 	t.Run("Can successfully build mail", func(t *testing.T) {
-		email := sc.buildEmail(ctx, message)
+		email := sc.buildEmail(message)
 		staticHeader := email.GetHeader("Foo-Header")[0]
 		assert.Equal(t, staticHeader, "foo_value")
 
@@ -49,35 +45,9 @@ func TestBuildMail(t *testing.T) {
 		assert.Contains(t, buf.String(), "Some plain text body")
 		assert.Less(t, strings.Index(buf.String(), "Some plain text body"), strings.Index(buf.String(), "Some HTML body"))
 	})
-
-	t.Run("Skips trace headers when context has no span", func(t *testing.T) {
-		cfg.Smtp.EnableTracing = true
-
-		sc, err := NewSmtpClient(cfg.Smtp)
-		require.NoError(t, err)
-
-		email := sc.buildEmail(ctx, message)
-		assert.Empty(t, email.GetHeader("traceparent"))
-	})
-
-	t.Run("Adds trace headers when context has span", func(t *testing.T) {
-		cfg.Smtp.EnableTracing = true
-
-		sc, err := NewSmtpClient(cfg.Smtp)
-		require.NoError(t, err)
-
-		tracer := tracing.InitializeTracerForTest()
-		ctx, span := tracer.Start(ctx, "notifications.SmtpClient.SendContext")
-		defer span.End()
-
-		email := sc.buildEmail(ctx, message)
-		assert.NotEmpty(t, email.GetHeader("traceparent"))
-	})
 }
 
 func TestSmtpDialer(t *testing.T) {
-	ctx := context.Background()
-
 	t.Run("When SMTP hostname is invalid", func(t *testing.T) {
 		cfg := createSmtpConfig()
 		cfg.Smtp.Host = "invalid%hostname:123:456"
@@ -93,7 +63,7 @@ func TestSmtpDialer(t *testing.T) {
 			},
 		}
 
-		count, err := client.Send(ctx, message)
+		count, err := client.Send(message)
 
 		require.Equal(t, 0, count)
 		require.EqualError(t, err, "address invalid%hostname:123:456: too many colons in address")
@@ -114,7 +84,7 @@ func TestSmtpDialer(t *testing.T) {
 			},
 		}
 
-		count, err := client.Send(ctx, message)
+		count, err := client.Send(message)
 
 		require.Equal(t, 0, count)
 		require.EqualError(t, err, "strconv.Atoi: parsing \"123a\": invalid syntax")
@@ -136,7 +106,7 @@ func TestSmtpDialer(t *testing.T) {
 			},
 		}
 
-		count, err := client.Send(ctx, message)
+		count, err := client.Send(message)
 
 		require.Equal(t, 0, count)
 		require.EqualError(t, err, "could not load cert or key file: open /var/certs/does-not-exist.pem: no such file or directory")

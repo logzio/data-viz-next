@@ -1,15 +1,14 @@
 import { css, cx } from '@emotion/css';
+import { dump } from 'js-yaml';
 import { keyBy, startCase } from 'lodash';
 import React from 'react';
 
-import { DataSourceInstanceSettings, DataSourceRef, GrafanaTheme2, PanelData, urlUtil } from '@grafana/data';
-import { secondsToHms } from '@grafana/data/src/datetime/rangeutil';
+import { DataSourceInstanceSettings, GrafanaTheme2, PanelData, RelativeTimeRange } from '@grafana/data';
 import { config } from '@grafana/runtime';
-import { Preview } from '@grafana/sql/src/components/visual-query-builder/Preview';
-import { Badge, ErrorBoundaryAlert, LinkButton, Stack, Text, useStyles2 } from '@grafana/ui';
-import { CombinedRule } from 'app/types/unified-alerting';
+import { Badge, Stack, useStyles2 } from '@grafana/ui';
+import { mapRelativeTimeRangeToOption } from '@grafana/ui/src/components/DateTimePickers/RelativeTimeRangePicker/utils';
 
-import { AlertDataQuery, AlertQuery } from '../../../types/unified-alerting-dto';
+import { AlertQuery } from '../../../types/unified-alerting-dto';
 import { isExpressionQuery } from '../../expressions/guards';
 import {
   downsamplingTypes,
@@ -23,47 +22,51 @@ import {
 } from '../../expressions/types';
 import alertDef, { EvalFunction } from '../state/alertDef';
 
-import { Spacer } from './components/Spacer';
-import { WithReturnButton } from './components/WithReturnButton';
 import { ExpressionResult } from './components/expressions/Expression';
 import { getThresholdsForQueries, ThresholdDefinition } from './components/rule-editor/util';
 import { RuleViewerVisualization } from './components/rule-viewer/RuleViewerVisualization';
-import { DatasourceModelPreview } from './components/rule-viewer/tabs/Query/DataSourceModelPreview';
-import { AlertRuleAction, useAlertRuleAbility } from './hooks/useAbilities';
 
 interface GrafanaRuleViewerProps {
-  rule: CombinedRule;
   queries: AlertQuery[];
   condition: string;
   evalDataByQuery?: Record<string, PanelData>;
+  evalTimeRanges?: Record<string, RelativeTimeRange>;
+  onTimeRangeChange: (queryRef: string, timeRange: RelativeTimeRange) => void;
 }
 
-export function GrafanaRuleQueryViewer({ rule, queries, condition, evalDataByQuery = {} }: GrafanaRuleViewerProps) {
+export function GrafanaRuleQueryViewer({
+  queries,
+  condition,
+  evalDataByQuery = {},
+  evalTimeRanges = {},
+  onTimeRangeChange,
+}: GrafanaRuleViewerProps) {
   const dsByUid = keyBy(Object.values(config.datasources), (ds) => ds.uid);
   const dataQueries = queries.filter((q) => !isExpressionQuery(q.model));
   const expressions = queries.filter((q) => isExpressionQuery(q.model));
   const styles = useStyles2(getExpressionViewerStyles);
 
-  const thresholds = getThresholdsForQueries(queries, condition);
+  const thresholds = getThresholdsForQueries(queries);
 
   return (
-    <Stack gap={1} direction="column" flex={'1 1 320px'}>
+    <Stack gap={2} direction="column">
       <div className={styles.maxWidthContainer}>
-        <Stack gap={1} wrap="wrap" data-testid="queries-container">
+        <Stack gap={2} wrap="wrap" data-testid="queries-container">
           {dataQueries.map(({ model, relativeTimeRange, refId, datasourceUid }, index) => {
             const dataSource = dsByUid[datasourceUid];
 
             return (
               <QueryPreview
-                rule={rule}
                 key={index}
                 refId={refId}
                 isAlertCondition={condition === refId}
                 model={model}
                 relativeTimeRange={relativeTimeRange}
+                evalTimeRange={evalTimeRanges[refId]}
                 dataSource={dataSource}
                 thresholds={thresholds[refId]}
                 queryData={evalDataByQuery[refId]}
+                onEvalTimeRangeChange={(timeRange) => onTimeRangeChange(refId, timeRange)}
               />
             );
           })}
@@ -94,100 +97,56 @@ export function GrafanaRuleQueryViewer({ rule, queries, condition, evalDataByQue
 }
 
 interface QueryPreviewProps extends Pick<AlertQuery, 'refId' | 'relativeTimeRange' | 'model'> {
-  rule: CombinedRule;
   isAlertCondition: boolean;
   dataSource?: DataSourceInstanceSettings;
   queryData?: PanelData;
   thresholds?: ThresholdDefinition;
+  evalTimeRange?: RelativeTimeRange;
+  onEvalTimeRangeChange: (timeRange: RelativeTimeRange) => void;
 }
 
 export function QueryPreview({
   refId,
-  rule,
+  relativeTimeRange,
   thresholds,
   model,
   dataSource,
   queryData,
-  relativeTimeRange,
+  evalTimeRange,
+  onEvalTimeRangeChange,
 }: QueryPreviewProps) {
   const styles = useStyles2(getQueryPreviewStyles);
-  const isExpression = isExpressionQuery(model);
-  const [exploreSupported, exploreAllowed] = useAlertRuleAbility(rule, AlertRuleAction.Explore);
-  const canExplore = exploreSupported && exploreAllowed;
 
-  const headerItems: React.ReactNode[] = [];
-
-  if (dataSource) {
-    const dataSourceName = dataSource.name ?? '[[Data source not found]]';
-    const dataSourceImgUrl = dataSource.meta.info.logos.small;
-
-    headerItems.push(<DataSourceBadge name={dataSourceName} imgUrl={dataSourceImgUrl} key="datasource" />);
-  }
-
+  // relativeTimeRange is what is defined for a query
+  // evalTimeRange is temporary value which the user can change
+  const headerItems = [dataSource?.name ?? '[[Data source not found]]'];
   if (relativeTimeRange) {
-    headerItems.push(
-      <Text color="secondary" key="timerange">
-        {secondsToHms(relativeTimeRange.from)} to now
-      </Text>
-    );
-  }
-
-  let exploreLink: string | undefined = undefined;
-  if (!isExpression && canExplore) {
-    exploreLink = dataSource && createExploreLink(dataSource, model);
+    headerItems.push(mapRelativeTimeRangeToOption(relativeTimeRange).display);
   }
 
   return (
-    <>
-      <QueryBox refId={refId} headerItems={headerItems} exploreLink={exploreLink}>
-        <div className={styles.queryPreviewWrapper}>
-          <ErrorBoundaryAlert>
-            {model && dataSource && <DatasourceModelPreview model={model} dataSource={dataSource} />}
-          </ErrorBoundaryAlert>
-        </div>
-      </QueryBox>
-      {dataSource && <RuleViewerVisualization data={queryData} thresholds={thresholds} />}
-    </>
-  );
-}
-
-function createExploreLink(settings: DataSourceRef, model: AlertDataQuery): string {
-  const { uid, type } = settings;
-  const { refId, ...rest } = model;
-
-  /*
-    In my testing I've found some alerts that don't have a data source embedded inside the model.
-    At this moment in time it is unclear to me why some alert definitions not have a data source embedded in the model.
-
-    I don't think that should happen here, the fact that the datasource ref is sometimes missing here is a symptom of another cause. (Gilles)
-   */
-  return urlUtil.renderUrl(`${config.appSubUrl}/explore`, {
-    left: JSON.stringify({
-      datasource: settings.uid,
-      queries: [{ refId: 'A', ...rest, datasource: { type, uid } }],
-      range: { from: 'now-1h', to: 'now' },
-    }),
-  });
-}
-
-interface DataSourceBadgeProps {
-  name: string;
-  imgUrl: string;
-}
-
-function DataSourceBadge({ name, imgUrl }: DataSourceBadgeProps) {
-  const styles = useStyles2(getQueryPreviewStyles);
-
-  return (
-    <div className={styles.dataSource} key="datasource">
-      <img src={imgUrl} width={16} alt={name} />
-      {name}
-    </div>
+    <QueryBox refId={refId} headerItems={headerItems} className={styles.contentBox}>
+      <pre className={styles.code}>
+        <code>{dump(model)}</code>
+      </pre>
+      {dataSource && (
+        <RuleViewerVisualization
+          refId={refId}
+          dsSettings={dataSource}
+          model={model}
+          data={queryData}
+          thresholds={thresholds}
+          relativeTimeRange={evalTimeRange}
+          onTimeRangeChange={onEvalTimeRangeChange}
+          className={styles.visualization}
+        />
+      )}
+    </QueryBox>
   );
 }
 
 const getQueryPreviewStyles = (theme: GrafanaTheme2) => ({
-  queryPreviewWrapper: css`
+  code: css`
     margin: ${theme.spacing(1)};
   `,
   contentBox: css`
@@ -196,14 +155,6 @@ const getQueryPreviewStyles = (theme: GrafanaTheme2) => ({
   visualization: css`
     padding: ${theme.spacing(1)};
   `,
-  dataSource: css({
-    border: `1px solid ${theme.colors.border.weak}`,
-    borderRadius: theme.shape.radius.default,
-    padding: theme.spacing(0.5, 1),
-    display: 'flex',
-    alignItems: 'center',
-    gap: theme.spacing(1),
-  }),
 });
 
 interface ExpressionPreviewProps extends Pick<AlertQuery, 'refId'> {
@@ -231,26 +182,14 @@ function ExpressionPreview({ refId, model, evalData, isAlertCondition }: Express
       case ExpressionQueryType.threshold:
         return <ThresholdExpressionViewer model={model} />;
 
-      case ExpressionQueryType.sql:
-        return <Preview rawSql={model.expression || ''} datasourceType={model.datasource?.type} />;
-
       default:
         return <>Expression not supported: {model.type}</>;
     }
   }
 
   return (
-    <QueryBox
-      refId={refId}
-      headerItems={[
-        <Text color="secondary" key="expression-type">
-          {startCase(model.type)}
-        </Text>,
-      ]}
-      isAlertCondition={isAlertCondition}
-    >
+    <QueryBox refId={refId} headerItems={[startCase(model.type)]} isAlertCondition={isAlertCondition}>
       {renderPreview()}
-      <Spacer />
       {evalData && <ExpressionResult series={evalData.series} isAlertCondition={isAlertCondition} />}
     </QueryBox>
   );
@@ -258,29 +197,27 @@ function ExpressionPreview({ refId, model, evalData, isAlertCondition }: Express
 
 interface QueryBoxProps extends React.PropsWithChildren<unknown> {
   refId: string;
-  headerItems?: React.ReactNode;
+  headerItems?: string[];
   isAlertCondition?: boolean;
-  exploreLink?: string;
+  className?: string;
 }
 
-function QueryBox({ refId, headerItems = [], children, isAlertCondition, exploreLink }: QueryBoxProps) {
+function QueryBox({ refId, headerItems = [], children, isAlertCondition, className }: QueryBoxProps) {
   const styles = useStyles2(getQueryBoxStyles);
 
   return (
-    <div className={cx(styles.container)}>
+    <div className={cx(styles.container, className)}>
       <header className={styles.header}>
         <span className={styles.refId}>{refId}</span>
-        {headerItems}
-        <Spacer />
-        {isAlertCondition && <Badge color="green" icon="check" text="Alert condition" />}
-        {exploreLink && (
-          <WithReturnButton
-            component={
-              <LinkButton size="md" variant="secondary" icon="compass" href={exploreLink}>
-                View in Explore
-              </LinkButton>
-            }
-          />
+        {headerItems.map((item, index) => (
+          <span key={index} className={styles.textBlock}>
+            {item}
+          </span>
+        ))}
+        {isAlertCondition && (
+          <div className={styles.conditionIndicator}>
+            <Badge color="green" icon="check" text="Alert condition" />
+          </div>
         )}
       </header>
       {children}
@@ -289,14 +226,11 @@ function QueryBox({ refId, headerItems = [], children, isAlertCondition, explore
 }
 
 const getQueryBoxStyles = (theme: GrafanaTheme2) => ({
-  container: css({
-    flex: '1 0 25%',
-    border: `1px solid ${theme.colors.border.weak}`,
-    maxWidth: '100%',
-    borderRadius: theme.shape.radius.default,
-    display: 'flex',
-    flexDirection: 'column',
-  }),
+  container: css`
+    flex: 1 0 25%;
+    border: 1px solid ${theme.colors.border.strong};
+    max-width: 100%;
+  `,
   header: css`
     display: flex;
     align-items: center;
@@ -304,18 +238,19 @@ const getQueryBoxStyles = (theme: GrafanaTheme2) => ({
     padding: ${theme.spacing(1)};
     background-color: ${theme.colors.background.secondary};
   `,
-  textBlock: css({
-    border: `1px solid ${theme.colors.border.weak}`,
-    padding: theme.spacing(0.5, 1),
-    backgroundColor: theme.colors.background.primary,
-    borderRadius: theme.shape.radius.default,
-  }),
-  refId: css({
-    color: theme.colors.text.link,
-    padding: theme.spacing(0.5, 1),
-    border: `1px solid ${theme.colors.border.weak}`,
-    borderRadius: theme.shape.radius.default,
-  }),
+  textBlock: css`
+    border: 1px solid ${theme.colors.border.weak};
+    padding: ${theme.spacing(0.5, 1)};
+    background-color: ${theme.colors.background.primary};
+  `,
+  refId: css`
+    color: ${theme.colors.text.link};
+    padding: ${theme.spacing(0.5, 1)};
+    border: 1px solid ${theme.colors.border.weak};
+  `,
+  conditionIndicator: css`
+    margin-left: auto;
+  `,
 });
 
 function ClassicConditionViewer({ model }: { model: ExpressionQuery }) {
@@ -386,7 +321,7 @@ const getReduceConditionViewerStyles = (theme: GrafanaTheme2) => ({
   container: css`
     padding: ${theme.spacing(1)};
     display: grid;
-    gap: ${theme.spacing(0.5)};
+    gap: ${theme.spacing(1)};
     grid-template-rows: 1fr 1fr;
     grid-template-columns: 1fr 1fr 1fr 1fr;
 
@@ -425,7 +360,7 @@ const getResampleExpressionViewerStyles = (theme: GrafanaTheme2) => ({
   container: css`
     padding: ${theme.spacing(1)};
     display: grid;
-    gap: ${theme.spacing(0.5)};
+    gap: ${theme.spacing(1)};
     grid-template-columns: 1fr 1fr 1fr 1fr;
     grid-template-rows: 1fr 1fr;
   `,
@@ -494,7 +429,7 @@ const getExpressionViewerStyles = (theme: GrafanaTheme2) => {
     container: css`
       padding: ${theme.spacing(1)};
       display: flex;
-      gap: ${theme.spacing(0.5)};
+      gap: ${theme.spacing(1)};
     `,
     blue: css`
       ${blue};
@@ -535,12 +470,10 @@ const getCommonQueryStyles = (theme: GrafanaTheme2) => ({
     font-size: ${theme.typography.bodySmall.fontSize};
     line-height: ${theme.typography.bodySmall.lineHeight};
     font-weight: ${theme.typography.fontWeightBold};
-    border-radius: ${theme.shape.radius.default};
   `,
   value: css`
     padding: ${theme.spacing(0.5, 1)};
     border: 1px solid ${theme.colors.border.weak};
-    border-radius: ${theme.shape.radius.default};
   `,
 });
 

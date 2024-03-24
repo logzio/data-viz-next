@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import React, { ComponentProps } from 'react';
 
 import { dateTime } from '@grafana/data';
@@ -33,9 +33,7 @@ describe('LokiQueryField', () => {
   it('refreshes metrics when time range changes over 1 minute', async () => {
     const { rerender } = render(<LokiQueryField {...props} />);
 
-    await waitFor(async () => {
-      expect(await screen.findByText('Loading...')).toBeInTheDocument();
-    });
+    expect(await screen.findByText('Loading...')).toBeInTheDocument();
 
     expect(props.datasource.languageProvider.fetchLabels).not.toHaveBeenCalled();
 
@@ -57,9 +55,7 @@ describe('LokiQueryField', () => {
   it('does not refreshes metrics when time range change by less than 1 minute', async () => {
     const { rerender } = render(<LokiQueryField {...props} />);
 
-    await waitFor(async () => {
-      expect(await screen.findByText('Loading...')).toBeInTheDocument();
-    });
+    expect(await screen.findByText('Loading...')).toBeInTheDocument();
 
     expect(props.datasource.languageProvider.fetchLabels).not.toHaveBeenCalled();
 

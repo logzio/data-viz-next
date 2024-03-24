@@ -50,7 +50,8 @@ export function useTableStateReducer({ onColumnResize, onSortByChange, data }: P
           if (action.id) {
             return {
               ...newState,
-              lastExpandedOrCollapsedIndex: parseInt(action.id, 10),
+              lastExpandedIndex: parseInt(action.id, 10),
+              toggleRowExpandedCounter: newState.toggleRowExpandedCounter + 1,
             };
           }
         }
@@ -66,7 +67,9 @@ export function getInitialState(
   initialSortBy: Props['initialSortBy'],
   columns: GrafanaTableColumn[]
 ): Partial<GrafanaTableState> {
-  const state: Partial<GrafanaTableState> = {};
+  const state: Partial<GrafanaTableState> = {
+    toggleRowExpandedCounter: 0,
+  };
 
   if (initialSortBy) {
     state.sortBy = [];

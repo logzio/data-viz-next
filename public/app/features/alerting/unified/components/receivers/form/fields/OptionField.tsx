@@ -122,8 +122,7 @@ const OptionInput: FC<Props & { id: string; pathIndex?: string }> = ({
           {...register(name, {
             required: determineRequired(option, getValues, pathIndex),
             validate: {
-              validationRule: (v) =>
-                option.validationRule ? validateOption(v, option.validationRule, option.required) : true,
+              validationRule: (v) => (option.validationRule ? validateOption(v, option.validationRule) : true),
               customValidator: (v) => (customValidator ? customValidator(v) : true),
             },
             setValueAs: option.setValueAs,
@@ -168,8 +167,7 @@ const OptionInput: FC<Props & { id: string; pathIndex?: string }> = ({
             rules={{
               required: option.required ? 'Option is required' : false,
               validate: {
-                validationRule: (v) =>
-                  option.validationRule ? validateOption(v, option.validationRule, option.required) : true,
+                validationRule: (v) => (option.validationRule ? validateOption(v, option.validationRule) : true),
                 customValidator: (v) => (customValidator ? customValidator(v) : true),
               },
             }}
@@ -185,8 +183,7 @@ const OptionInput: FC<Props & { id: string; pathIndex?: string }> = ({
           placeholder={option.placeholder}
           {...register(name, {
             required: option.required ? 'Required' : false,
-            validate: (v) =>
-              option.validationRule !== '' ? validateOption(v, option.validationRule, option.required) : true,
+            validate: (v) => (option.validationRule !== '' ? validateOption(v, option.validationRule) : true),
           })}
         />
       );
@@ -226,11 +223,7 @@ const getStyles = (theme: GrafanaTheme2) => ({
   `,
 });
 
-const validateOption = (value: string, validationRule: string, required: boolean) => {
-  if (value === '' && !required) {
-    return true;
-  }
-
+const validateOption = (value: string, validationRule: string) => {
   return RegExp(validationRule).test(value) ? true : 'Invalid format';
 };
 

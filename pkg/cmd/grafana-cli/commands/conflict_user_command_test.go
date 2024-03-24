@@ -23,15 +23,10 @@ import (
 	"github.com/grafana/grafana/pkg/services/user/userimpl"
 	"github.com/grafana/grafana/pkg/services/user/usertest"
 	"github.com/grafana/grafana/pkg/setting"
-	"github.com/grafana/grafana/pkg/tests/testsuite"
 )
 
 // "Skipping conflicting users test for mysql as it does make unique constraint case insensitive by default
 const ignoredDatabase = migrator.MySQL
-
-func TestMain(m *testing.M) {
-	testsuite.Run(m)
-}
 
 func TestBuildConflictBlock(t *testing.T) {
 	type testBuildConflictBlock struct {
@@ -613,10 +608,9 @@ func TestIntegrationMergeUser(t *testing.T) {
 	t.Run("should be able to merge user", func(t *testing.T) {
 		// Restore after destructive operation
 		sqlStore := db.InitTestDB(t)
-		teamSvc, err := teamimpl.ProvideService(sqlStore, setting.NewCfg())
-		require.NoError(t, err)
+		teamSvc := teamimpl.ProvideService(sqlStore, setting.NewCfg())
 		team1, err := teamSvc.CreateTeam("team1 name", "", 1)
-		require.NoError(t, err)
+		require.Nil(t, err)
 		usrSvc := setupTestUserService(t, sqlStore)
 		const testOrgID int64 = 1
 
@@ -641,7 +635,7 @@ func TestIntegrationMergeUser(t *testing.T) {
 			userWithUpperCase, err := usrSvc.Create(context.Background(), &dupUserEmailcmd)
 			require.NoError(t, err)
 			// this is the user we want to update to another team
-			err = teamSvc.AddTeamMember(context.Background(), userWithUpperCase.ID, testOrgID, team1.ID, false, 0)
+			err = teamSvc.AddTeamMember(userWithUpperCase.ID, testOrgID, team1.ID, false, 0)
 			require.NoError(t, err)
 
 			// get users

@@ -17,11 +17,11 @@ import (
 	"github.com/grafana/grafana/pkg/infra/tracing"
 	"github.com/grafana/grafana/pkg/plugins"
 	"github.com/grafana/grafana/pkg/plugins/backendplugin/coreplugin"
+	"github.com/grafana/grafana/pkg/plugins/manager/registry"
 	"github.com/grafana/grafana/pkg/services/featuremgmt"
 	"github.com/grafana/grafana/pkg/services/pluginsintegration/pluginstore"
 	"github.com/grafana/grafana/pkg/services/searchV2"
 	"github.com/grafana/grafana/pkg/setting"
-	"github.com/grafana/grafana/pkg/tests/testsuite"
 	"github.com/grafana/grafana/pkg/tsdb/azuremonitor"
 	cloudmonitoring "github.com/grafana/grafana/pkg/tsdb/cloud-monitoring"
 	"github.com/grafana/grafana/pkg/tsdb/cloudwatch"
@@ -40,10 +40,6 @@ import (
 	"github.com/grafana/grafana/pkg/tsdb/prometheus"
 	"github.com/grafana/grafana/pkg/tsdb/tempo"
 )
-
-func TestMain(m *testing.M) {
-	testsuite.Run(m)
-}
 
 func TestIntegrationPluginManager(t *testing.T) {
 	if testing.Short() {
@@ -75,18 +71,18 @@ func TestIntegrationPluginManager(t *testing.T) {
 
 	hcp := httpclient.NewProvider()
 	am := azuremonitor.ProvideService(hcp)
-	cw := cloudwatch.ProvideService(hcp)
-	cm := cloudmonitoring.ProvideService(hcp)
+	cw := cloudwatch.ProvideService(cfg, hcp, features)
+	cm := cloudmonitoring.ProvideService(hcp, tracer)
 	es := elasticsearch.ProvideService(hcp, tracer)
 	grap := graphite.ProvideService(hcp, tracer)
 	idb := influxdb.ProvideService(hcp, features)
 	lk := loki.ProvideService(hcp, features, tracer)
 	otsdb := opentsdb.ProvideService(hcp)
-	pr := prometheus.ProvideService(hcp)
+	pr := prometheus.ProvideService(hcp, cfg, features)
 	tmpo := tempo.ProvideService(hcp)
 	td := testdatasource.ProvideService()
 	pg := postgres.ProvideService(cfg)
-	my := mysql.ProvideService()
+	my := mysql.ProvideService(cfg, hcp)
 	ms := mssql.ProvideService(cfg)
 	sv2 := searchV2.ProvideService(cfg, db.InitTestDB(t), nil, nil, tracer, features, nil, nil, nil)
 	graf := grafanads.ProvideService(sv2, nil)
@@ -99,7 +95,7 @@ func TestIntegrationPluginManager(t *testing.T) {
 	ctx := context.Background()
 	verifyCorePluginCatalogue(t, ctx, testCtx.PluginStore)
 	verifyBundledPlugins(t, ctx, testCtx.PluginStore)
-	verifyPluginStaticRoutes(t, ctx, testCtx.PluginStore, testCtx.PluginStore)
+	verifyPluginStaticRoutes(t, ctx, testCtx.PluginStore, testCtx.PluginRegistry)
 	verifyBackendProcesses(t, testCtx.PluginRegistry.Plugins(ctx))
 	verifyPluginQuery(t, ctx, testCtx.PluginClient)
 }
@@ -133,6 +129,7 @@ func verifyCorePluginCatalogue(t *testing.T, ctx context.Context, ps *pluginstor
 	t.Helper()
 
 	expPanels := map[string]struct{}{
+		"alertGroups":    {},
 		"alertlist":      {},
 		"annolist":       {},
 		"barchart":       {},
@@ -169,8 +166,8 @@ func verifyCorePluginCatalogue(t *testing.T, ctx context.Context, ps *pluginstor
 
 	expDataSources := map[string]struct{}{
 		"cloudwatch":                       {},
-		"grafana-azure-monitor-datasource": {},
 		"stackdriver":                      {},
+		"grafana-azure-monitor-datasource": {},
 		"elasticsearch":                    {},
 		"graphite":                         {},
 		"influxdb":                         {},
@@ -251,7 +248,7 @@ func verifyBundledPlugins(t *testing.T, ctx context.Context, ps *pluginstore.Ser
 	}
 }
 
-func verifyPluginStaticRoutes(t *testing.T, ctx context.Context, rr plugins.StaticRouteResolver, ps *pluginstore.Service) {
+func verifyPluginStaticRoutes(t *testing.T, ctx context.Context, rr plugins.StaticRouteResolver, reg registry.Service) {
 	routes := make(map[string]*plugins.StaticRoute)
 	for _, route := range rr.Routes(ctx) {
 		routes[route.PluginID] = route
@@ -259,13 +256,13 @@ func verifyPluginStaticRoutes(t *testing.T, ctx context.Context, rr plugins.Stat
 
 	require.Len(t, routes, 2)
 
-	inputPlugin, _ := ps.Plugin(ctx, "input")
+	inputPlugin, _ := reg.Plugin(ctx, "input")
 	require.NotNil(t, routes["input"])
-	require.Equal(t, routes["input"].Directory, inputPlugin.Base())
+	require.Equal(t, routes["input"].Directory, inputPlugin.FS.Base())
 
-	testAppPlugin, _ := ps.Plugin(ctx, "test-app")
+	testAppPlugin, _ := reg.Plugin(ctx, "test-app")
 	require.Contains(t, routes, "test-app")
-	require.Equal(t, routes["test-app"].Directory, testAppPlugin.Base())
+	require.Equal(t, routes["test-app"].Directory, testAppPlugin.FS.Base())
 }
 
 func verifyBackendProcesses(t *testing.T, ps []*plugins.Plugin) {

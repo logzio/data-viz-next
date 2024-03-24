@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/grafana/grafana/pkg/api/response"
+	"github.com/grafana/grafana/pkg/services/alerting"
 	"github.com/grafana/grafana/pkg/services/dashboards"
 	"github.com/grafana/grafana/pkg/services/pluginsintegration/pluginstore"
 	"github.com/grafana/grafana/pkg/util"
@@ -27,6 +28,11 @@ func ToDashboardErrorResponse(ctx context.Context, pluginStore pluginstore.Store
 
 	if errors.Is(err, dashboards.ErrFolderNotFound) {
 		return response.Error(http.StatusBadRequest, err.Error(), nil)
+	}
+
+	var validationErr alerting.ValidationError
+	if ok := errors.As(err, &validationErr); ok {
+		return response.Error(http.StatusUnprocessableEntity, validationErr.Error(), err)
 	}
 
 	var pluginErr dashboards.UpdatePluginDashboardError

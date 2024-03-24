@@ -4,13 +4,14 @@
 //     public/app/plugins/gen.go
 // Using jennies:
 //     TSTypesJenny
-//     PluginTsTypesJenny
+//     LatestMajorsOrXJenny
+//     PluginEachMajorJenny
 //
 // Run 'make gen-cue' from repository root to regenerate.
 
 import * as common from '@grafana/schema';
 
-export const pluginVersion = "11.0.0-pre";
+export const pluginVersion = "10.4.0-pre";
 
 /**
  * Identical to timeseries... except it does not have timezone settings

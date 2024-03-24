@@ -96,7 +96,6 @@ def pr_pipelines():
         test_backend(
             get_pr_trigger(
                 include_paths = [
-                    "Makefile",
                     "pkg/**",
                     "packaging/**",
                     ".drone.yml",
@@ -113,7 +112,6 @@ def pr_pipelines():
         lint_backend_pipeline(
             get_pr_trigger(
                 include_paths = [
-                    "Makefile",
                     "pkg/**",
                     "packaging/**",
                     ".drone.yml",
@@ -145,6 +143,7 @@ def pr_pipelines():
         docs_pipelines(ver_mode, trigger_docs_pr()),
         shellcheck_pipeline(),
         swagger_gen(
+            get_pr_trigger(include_paths = ["pkg/**"]),
             ver_mode,
         ),
         integration_benchmarks(

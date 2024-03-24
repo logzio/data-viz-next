@@ -50,8 +50,6 @@ const Details = ({ rule }: DetailsProps) => {
     ? rule.annotations ?? []
     : undefined;
 
-  const hasEvaluationDuration = Number.isFinite(evaluationDuration);
-
   return (
     <Stack direction="column" gap={3}>
       <div className={styles.metadataWrapper}>
@@ -76,7 +74,7 @@ const Details = ({ rule }: DetailsProps) => {
 
         {/* evaluation duration and pending period */}
         <MetaText direction="column">
-          {hasEvaluationDuration && (
+          {evaluationDuration && (
             <>
               Last evaluation
               {evaluationTimestamp && evaluationDuration && (

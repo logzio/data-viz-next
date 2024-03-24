@@ -12,14 +12,9 @@ import (
 	"github.com/grafana/grafana/pkg/services/featuremgmt"
 	"github.com/grafana/grafana/pkg/tests/apis"
 	"github.com/grafana/grafana/pkg/tests/testinfra"
-	"github.com/grafana/grafana/pkg/tests/testsuite"
 )
 
-func TestMain(m *testing.M) {
-	testsuite.Run(m)
-}
-
-func TestIntegrationTestDatasource(t *testing.T) {
+func TestTestDatasource(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test")
 	}
@@ -27,6 +22,7 @@ func TestIntegrationTestDatasource(t *testing.T) {
 		AppModeProduction: false, // dev mode required for datasource connections
 		DisableAnonymous:  true,
 		EnableFeatureToggles: []string{
+			featuremgmt.FlagGrafanaAPIServer,
 			featuremgmt.FlagGrafanaAPIServerWithExperimentalAPIs, // Required to start the example service
 		},
 	})
@@ -75,12 +71,13 @@ func TestIntegrationTestDatasource(t *testing.T) {
 					{
 					  "responseKind": {
 						"group": "",
-						"kind": "QueryDataResponse",
+						"kind": "Status",
 						"version": ""
 					  },
 					  "subresource": "query",
 					  "verbs": [
-						"create"
+						"create",
+						"get"
 					  ]
 					},
 					{
@@ -111,7 +108,7 @@ func TestIntegrationTestDatasource(t *testing.T) {
 	})
 
 	t.Run("Call subresources", func(t *testing.T) {
-		client := helper.Org1.Admin.ResourceClient(t, schema.GroupVersionResource{
+		client := helper.Org1.Admin.Client.Resource(schema.GroupVersionResource{
 			Group:    "testdata.datasource.grafana.app",
 			Version:  "v0alpha1",
 			Resource: "connections",

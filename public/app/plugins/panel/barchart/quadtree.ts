@@ -14,20 +14,24 @@ export function pointWithin(px: number, py: number, rlft: number, rtop: number, 
 /**
  * @internal
  */
-export function findRects(qt: Quadtree, sidx?: number, didx?: number) {
-  let rects: Rect[] = [];
+export function findRect(qt: Quadtree, sidx: number, didx: number): Rect | undefined {
+  let out: Rect | undefined;
 
   if (qt.o.length) {
-    rects.push(...qt.o.filter((rect) => (sidx == null || rect.sidx === sidx) && (didx == null || rect.didx === didx)));
+    out = qt.o.find((rect) => rect.sidx === sidx && rect.didx === didx);
   }
 
-  if (qt.q) {
+  if (out == null && qt.q) {
     for (let i = 0; i < qt.q.length; i++) {
-      rects.push(...findRects(qt.q[i], sidx, didx));
+      out = findRect(qt.q[i], sidx, didx);
+
+      if (out) {
+        break;
+      }
     }
   }
 
-  return rects;
+  return out;
 }
 
 /**

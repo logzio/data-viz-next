@@ -12,6 +12,7 @@ import (
 
 	"github.com/grafana/grafana/pkg/infra/log"
 	"github.com/grafana/grafana/pkg/infra/metrics/graphitebridge"
+	"github.com/grafana/grafana/pkg/services/featuremgmt"
 	"github.com/grafana/grafana/pkg/setting"
 )
 
@@ -60,12 +61,19 @@ func (im *InternalMetricsService) Run(ctx context.Context) error {
 }
 
 func ProvideRegisterer(cfg *setting.Cfg) prometheus.Registerer {
-	return legacyregistry.Registerer()
+	if cfg.IsFeatureToggleEnabled(featuremgmt.FlagGrafanaAPIServer) {
+		return legacyregistry.Registerer()
+	}
+	return prometheus.DefaultRegisterer
 }
 
 func ProvideGatherer(cfg *setting.Cfg) prometheus.Gatherer {
-	k8sGatherer := newAddPrefixWrapper(legacyregistry.DefaultGatherer)
-	return newMultiRegistry(k8sGatherer, prometheus.DefaultGatherer)
+	if cfg.IsFeatureToggleEnabled(featuremgmt.FlagGrafanaAPIServer) {
+		k8sGatherer := newAddPrefixWrapper(legacyregistry.DefaultGatherer)
+		return newMultiRegistry(k8sGatherer, prometheus.DefaultGatherer)
+	}
+
+	return prometheus.DefaultGatherer
 }
 
 func ProvideRegistererForTest() prometheus.Registerer {

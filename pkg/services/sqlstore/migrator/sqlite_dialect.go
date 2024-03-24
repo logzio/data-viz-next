@@ -209,7 +209,3 @@ func (db *SQLite3) UpsertMultipleSQL(tableName string, keyCols, updateCols []str
 	)
 	return s, nil
 }
-
-func (db *SQLite3) Concat(strs ...string) string {
-	return strings.Join(strs, " || ")
-}

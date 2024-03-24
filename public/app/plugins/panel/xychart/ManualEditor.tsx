@@ -1,14 +1,13 @@
 import { css, cx } from '@emotion/css';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 
 import {
   GrafanaTheme2,
   StandardEditorProps,
   FieldNamePickerBaseNameMode,
   StandardEditorsRegistryItem,
-  getFrameDisplayName,
 } from '@grafana/data';
-import { Button, Field, IconButton, Select, useStyles2 } from '@grafana/ui';
+import { Button, IconButton, useStyles2 } from '@grafana/ui';
 import { LayerName } from 'app/core/components/Layers/LayerName';
 
 import { ScatterSeriesEditor } from './ScatterSeriesEditor';
@@ -19,16 +18,6 @@ export const ManualEditor = ({
   onChange,
   context,
 }: StandardEditorProps<ScatterSeriesConfig[], unknown, Options>) => {
-  const frameNames = useMemo(() => {
-    if (context?.data?.length) {
-      return context.data.map((frame, index) => ({
-        value: index,
-        label: `${getFrameDisplayName(frame, index)} (index: ${index}, rows: ${frame.length})`,
-      }));
-    }
-    return [{ value: 0, label: 'First result' }];
-  }, [context.data]);
-
   const [selected, setSelected] = useState(0);
   const style = useStyles2(getStyles);
 
@@ -112,53 +101,23 @@ export const ManualEditor = ({
       </div>
 
       {selected >= 0 && value[selected] && (
-        <>
-          {frameNames.length > 1 && (
-            <Field label={'Data'}>
-              <Select
-                isClearable={false}
-                options={frameNames}
-                placeholder={'Change filter'}
-                value={
-                  frameNames.find((v) => {
-                    return v.value === value[selected].frame;
-                  }) ?? 0
+        <ScatterSeriesEditor
+          key={`series/${selected}`}
+          baseNameMode={FieldNamePickerBaseNameMode.ExcludeBaseNames}
+          item={{} as StandardEditorsRegistryItem}
+          context={context}
+          value={value[selected]}
+          onChange={(v) => {
+            onChange(
+              value.map((obj, i) => {
+                if (i === selected) {
+                  return v!;
                 }
-                onChange={(val) => {
-                  onChange(
-                    value.map((obj, i) => {
-                      if (i === selected) {
-                        if (val === null) {
-                          return { ...value[i], frame: undefined };
-                        }
-                        return { ...value[i], frame: val?.value!, x: undefined, y: undefined };
-                      }
-                      return obj;
-                    })
-                  );
-                }}
-              />
-            </Field>
-          )}
-          <ScatterSeriesEditor
-            key={`series/${selected}`}
-            baseNameMode={FieldNamePickerBaseNameMode.ExcludeBaseNames}
-            item={{} as StandardEditorsRegistryItem}
-            context={context}
-            value={value[selected]}
-            onChange={(val) => {
-              onChange(
-                value.map((obj, i) => {
-                  if (i === selected) {
-                    return val!;
-                  }
-                  return obj;
-                })
-              );
-            }}
-            frameFilter={value[selected].frame ?? undefined}
-          />
-        </>
+                return obj;
+              })
+            );
+          }}
+        />
       )}
     </>
   );

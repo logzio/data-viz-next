@@ -16,10 +16,10 @@ var ErrPluginNotCDN = errors.New("plugin is not a cdn plugin")
 
 // Service provides methods for the plugins CDN.
 type Service struct {
-	cfg *config.PluginManagementCfg
+	cfg *config.Cfg
 }
 
-func ProvideService(cfg *config.PluginManagementCfg) *Service {
+func ProvideService(cfg *config.Cfg) *Service {
 	return &Service{cfg: cfg}
 }
 

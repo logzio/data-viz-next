@@ -67,11 +67,6 @@ export function PartitionByValuesEditor({
     { label: 'As frame name', value: namingModes.frameName },
   ];
 
-  const KeepFieldsOptions = [
-    { label: 'Yes', value: true },
-    { label: 'No', value: false },
-  ];
-
   const removeField = useCallback(
     (v: string) => {
       if (!v) {
@@ -137,15 +132,6 @@ export function PartitionByValuesEditor({
             onChange={(v) =>
               onChange({ ...options, naming: { ...options.naming, asLabels: v === namingModes.asLabels } })
             }
-          />
-        </InlineField>
-      </InlineFieldRow>
-      <InlineFieldRow>
-        <InlineField tooltip={'Keeps the partition fields in the frames.'} label={'Keep fields'} labelWidth={16}>
-          <RadioButtonGroup
-            options={KeepFieldsOptions}
-            value={options.keepFields}
-            onChange={(v) => onChange({ ...options, keepFields: v })}
           />
         </InlineField>
       </InlineFieldRow>

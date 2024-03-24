@@ -9,7 +9,6 @@ import {
   dateTime,
   TimeRange,
   PanelMigrationHandler,
-  PanelTypeChangedHandler,
 } from '@grafana/data';
 import { getPanelPlugin } from '@grafana/data/test/__mocks__/pluginMocks';
 import { mockStandardFieldConfigOptions } from '@grafana/data/test/helpers/fieldConfig';
@@ -44,7 +43,7 @@ variableAdapters.setInit(() => [createQueryVariableAdapter()]);
 describe('PanelModel', () => {
   describe('when creating new panel model', () => {
     let model: any;
-    let modelJson: Record<string, unknown>;
+    let modelJson: any;
     let persistedOptionsMock;
 
     const tablePlugin = getPanelPlugin(
@@ -389,12 +388,10 @@ describe('PanelModel', () => {
     });
 
     describe('when changing to react panel from angular panel', () => {
-      let panelQueryRunner: PanelQueryRunner;
+      let panelQueryRunner: any;
 
       const onPanelTypeChanged = jest.fn();
-      const reactPlugin = getPanelPlugin({ id: 'react' }).setPanelChangeHandler(
-        onPanelTypeChanged as PanelTypeChangedHandler
-      );
+      const reactPlugin = getPanelPlugin({ id: 'react' }).setPanelChangeHandler(onPanelTypeChanged as any);
 
       beforeEach(() => {
         model.changePlugin(reactPlugin);
@@ -415,13 +412,13 @@ describe('PanelModel', () => {
     });
 
     describe('when autoMigrateFrom angular to react', () => {
-      const onPanelTypeChanged: PanelTypeChangedHandler = (panel, prevPluginId, prevOptions) => {
+      const onPanelTypeChanged = (panel: PanelModel, prevPluginId: string, prevOptions: Record<string, any>) => {
         panel.fieldConfig = { defaults: { unit: 'bytes' }, overrides: [] };
         return { name: prevOptions.angular.oldName };
       };
 
       const reactPlugin = getPanelPlugin({ id: 'timeseries' })
-        .setPanelChangeHandler(onPanelTypeChanged)
+        .setPanelChangeHandler(onPanelTypeChanged as any)
         .useFieldConfig({
           disableStandardOptions: [FieldConfigProperty.Thresholds],
         })
@@ -453,12 +450,10 @@ describe('PanelModel', () => {
     });
 
     describe('variables interpolation', () => {
-      let panelQueryRunner: PanelQueryRunner;
+      let panelQueryRunner: any;
 
       const onPanelTypeChanged = jest.fn();
-      const reactPlugin = getPanelPlugin({ id: 'react' }).setPanelChangeHandler(
-        onPanelTypeChanged as PanelTypeChangedHandler
-      );
+      const reactPlugin = getPanelPlugin({ id: 'react' }).setPanelChangeHandler(onPanelTypeChanged as any);
 
       beforeEach(() => {
         model.changePlugin(reactPlugin);

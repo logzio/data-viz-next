@@ -1,5 +1,6 @@
 import { DataSourcePlugin } from '@grafana/data';
-import { SQLQuery, SqlQueryEditor } from '@grafana/sql';
+import { SqlQueryEditor } from 'app/features/plugins/sql/components/QueryEditor';
+import { SQLQuery } from 'app/features/plugins/sql/types';
 
 import { CheatSheet } from './CheatSheet';
 import { MySqlDatasource } from './MySqlDatasource';

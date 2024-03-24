@@ -1,8 +1,7 @@
 import React, { useEffect } from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 
-import { Button, Field, Checkbox, LinkButton, Stack, Alert } from '@grafana/ui';
-import { Form } from 'app/core/components/Form/Form';
+import { Form, Button, Field, Checkbox, LinkButton, HorizontalGroup, Alert } from '@grafana/ui';
 import { Page } from 'app/core/components/Page/Page';
 import { StoreState } from 'app/types';
 
@@ -61,7 +60,7 @@ export const SupportBundlesCreateUnconnected = ({
         {createBundleError && <Alert title={createBundleError} severity="error" />}
         {!!collectors.length && (
           <Form defaultValues={values} onSubmit={onSubmit} validateOn="onSubmit">
-            {({ register }) => {
+            {({ register, errors }) => {
               return (
                 <>
                   {[...collectors]
@@ -80,12 +79,12 @@ export const SupportBundlesCreateUnconnected = ({
                         </Field>
                       );
                     })}
-                  <Stack>
+                  <HorizontalGroup>
                     <Button type="submit">Create</Button>
                     <LinkButton href="/support-bundles" variant="secondary">
                       Cancel
                     </LinkButton>
-                  </Stack>
+                  </HorizontalGroup>
                 </>
               );
             }}

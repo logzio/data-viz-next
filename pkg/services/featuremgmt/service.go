@@ -5,6 +5,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 
 	"github.com/grafana/grafana/pkg/infra/log"
+	"github.com/grafana/grafana/pkg/services/licensing"
 	"github.com/grafana/grafana/pkg/setting"
 )
 
@@ -17,15 +18,16 @@ var (
 	}, []string{"name"})
 )
 
-func ProvideManagerService(cfg *setting.Cfg) (*FeatureManager, error) {
+func ProvideManagerService(cfg *setting.Cfg, licensing licensing.Licensing) (*FeatureManager, error) {
 	mgmt := &FeatureManager{
-		isDevMod: cfg.Env != setting.Prod,
-		flags:    make(map[string]*FeatureFlag, 30),
-		enabled:  make(map[string]bool),
-		startup:  make(map[string]bool),
-		warnings: make(map[string]string),
-		Settings: cfg.FeatureManagement,
-		log:      log.New("featuremgmt"),
+		isDevMod:  setting.Env != setting.Prod,
+		licensing: licensing,
+		flags:     make(map[string]*FeatureFlag, 30),
+		enabled:   make(map[string]bool),
+		startup:   make(map[string]bool),
+		warnings:  make(map[string]string),
+		Settings:  cfg.FeatureManagement,
+		log:       log.New("featuremgmt"),
 	}
 
 	// Register the standard flags

@@ -1,7 +1,9 @@
 import React from 'react';
 
-import { OperationExplainedBox, OperationListExplained, RawQuery } from '@grafana/experimental';
 import { Stack } from '@grafana/ui';
+import { OperationExplainedBox } from 'app/plugins/datasource/prometheus/querybuilder/shared/OperationExplainedBox';
+import { OperationListExplained } from 'app/plugins/datasource/prometheus/querybuilder/shared/OperationListExplained';
+import { RawQuery } from 'app/plugins/datasource/prometheus/querybuilder/shared/RawQuery';
 
 import { lokiGrammar } from '../../syntax';
 import { lokiQueryModeller } from '../LokiQueryModeller';
@@ -22,7 +24,7 @@ export const LokiQueryBuilderExplained = React.memo<Props>(({ query }) => {
     <Stack gap={0} direction="column">
       <OperationExplainedBox
         stepNumber={1}
-        title={<RawQuery query={`${lokiQueryModeller.renderLabels(visQuery.labels)}`} language={lang} />}
+        title={<RawQuery query={`${lokiQueryModeller.renderLabels(visQuery.labels)}`} lang={lang} />}
       >
         {EXPLAIN_LABEL_FILTER_CONTENT}
       </OperationExplainedBox>
@@ -30,7 +32,7 @@ export const LokiQueryBuilderExplained = React.memo<Props>(({ query }) => {
         stepNumber={2}
         queryModeller={lokiQueryModeller}
         query={visQuery}
-        language={lang}
+        lang={lang}
       />
     </Stack>
   );

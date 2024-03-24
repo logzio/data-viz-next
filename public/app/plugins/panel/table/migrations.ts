@@ -150,13 +150,6 @@ const migrateTableStyleToOverride = (style: Style) => {
     });
   }
 
-  if (style.type === 'hidden') {
-    override.properties.push({
-      id: 'custom.hidden',
-      value: true,
-    });
-  }
-
   if (style.link) {
     override.properties.push({
       id: 'links',

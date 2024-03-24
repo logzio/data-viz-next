@@ -101,6 +101,7 @@ func setup() *serviceTestStruct {
 		},
 		nil,
 		nil,
+		nil,
 	)
 	serviceTest.service.Cfg = setting.NewCfg()
 

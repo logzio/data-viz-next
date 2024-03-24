@@ -7,7 +7,7 @@ import { useStyles2 } from '@grafana/ui';
 import { DimensionContext } from 'app/features/dimensions';
 import { ScalarDimensionEditor } from 'app/features/dimensions/editors';
 
-import { CanvasElementItem, CanvasElementOptions, CanvasElementProps, defaultBgColor } from '../element';
+import { CanvasElementItem, CanvasElementProps, defaultBgColor } from '../element';
 
 interface DroneSideData {
   pitchAngle?: number;
@@ -96,11 +96,9 @@ export const droneSideItem: CanvasElementItem = {
   }),
 
   // Called when data changes
-  prepareData: (dimensionContext: DimensionContext, elementOptions: CanvasElementOptions<DroneSideConfig>) => {
-    const droneSideConfig = elementOptions.config;
-
+  prepareData: (ctx: DimensionContext, cfg: DroneSideConfig) => {
     const data: DroneSideData = {
-      pitchAngle: droneSideConfig?.pitchAngle ? dimensionContext.getScalar(droneSideConfig.pitchAngle).value() : 0,
+      pitchAngle: cfg?.pitchAngle ? ctx.getScalar(cfg.pitchAngle).value() : 0,
     };
 
     return data;
