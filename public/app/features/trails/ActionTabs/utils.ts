@@ -11,7 +11,7 @@ export function getLabelOptions(scenObject: SceneObject, variable: QueryVariable
     return [];
   }
 
-  const filters = labelFilters.state.set.state.filters;
+  const filters = labelFilters.state.filters;
 
   for (const option of variable.getOptionsForSelect()) {
     const filterExists = filters.find((f) => f.key === option.value);
@@ -21,4 +21,26 @@ export function getLabelOptions(scenObject: SceneObject, variable: QueryVariable
   }
 
   return labelOptions;
+}
+
+interface Type<T> extends Function {
+  new (...args: any[]): T;
+}
+export function findSceneObjectByType<T extends SceneObject>(scene: SceneObject, sceneType: Type<T>) {
+  const targetScene = sceneGraph.findObject(scene, (obj) => obj instanceof sceneType);
+
+  if (targetScene instanceof sceneType) {
+    return targetScene;
+  }
+
+  return null;
+}
+
+export function findSceneObjectsByType<T extends SceneObject>(scene: SceneObject, sceneType: Type<T>) {
+  function isSceneType(scene: SceneObject): scene is T {
+    return scene instanceof sceneType;
+  }
+
+  const targetScenes = sceneGraph.findAllObjects(scene, isSceneType);
+  return targetScenes.filter(isSceneType);
 }

@@ -12,18 +12,16 @@ import {
   convertLegacyAuthProps,
   DataSourceDescription,
 } from '@grafana/experimental';
-import { config } from '@grafana/runtime';
-import { SecureSocksProxySettings, useStyles2, Divider, Stack } from '@grafana/ui';
-
-import { NodeGraphSection } from '../_importedDependencies/components/NodeGraphSettings';
-import { SpanBarSection } from '../_importedDependencies/components/TraceView/SpanBarSettings';
 import {
+  NodeGraphSection,
+  SpanBarSection,
   TraceToLogsSection,
   TraceToMetricsSection,
   TraceToProfilesSection,
-} from '../_importedDependencies/grafana-traces/src';
+} from '@grafana/o11y-ds-frontend';
+import { config } from '@grafana/runtime';
+import { SecureSocksProxySettings, useStyles2, Divider, Stack } from '@grafana/ui';
 
-import { LokiSearchSettings } from './LokiSearchSettings';
 import { QuerySettings } from './QuerySettings';
 import { ServiceGraphSettings } from './ServiceGraphSettings';
 import { TraceQLSearchSettings } from './TraceQLSearchSettings';
@@ -54,21 +52,14 @@ export const ConfigEditor = ({ options, onOptionsChange }: Props) => {
 
       <Divider spacing={4} />
       <TraceToLogsSection options={options} onOptionsChange={onOptionsChange} />
-
       <Divider spacing={4} />
-      {config.featureToggles.traceToMetrics ? (
-        <>
-          <TraceToMetricsSection options={options} onOptionsChange={onOptionsChange} />
-          <Divider spacing={4} />
-        </>
-      ) : null}
 
-      {config.featureToggles.traceToProfiles && (
-        <>
-          <TraceToProfilesSection options={options} onOptionsChange={onOptionsChange} />
-          <Divider spacing={4} />
-        </>
-      )}
+      <TraceToMetricsSection options={options} onOptionsChange={onOptionsChange} />
+      <Divider spacing={4} />
+
+      <TraceToProfilesSection options={options} onOptionsChange={onOptionsChange} />
+      <Divider spacing={4} />
+
       <ConfigSection
         title="Additional settings"
         description="Additional settings are optional settings that can be configured for more control over your data source."
@@ -113,19 +104,6 @@ export const ConfigEditor = ({ options, onOptionsChange }: Props) => {
           </ConfigSubSection>
 
           <ConfigSubSection
-            title="Loki search"
-            description={
-              <ConfigDescriptionLink
-                description="Select a Loki data source to search for traces. Derived fields must be configured in the Loki data source."
-                suffix="tempo/configure-tempo-data-source/#loki-search"
-                feature="Loki search"
-              />
-            }
-          >
-            <LokiSearchSettings options={options} onOptionsChange={onOptionsChange} />
-          </ConfigSubSection>
-
-          <ConfigSubSection
             title="TraceID query"
             description={
               <ConfigDescriptionLink
@@ -146,9 +124,9 @@ export const ConfigEditor = ({ options, onOptionsChange }: Props) => {
 };
 
 const getStyles = (theme: GrafanaTheme2) => ({
-  container: css`
-    label: container;
-    margin-bottom: ${theme.spacing(2)};
-    max-width: 900px;
-  `,
+  container: css({
+    label: 'container',
+    marginBottom: theme.spacing(2),
+    maxWidth: '900px',
+  }),
 });
