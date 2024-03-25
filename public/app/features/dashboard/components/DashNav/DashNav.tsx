@@ -2,6 +2,7 @@ import { css } from '@emotion/css';
 import React, { ReactNode } from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import { useLocation } from 'react-router-dom';
+import { createStateContext } from 'react-use';
 
 import { textUtil } from '@grafana/data';
 import { selectors as e2eSelectors } from '@grafana/e2e-selectors/src';
@@ -48,6 +49,27 @@ const mapDispatchToProps = {
   updateTimeZoneForSession,
 };
 
+export const [useDashNavModelContext, DashNavModalContextProvider] = createStateContext<{ component: React.ReactNode }>(
+  {
+    component: null,
+  }
+);
+
+export function useDashNavModalController() {
+  const [_, setContextState] = useDashNavModelContext();
+
+  return {
+    showModal: (component: React.ReactNode) => setContextState({ component }),
+    hideModal: () => setContextState({ component: null }),
+  };
+}
+
+export function DashNavModalRoot() {
+  const [contextState] = useDashNavModelContext();
+
+  return <>{contextState.component}</>;
+}
+
 const connector = connect(null, mapDispatchToProps);
 
 const selectors = e2eSelectors.pages.Dashboard.DashNav;
@@ -59,7 +81,6 @@ export interface OwnProps {
   hideTimePicker: boolean;
   folderTitle?: string;
   title: string;
-  onAddPanel: () => void;
 }
 
 export function addCustomLeftAction(content: DynamicDashNavButtonModel) {
@@ -158,7 +179,7 @@ export const DashNav = React.memo<Props>((props) => {
   };
 
   const isPlaylistRunning = () => {
-    return playlistSrv.isPlaying;
+    return playlistSrv.state.isPlaying;
   };
 
   const renderLeftActions = () => {
@@ -189,11 +210,17 @@ export const DashNav = React.memo<Props>((props) => {
     if (dashboard.meta.publicDashboardEnabled) {
       // TODO: This will be replaced with the new badge component. Color is required but gets override by css
       buttons.push(
-        <Badge color="blue" text="Public" className={publicBadgeStyle} data-testid={selectors.publicDashboardTag} />
+        <Badge
+          color="blue"
+          text="Public"
+          key="public-dashboard-button-badge"
+          className={publicBadgeStyle}
+          data-testid={selectors.publicDashboardTag}
+        />
       );
     }
 
-    if (config.featureToggles.scenes && !dashboard.isSnapshot()) {
+    if (config.featureToggles.scenes) {
       buttons.push(
         <DashNavButton
           key="button-scenes"
@@ -251,7 +278,7 @@ export const DashNav = React.memo<Props>((props) => {
   };
 
   const renderRightActions = () => {
-    const { dashboard, onAddPanel, isFullscreen, kioskMode, hideTimePicker } = props;
+    const { dashboard, isFullscreen, kioskMode, hideTimePicker } = props;
     const { canSave, canEdit, showSettings, canShare } = dashboard.meta;
     const { snapshot } = dashboard;
     const snapshotUrl = snapshot && snapshot.originalUrl;
@@ -265,7 +292,7 @@ export const DashNav = React.memo<Props>((props) => {
       return [renderTimeControls()];
     }
 
-    if (snapshotUrl) {
+    if (snapshotUrl && 1 !== 1) { // LOGZ.IO GRAFANA CHANGE :: DEV-20896 Remove unnecessary use of original url
       buttons.push(
         <ToolbarButton
           tooltip={t('dashboard.toolbar.open-original', 'Open original dashboard')}
@@ -310,25 +337,13 @@ export const DashNav = React.memo<Props>((props) => {
     }
 
     if (canEdit && !isFullscreen) {
-      if (config.featureToggles.emptyDashboardPage) {
-        buttons.push(
-          <AddPanelButton
-            dashboard={dashboard}
-            onToolbarAddMenuOpen={DashboardInteractions.toolbarAddClick}
-            key="panel-add-dropdown"
-          />
-        );
-      } else {
-        buttons.push(
-          <ToolbarButton
-            tooltip={t('dashboard.toolbar.add-panel', 'Add panel')}
-            icon="panel-add"
-            iconSize="xl"
-            onClick={onAddPanel}
-            key="button-panel-add"
-          />
-        );
-      }
+      buttons.push(
+        <AddPanelButton
+          dashboard={dashboard}
+          onToolbarAddMenuOpen={DashboardInteractions.toolbarAddClick}
+          key="panel-add-dropdown"
+        />
+      );
     }
 
     if (canShare) {
@@ -348,11 +363,12 @@ export const DashNav = React.memo<Props>((props) => {
   return (
     <AppChromeUpdate
       actions={
-        <>
+        <DashNavModalContextProvider>
           {renderLeftActions()}
           <NavToolbarSeparator leftActionsSeparator />
           <ToolbarButtonRow alignment="right">{renderRightActions()}</ToolbarButtonRow>
-        </>
+          <DashNavModalRoot />
+        </DashNavModalContextProvider>
       }
     />
   );
