@@ -2,7 +2,7 @@ package api
 
 import (
 	"context"
-	"github.com/grafana/grafana/pkg/services/ngalert/schedule"
+	"github.com/grafana/grafana/pkg/services/ngalert/schedule" // LOGZ.IO GRAFANA CHANGE :: DEV-43744: add logzio alert evaluation endpoint
 	"net/url"
 	"time"
 
@@ -77,7 +77,7 @@ type API struct {
 	Tracer               tracing.Tracer
 	AppUrl               *url.URL
 	UpgradeService       migration.UpgradeService
-	Schedule             schedule.ScheduleService
+	Schedule             schedule.ScheduleService // LOGZ.IO GRAFANA CHANGE :: DEV-43744 Add logzio external evaluation
 
 	// Hooks can be used to replace API handlers for specific paths.
 	Hooks *Hooks

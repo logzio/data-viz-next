@@ -4,9 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-
-	"github.com/grafana/grafana/pkg/services/ngalert/models"
-	// LOGZ.IO GRAFANA CHANGE :: End
+	"github.com/grafana/grafana/pkg/services/ngalert/models" // LOGZ.IO GRAFANA CHANGE :: DEV-43744 Add logzio external evaluation
 	"reflect"
 	"sort"
 	"strings"
@@ -556,7 +554,7 @@ type PostableUserConfig struct {
 
 // LOGZ.IO GRAFANA CHANGE :: DEV-43744: add api models for alert evaluation requests/responses
 type AlertEvaluationRequest struct {
-	AlertRule   ApiAlertRule                          `json:"alertRule"`
+	AlertRule   models.AlertRule                      `json:"alertRule"`
 	EvalTime    time.Time                             `json:"evalTime"`
 	FolderTitle string                                `json:"folderTitle"`
 	DsOverrides []models.EvaluationDatasourceOverride `json:"dsOverrides"`
@@ -566,29 +564,6 @@ type AlertEvalRunResult struct {
 	UID       string    `json:"uid"`
 	EvalTime  time.Time `json:"evalTime"`
 	RunResult string    `json:"runResult"`
-}
-
-type ApiAlertRule struct {
-	ID              int64                      `json:"id"`
-	OrgID           int64                      `json:"orgId"`
-	Title           string                     `json:"title"`
-	Condition       string                     `json:"condition"`
-	Data            []models.AlertQuery        `json:"data"`
-	Updated         time.Time                  `json:"updated"`
-	IntervalSeconds int64                      `json:"intervalSeconds"`
-	Version         int64                      `json:"version"`
-	UID             string                     `json:"uid"`
-	NamespaceUID    string                     `json:"namespaceUid"`
-	DashboardUID    *string                    `json:"dashboardUid"`
-	PanelID         *int64                     `json:"panelId"`
-	RuleGroup       string                     `json:"ruleGroup"`
-	RuleGroupIndex  int                        `json:"ruleGroupIndex"`
-	NoDataState     models.NoDataState         `json:"noDataState"`
-	ExecErrState    models.ExecutionErrorState `json:"execErrState"`
-	For             time.Duration              `json:"for"`
-	Annotations     map[string]string          `json:"annotations"`
-	Labels          map[string]string          `json:"labels"`
-	IsPaused        bool                       `json:"isPaused"`
 }
 
 type EvalRunsResponse struct {

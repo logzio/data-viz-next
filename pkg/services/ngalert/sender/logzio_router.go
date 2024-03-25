@@ -50,15 +50,15 @@ func (d *LogzioAlertsRouter) Send(ctx context.Context, key models.AlertRuleKey, 
 		return
 	}
 
-	logger.Debug("Sending alerts", "url", d.url, "headers", headers, "alerts", alerts)
-	err = sendOne(ctx, d.client, d.url, payload, headers)
+	logger.Info("Sending alerts to external url", "url", d.url, "headers", headers, "alerts", alerts)
+	err = sendAlert(ctx, d.client, d.url, payload, headers)
 	if err != nil {
 		logger.Warn("Error from sending alerts to notify", "err", err)
 	}
 
 }
 
-func sendOne(ctx context.Context, c *http.Client, url string, payload []byte, headers map[string]string) error {
+func sendAlert(ctx context.Context, c *http.Client, url string, payload []byte, headers map[string]string) error {
 	req, err := http.NewRequest("POST", url, bytes.NewReader(payload))
 	if err != nil {
 		return err

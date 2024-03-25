@@ -32,7 +32,7 @@ type ScheduleService interface {
 	// Run the scheduler until the context is canceled or the scheduler returns
 	// an error. The scheduler is terminated when this function returns.
 	Run(context.Context) error
-	RunRuleEvaluation(ctx context.Context, evalReq definitions.AlertEvaluationRequest) error // LOGZ.IO GRAFANA CHANGE :: DEV-43744 Add logzio external evaluation
+	RunRuleEvaluation(ctx context.Context, evalReq ngmodels.ExternalAlertEvaluationRequest) error // LOGZ.IO GRAFANA CHANGE :: DEV-43744 Add logzio external evaluation
 }
 
 // retryDelay represents how long to wait between each failed rule evaluation.
@@ -356,40 +356,26 @@ func (sch *schedule) processTick(ctx context.Context, dispatcherGroup *errgroup.
 }
 
 // LOGZ.IO GRAFANA CHANGE :: DEV-43744 Add logzio external evaluation
-func (sch *schedule) RunRuleEvaluation(ctx context.Context, evalReq definitions.AlertEvaluationRequest) error {
-	// TODO: add the dsOverrides into the RunRuleEvaluation somehow
-	//var dsOverrideByDsUid = map[string]ngmodels.EvaluationDatasourceOverride{}
-	//if evalRequest.DsOverrides != nil {
-	//	for _, dsOverride := range evalRequest.DsOverrides {
-	//		dsOverrideByDsUid[dsOverride.DsUid] = dsOverride
-	//	}
-	//}
-	//
-	//logzioEvalContext := &ngmodels.LogzioAlertRuleEvalContext{
-	//	LogzioHeaders:     c.Req.Header,
-	//	DsOverrideByDsUid: dsOverrideByDsUid,
-	//}
+func (sch *schedule) RunRuleEvaluation(ctx context.Context, evalReq ngmodels.ExternalAlertEvaluationRequest) error {
 	logger := sch.log.FromContext(ctx)
-	logger.Debug("RunRuleEvaluation: Building request")
 	alertKey := ngmodels.AlertRuleKey{
 		OrgID: evalReq.AlertRule.OrgID,
 		UID:   evalReq.AlertRule.UID,
 	}
-	alertRule := apiRuleToDbAlertRule(evalReq.AlertRule)
 	ev := evaluation{
-		scheduledAt: evalReq.EvalTime,
-		rule:        &alertRule,
-		folderTitle: evalReq.FolderTitle,
+		scheduledAt:       evalReq.EvalTime,
+		rule:              &evalReq.AlertRule,
+		folderTitle:       evalReq.FolderTitle,
+		logzioEvalContext: evalReq.LogzioEvalContext,
 	}
 
-	logger.Debug("RunRuleEvaluation: get rule info")
 	// TODO: decide if we want to create the new routine if needed, or return error and rely on scheduler creating it + retrying on the sending side ??
 	ruleInfo, newRoutine := sch.registry.getOrCreateInfo(ctx, alertKey)
 	if !newRoutine {
 		logger.Debug("RunRuleEvaluation: sending ruleInfo.eval")
-		stopped, dropped := ruleInfo.eval(&ev)
-		if !stopped {
-			return fmt.Errorf("evaluation was stopped")
+		sent, dropped := ruleInfo.eval(&ev)
+		if !sent {
+			return fmt.Errorf("evaluation was not sent")
 		}
 		if dropped != nil {
 			logger.Warn("RunRuleEvaluation: got dropped eval", "dropped", dropped)
@@ -402,31 +388,6 @@ func (sch *schedule) RunRuleEvaluation(ctx context.Context, evalReq definitions.
 }
 
 // LOGZ.IO GRAFANA CHANGE :: End
-
-func apiRuleToDbAlertRule(apiRule definitions.ApiAlertRule) ngmodels.AlertRule {
-	return ngmodels.AlertRule{
-		ID:              apiRule.ID,
-		OrgID:           apiRule.OrgID,
-		Title:           apiRule.Title,
-		Condition:       apiRule.Condition,
-		Data:            apiRule.Data,
-		Updated:         apiRule.Updated,
-		IntervalSeconds: apiRule.IntervalSeconds,
-		Version:         apiRule.Version,
-		UID:             apiRule.UID,
-		NamespaceUID:    apiRule.NamespaceUID,
-		DashboardUID:    apiRule.DashboardUID,
-		PanelID:         apiRule.PanelID,
-		RuleGroup:       apiRule.RuleGroup,
-		RuleGroupIndex:  apiRule.RuleGroupIndex,
-		NoDataState:     apiRule.NoDataState,
-		ExecErrState:    apiRule.ExecErrState,
-		For:             apiRule.For,
-		Annotations:     apiRule.Annotations,
-		Labels:          apiRule.Labels,
-		IsPaused:        apiRule.IsPaused,
-	}
-}
 
 //nolint:gocyclo
 func (sch *schedule) ruleRoutine(grafanaCtx context.Context, key ngmodels.AlertRuleKey, evalCh <-chan *evaluation, updateCh <-chan ruleVersionAndPauseStatus) error {
@@ -462,7 +423,7 @@ func (sch *schedule) ruleRoutine(grafanaCtx context.Context, key ngmodels.AlertR
 		logger := logger.New("version", e.rule.Version, "fingerprint", f, "attempt", attempt, "now", e.scheduledAt).FromContext(ctx)
 		start := sch.clock.Now()
 
-		evalCtx := eval.NewContextWithPreviousResults(ctx, SchedulerUserFor(e.rule.OrgID), sch.newLoadedMetricsReader(e.rule))
+		evalCtx := eval.NewContextWithPreviousResults(ctx, SchedulerUserFor(e.rule.OrgID), sch.newLoadedMetricsReader(e.rule), &e.logzioEvalContext) // LOGZ.IO GRAFANA CHANGE :: DEV-43889 - Add logzio datasources support
 		if sch.evaluatorFactory == nil {
 			panic("evalfactory nil")
 		}

@@ -22,19 +22,6 @@ func (c *baseClientImpl) DecodeErrorResponse(res *http.Response) (*ErrorResponse
 
 	start := time.Now()
 	c.logger.Debug("Decoding error json response")
-	// removed because debugEnabled was removed: https://github.com/grafana/grafana/pull/59712
-	// var bodyBytes []byte
-	// if c.debugEnabled {
-	// 	tmpBytes, err := ioutil.ReadAll(res.Body)
-	// 	if err != nil {
-	// 		c.logger.Error("failed to read http response bytes", "error", err)
-	// 	} else {
-	// 		bodyBytes = make([]byte, len(tmpBytes))
-	// 		copy(bodyBytes, tmpBytes)
-	// 		res.Body = ioutil.NopCloser(bytes.NewBuffer(tmpBytes))
-	// 	}
-	// }
-
 	var errorResponse ErrorResponse
 	dec := json.NewDecoder(res.Body)
 	err := dec.Decode(&errorResponse)

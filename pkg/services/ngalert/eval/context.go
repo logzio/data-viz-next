@@ -21,20 +21,8 @@ type EvaluationContext struct {
 	Ctx                   context.Context
 	User                  identity.Requester
 	AlertingResultsReader AlertingResultsReader
-
-	LogzioEvalContext *models.LogzioAlertRuleEvalContext // LOGZ.IO GRAFANA CHANGE :: DEV-43744 - Pass headers and custom datasource to evaluate alerts
+	LogzioEvalContext     *models.LogzioAlertRuleEvalContext // LOGZ.IO GRAFANA CHANGE :: DEV-43744 - Pass headers and custom datasource to evaluate alerts
 }
-
-// LOGZ.IO GRAFANA CHANGE :: DEV-43744 - Pass headers and custom datasource to evaluate alerts
-func NewContextWithLogzio(ctx context.Context, user identity.Requester, logzioEvalContext *models.LogzioAlertRuleEvalContext) EvaluationContext {
-	return EvaluationContext{
-		Ctx:               ctx,
-		User:              user,
-		LogzioEvalContext: logzioEvalContext,
-	}
-}
-
-// LOGZ.IO GRAFANA CHANGE :: end
 
 func NewContext(ctx context.Context, user identity.Requester) EvaluationContext {
 	// LOGZ.IO GRAFANA CHANGE :: DEV-43744 - Pass headers and custom datasource to evaluate alerts
@@ -51,18 +39,21 @@ func NewContext(ctx context.Context, user identity.Requester) EvaluationContext 
 	}
 }
 
-func NewContextWithPreviousResults(ctx context.Context, user identity.Requester, reader AlertingResultsReader) EvaluationContext {
-	// LOGZ.IO GRAFANA CHANGE :: DEV-43744 - Pass headers and custom datasource to evaluate alerts
-	logzioEvalContext := &models.LogzioAlertRuleEvalContext{
-		LogzioHeaders:     http.Header{},
-		DsOverrideByDsUid: map[string]models.EvaluationDatasourceOverride{},
+// LOGZ.IO GRAFANA CHANGE :: DEV-43744 - Pass headers and custom datasource to evaluate alerts
+func NewContextWithPreviousResults(ctx context.Context, user identity.Requester, reader AlertingResultsReader, logzioEvalContext *models.LogzioAlertRuleEvalContext) EvaluationContext {
+	if logzioEvalContext == nil {
+		logzioEvalContext = &models.LogzioAlertRuleEvalContext{
+			LogzioHeaders:     http.Header{},
+			DsOverrideByDsUid: map[string]models.EvaluationDatasourceOverride{},
+		}
 	}
-	// LOGZ.IO GRAFANA CHANGE :: end
 
 	return EvaluationContext{
 		Ctx:                   ctx,
 		User:                  user,
 		AlertingResultsReader: reader,
-		LogzioEvalContext:     logzioEvalContext, // LOGZ.IO GRAFANA CHANGE :: DEV-43744 - Pass headers and custom datasource to evaluate alerts
+		LogzioEvalContext:     logzioEvalContext,
 	}
 }
+
+// LOGZ.IO GRAFANA CHANGE :: end

@@ -662,8 +662,15 @@ func (c Condition) IsValid() bool {
 }
 
 // LOGZ.IO GRAFANA CHANGE :: DEV-43883 Override datasource URL and pass custom headers to alert rule evaluator
+type ExternalAlertEvaluationRequest struct {
+	AlertRule         AlertRule                  `json:"alertRule"`
+	EvalTime          time.Time                  `json:"evalTime"`
+	FolderTitle       string                     `json:"folderTitle"`
+	LogzioEvalContext LogzioAlertRuleEvalContext `json:"logzioEvalContext"`
+}
+
 type LogzioAlertRuleEvalContext struct {
-	LogzioHeaders     http.Header
+	LogzioHeaders     http.Header                             `json:"headers"`
 	DsOverrideByDsUid map[string]EvaluationDatasourceOverride `json:"dsOverride"`
 }
 

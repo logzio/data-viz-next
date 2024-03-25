@@ -3,6 +3,7 @@ package api
 // LOGZ.IO GRAFANA CHANGE :: 43744, DEV-43895: add endpoints to evaluate and process alerts
 import (
 	"fmt"
+	ngmodels "github.com/grafana/grafana/pkg/services/ngalert/models"
 	"github.com/grafana/grafana/pkg/services/ngalert/schedule"
 	"net/http"
 
@@ -42,7 +43,24 @@ func (srv *LogzioAlertingService) RouteEvaluateAlert(c *contextmodel.ReqContext,
 
 	for _, evalRequest := range evalRequests {
 		c.Logger.Info("Evaluate Alert API", "evalTime", evalRequest.EvalTime, "ruleTitle", evalRequest.AlertRule.Title, "ruleUID", evalRequest.AlertRule.UID)
-		err := srv.Schedule.RunRuleEvaluation(c.Req.Context(), evalRequest)
+
+		var dsOverrideByDsUid = map[string]ngmodels.EvaluationDatasourceOverride{}
+		if evalRequest.DsOverrides != nil {
+			for _, dsOverride := range evalRequest.DsOverrides {
+				dsOverrideByDsUid[dsOverride.DsUid] = dsOverride
+			}
+		}
+
+		evalReq := ngmodels.ExternalAlertEvaluationRequest{
+			AlertRule:   evalRequest.AlertRule,
+			EvalTime:    evalRequest.EvalTime,
+			FolderTitle: evalRequest.FolderTitle,
+			LogzioEvalContext: ngmodels.LogzioAlertRuleEvalContext{
+				LogzioHeaders:     c.Req.Header,
+				DsOverrideByDsUid: dsOverrideByDsUid,
+			},
+		}
+		err := srv.Schedule.RunRuleEvaluation(c.Req.Context(), evalReq)
 
 		if err != nil {
 			evaluationsErrors = append(evaluationsErrors, apimodels.AlertEvalRunResult{UID: evalRequest.AlertRule.UID, EvalTime: evalRequest.EvalTime, RunResult: err.Error()})

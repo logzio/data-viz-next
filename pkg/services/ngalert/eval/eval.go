@@ -323,7 +323,9 @@ func buildDatasourceHeaders(ctx EvaluationContext) map[string]string { // LOGZ.I
 
 	for k, v := range logzioHeaders.GetDatasourceQueryHeaders(requestHeaders) {
 		headers[k] = v[0]
-	} // LOGZ.IO GRAFANA CHANGE :: End
+	}
+	logger.Debug("Added following headers to request", "headers", headers)
+	// LOGZ.IO GRAFANA CHANGE :: End
 
 	return headers
 }
@@ -332,7 +334,7 @@ func buildDatasourceHeaders(ctx EvaluationContext) map[string]string { // LOGZ.I
 func getExprRequest(ctx EvaluationContext, condition models.Condition, dsCacheService datasources.CacheService, reader AlertingResultsReader) (*expr.Request, error) {
 	req := &expr.Request{
 		OrgId:   ctx.User.GetOrgID(),
-		Headers: buildDatasourceHeaders(ctx), // LOGZ.IO GRAFANA CHANGE :: DEV-43744 - change to EvaluationContext
+		Headers: buildDatasourceHeaders(ctx), // LOGZ.IO GRAFANA CHANGE :: DEV-43883 - Change to EvaluationContext
 		User:    ctx.User,
 	}
 	datasources := make(map[string]*datasources.DataSource, len(condition.Data))
@@ -344,6 +346,12 @@ func getExprRequest(ctx EvaluationContext, condition models.Condition, dsCacheSe
 			switch nodeType := expr.NodeTypeFromDatasourceUID(q.DatasourceUID); nodeType {
 			case expr.TypeDatasourceNode:
 				ds, err = dsCacheService.GetDatasourceByUID(ctx.Ctx, q.DatasourceUID, ctx.User, false /*skipCache*/)
+				// LOGZ.IO GRAFANA CHANGE :: DEV-43889 - Add logzio datasource url override
+				if dsOverride, found := ctx.LogzioEvalContext.DsOverrideByDsUid[q.DatasourceUID]; found {
+					logger.Debug("Added dsOverride", "dsOverride", dsOverride.UrlOverride)
+					ds.URL = dsOverride.UrlOverride
+				}
+				// // LOGZ.IO GRAFANA CHANGE :: End
 			default:
 				ds, err = expr.DataSourceModelFromNodeType(nodeType)
 			}

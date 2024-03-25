@@ -288,6 +288,16 @@ func (c *baseClientImpl) createMultiSearchRequests(searchRequests []*SearchReque
 func (c *baseClientImpl) getMultiSearchQueryParameters() string {
 	var qs []string
 
+	// LOGZ.IO GRAFANA CHANGE :: DEV-43889 Grafana alerts evaluation - set 'accountsToSearch' query param
+	datasourceUrl, _ := url.Parse(c.ds.URL)
+	q, _ := url.ParseQuery(datasourceUrl.RawQuery)
+	if len(q.Get("querySource")) > 0 {
+		// set/override 'accountsToSearch' as Database (accountId)
+		qs = append(qs, fmt.Sprintf("accountsToSearch=%s", c.ds.Database))
+		qs = append(qs, "querySource=INTERNAL_METRICS_ALERTS")
+	}
+	// LOGZ.IO end
+
 	maxConcurrentShardRequests := c.ds.MaxConcurrentShardRequests
 	if maxConcurrentShardRequests == 0 {
 		maxConcurrentShardRequests = 5
