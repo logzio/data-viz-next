@@ -12,10 +12,10 @@ import { useQueryParams } from 'app/core/hooks/useQueryParams';
 import { t } from 'app/core/internationalization';
 import { StoreState } from 'app/types';
 
-import UserOrganizations from './UserOrganizations';
 import UserProfileEditForm from './UserProfileEditForm';
-import UserSessions from './UserSessions';
-import { UserTeams } from './UserTeams';
+// import UserOrganizations from './UserOrganizations';
+// import UserSessions from './UserSessions';
+// import { UserTeams } from './UserTeams';
 import { changeUserOrg, initUserProfilePage, revokeUserSession, updateUserProfile } from './state/actions';
 
 const TAB_QUERY_PARAM = 'tab';
@@ -114,15 +114,13 @@ export function UserProfileEditPage({
   // LOGZ.IO GRAFANA CHANGE :: show limited data in user profile 
   const UserProfile = () => (
     <VerticalGroup spacing="md">
-      <UserProfileEditForm updateProfile={updateUserProfile} isSavingUser={isUpdating} user={user} />
-      { false && <SharedPreferences resourceUri="user" preferenceType="user" /> }
-      { false && (
-        <Stack direction="column" gap={6}>
-          <UserTeams isLoading={teamsAreLoading} teams={teams} />
-          <UserOrganizations isLoading={orgsAreLoading} setUserOrg={changeUserOrg} orgs={orgs} user={user} />
-          <UserSessions isLoading={sessionsAreLoading} revokeUserSession={revokeUserSession} sessions={sessions} />
-        </Stack>
-      )}
+      {false && <UserProfileEditForm updateProfile={updateUserProfile} isSavingUser={isUpdating} user={user} />}
+      <SharedPreferences resourceUri="user" preferenceType="user" />
+      {/* <Stack direction="column" gap={6}>
+        <UserTeams isLoading={teamsAreLoading} teams={teams} />
+        <UserOrganizations isLoading={orgsAreLoading} setUserOrg={changeUserOrg} orgs={orgs} user={user} />
+        <UserSessions isLoading={sessionsAreLoading} revokeUserSession={revokeUserSession} sessions={sessions} />
+      </Stack> */}
     </VerticalGroup>
   );
 
