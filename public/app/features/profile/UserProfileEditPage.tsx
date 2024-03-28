@@ -13,6 +13,7 @@ import { t } from 'app/core/internationalization';
 import { StoreState } from 'app/types';
 
 import UserProfileEditForm from './UserProfileEditForm';
+// LOGZ.IO GRAFANA CHANGE :: show limited data in user profile 
 // import UserOrganizations from './UserOrganizations';
 // import UserSessions from './UserSessions';
 // import { UserTeams } from './UserTeams';
