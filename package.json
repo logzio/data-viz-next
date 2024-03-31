@@ -347,6 +347,7 @@
     "ol-ext": "4.0.14",
     "papaparse": "5.4.1",
     "pluralize": "^8.0.0",
+    "poll-until-promise": "4.0.4",
     "prismjs": "1.29.0",
     "prop-types": "15.8.1",
     "pseudoizer": "^0.1.0",
