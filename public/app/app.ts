@@ -249,7 +249,6 @@ export class GrafanaApp {
         config,
       };
 
-      setReturnToPreviousHook(useReturnToPreviousInternal);
       // LOGZ.IO GRAFANA CHANGE :: Let app know that grafana loaded successfully
       if (productLoaded.resolve) {
         productLoaded.resolve();
