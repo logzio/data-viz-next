@@ -21,6 +21,7 @@ import {
   standardEditorsRegistry,
   standardFieldConfigEditorRegistry,
   standardTransformersRegistry,
+  productLoaded, // LOGZ.IO GRAFANA CHANGE :: DEV-20247 Use logzio provider
 } from '@grafana/data';
 import {
   locationService,
@@ -249,6 +250,11 @@ export class GrafanaApp {
       };
 
       setReturnToPreviousHook(useReturnToPreviousInternal);
+      // LOGZ.IO GRAFANA CHANGE :: Let app know that grafana loaded successfully
+      if (productLoaded.resolve) {
+        productLoaded.resolve();
+      }
+      // LOGZ.IO GRAFANA CHANGE :: end
 
       const root = createRoot(document.getElementById('reactRoot')!);
       root.render(
