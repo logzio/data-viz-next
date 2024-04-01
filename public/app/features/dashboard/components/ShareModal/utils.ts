@@ -52,18 +52,16 @@ export function buildParams({
   // Token is unique to the authenticated identity and should not be shared with the URL,
   // so we are stripping it from the query params as a safety measure.
   searchParams.delete('auth_token');
+
+  // The shareView param is used to indicate that the sharing modal is open and should never be included in the URL
+  searchParams.delete('shareView');
+
   return searchParams;
 }
 
 export function buildBaseUrl() {
-  let baseUrl = window.location.href;
-  const queryStart = baseUrl.indexOf('?');
-
-  if (queryStart !== -1) {
-    baseUrl = baseUrl.substring(0, queryStart);
-  }
-
-  return baseUrl;
+  // LOGZ.IO GRAFANA CHANGE :: DEV-20340 Use the url without the grafana-app part
+  return window.location.origin + locationUtil.stripBaseFromUrl(window.location.pathname);
 }
 
 export async function buildShareUrl(

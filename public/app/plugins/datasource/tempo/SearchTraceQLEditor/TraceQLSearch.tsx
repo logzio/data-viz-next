@@ -151,6 +151,8 @@ const TraceQLSearch = ({ datasource, query, onChange, onClearResults, app }: Pro
               hideScope={true}
               hideTag={true}
               query={traceQlQuery}
+              isMulti={false}
+              allowCustomValue={false}
             />
           </InlineSearchField>
           <InlineSearchField
@@ -209,6 +211,7 @@ const TraceQLSearch = ({ datasource, query, onChange, onClearResults, app }: Pro
               staticTags={staticTags}
               isTagsLoading={isTagsLoading}
               query={traceQlQuery}
+              requireTagAndValue={true}
             />
           </InlineSearchField>
           {config.featureToggles.metricsSummary && (
@@ -254,16 +257,16 @@ const TraceQLSearch = ({ datasource, query, onChange, onClearResults, app }: Pro
 export default TraceQLSearch;
 
 const getStyles = (theme: GrafanaTheme2) => ({
-  alert: css`
-    max-width: 75ch;
-    margin-top: ${theme.spacing(2)};
-  `,
-  container: css`
-    display: flex;
-    gap: 4px;
-    flex-wrap: wrap;
-    flex-direction: column;
-  `,
+  alert: css({
+    maxWidth: '75ch',
+    marginTop: theme.spacing(2),
+  }),
+  container: css({
+    display: 'flex',
+    gap: '4px',
+    flexWrap: 'wrap',
+    flexDirection: 'column',
+  }),
   rawQueryContainer: css({
     alignItems: 'center',
     backgroundColor: theme.colors.background.secondary,

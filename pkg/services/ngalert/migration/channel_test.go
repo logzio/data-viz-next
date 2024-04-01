@@ -174,8 +174,9 @@ func TestCreateReceivers(t *testing.T) {
 }
 
 func TestMigrateNotificationChannelSecureSettings(t *testing.T) {
+	cfg := setting.NewCfg()
 	legacyEncryptFn := func(data string) string {
-		raw, err := util.Encrypt([]byte(data), setting.SecretKey)
+		raw, err := util.Encrypt([]byte(data), cfg.SecretKey)
 		require.NoError(t, err)
 		return string(raw)
 	}
@@ -416,7 +417,7 @@ func TestSetupAlertmanagerConfig(t *testing.T) {
 
 			service := NewTestMigrationService(t, sqlStore, nil)
 			m := service.newOrgMigration(1)
-			pairs, err := m.migrateChannels(tt.channels)
+			pairs, err := m.migrateChannels(tt.channels, m.log)
 			if tt.expErr != nil {
 				require.Error(t, err)
 				require.EqualError(t, err, tt.expErr.Error())

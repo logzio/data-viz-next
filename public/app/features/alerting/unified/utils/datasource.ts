@@ -1,4 +1,4 @@
-import { DataSourceInstanceSettings, DataSourceJsonData } from '@grafana/data';
+import { DataSourceInstanceSettings, DataSourceJsonData, DataSourceSettings } from '@grafana/data';
 import { getDataSourceSrv } from '@grafana/runtime';
 import { contextSrv } from 'app/core/services/context_srv';
 import {
@@ -33,16 +33,21 @@ export interface AlertManagerDataSource {
   handleGrafanaManagedAlerts?: boolean;
 }
 
-export const RulesDataSourceTypes: string[] = [DataSourceType.Loki, DataSourceType.Prometheus];
+//LOGZ.IO GRAFANA CHANGE :: Disable fetching of rules from Prometheus(M3) datasources
+// export const RulesDataSourceTypes: string[] = [DataSourceType.Loki, DataSourceType.Prometheus];
+//LOGZ.IO GRAFANA CHANGE :: end
 
-export function getRulesDataSources() {
+export function getRulesDataSources(): Array<DataSourceInstanceSettings<DataSourceJsonData>> /** LOGZ.IO GRAFANA CHANGE */ {
   if (!contextSrv.hasPermission(AccessControlAction.AlertingRuleExternalRead)) {
     return [];
   }
 
-  return getAllDataSources()
-    .filter((ds) => RulesDataSourceTypes.includes(ds.type) && ds.jsonData.manageAlerts !== false)
-    .sort((a, b) => a.name.localeCompare(b.name));
+  // LOGZ.IO GRAFANA CHANGE :: DEV-31356: Disable fetching of rules from Prometheus(M3) datasources
+  // return getAllDataSources()
+  //   .filter((ds) => RulesDataSourceTypes.includes(ds.type) && ds.jsonData.manageAlerts !== false)
+  //   .sort((a, b) => a.name.localeCompare(b.name));
+
+  return [];
 }
 
 export function getRulesDataSource(rulesSourceName: string) {
@@ -51,10 +56,20 @@ export function getRulesDataSource(rulesSourceName: string) {
 
 export function getAlertManagerDataSources() {
   return getAllDataSources()
-    .filter(
-      (ds): ds is DataSourceInstanceSettings<AlertManagerDataSourceJsonData> => ds.type === DataSourceType.Alertmanager
-    )
+    .filter(isAlertmanagerDataSourceInstance)
     .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export function isAlertmanagerDataSourceInstance(
+  dataSource: DataSourceInstanceSettings
+): dataSource is DataSourceInstanceSettings<AlertManagerDataSourceJsonData> {
+  return dataSource.type === DataSourceType.Alertmanager;
+}
+
+export function isAlertmanagerDataSource(
+  dataSource: DataSourceSettings
+): dataSource is DataSourceSettings<AlertManagerDataSourceJsonData> {
+  return dataSource.type === DataSourceType.Alertmanager;
 }
 
 export function getExternalDsAlertManagers() {
@@ -205,10 +220,9 @@ export function getDataSourceByName(name: string): DataSourceInstanceSettings<Da
 }
 
 export function getAlertmanagerDataSourceByName(name: string) {
-  return getAllDataSources().find(
-    (source): source is DataSourceInstanceSettings<AlertManagerDataSourceJsonData> =>
-      source.name === name && source.type === 'alertmanager'
-  );
+  return getAllDataSources()
+    .filter(isAlertmanagerDataSourceInstance)
+    .find((source) => source.name === name);
 }
 
 export function getRulesSourceByName(name: string): RulesSource | undefined {

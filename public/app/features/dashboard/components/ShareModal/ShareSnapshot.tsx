@@ -1,6 +1,6 @@
 import React, { PureComponent } from 'react';
 
-import { isEmptyObject, SelectableValue } from '@grafana/data';
+import { isEmptyObject, SelectableValue, logzioServices } from '@grafana/data'; // LOGZ.IO GRAFANA CHANGE :: DEV-20896 Add logzioServices
 import { getBackendSrv } from '@grafana/runtime';
 import { Button, ClipboardButton, Field, Input, LinkButton, Modal, Select, Spinner } from '@grafana/ui';
 import { t, Trans } from 'app/core/internationalization';
@@ -12,8 +12,6 @@ import { VariableRefresh } from '../../../variables/types';
 import { getDashboardSnapshotSrv } from '../../services/SnapshotSrv';
 
 import { ShareModalTabProps } from './types';
-
-const snapshotApiUrl = '/api/snapshots';
 
 interface Props extends ShareModalTabProps {}
 
@@ -110,17 +108,25 @@ export class ShareSnapshot extends PureComponent<Props, State> {
 
     try {
       const results: { deleteUrl: string; url: string } = await getBackendSrv().post(snapshotApiUrl, cmdData);
+
+      // LOGZ.IO GRAFANA CHANGE :: DEV-20896 Change snapshot url to logzio
+      const logzioUrl = await logzioServices.shareUrlService.getLogzioGrafanaUrl({
+        productUrl: window.location.origin,
+      });
+
       this.setState({
         deleteUrl: results.deleteUrl,
-        snapshotUrl: results.url,
+        snapshotUrl: logzioUrl + results.url,
         step: 2,
       });
+      // LOGZ.IO GRAFANA CHANGE :: END
     } finally {
       if (external) {
-        DashboardInteractions.publishSnapshotClicked({
-          expires: snapshotExpires,
-          timeout: timeoutSeconds,
-        });
+        // LOGZ.IO GRAFANA CHANGE :: DEV-20896 Remove original url from snapshot
+        // DashboardInteractions.publishSnapshotClicked({
+        //   expires: snapshotExpires,
+        //   timeout: timeoutSeconds,
+        // });
       } else {
         DashboardInteractions.publishSnapshotLocalClicked({
           expires: snapshotExpires,

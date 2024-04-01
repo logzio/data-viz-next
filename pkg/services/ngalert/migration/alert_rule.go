@@ -94,21 +94,7 @@ func (om *OrgMigration) migrateAlert(ctx context.Context, l log.Logger, alert *l
 		ExecErrState:    transExecErr(l, parsedSettings.ExecutionErrorState),
 	}
 
-	// Label for routing and silences.
-	n, v := getLabelForSilenceMatching(ar.UID)
-	ar.Labels[n] = v
-
-	if parsedSettings.ExecutionErrorState == string(legacymodels.ExecutionErrorKeepState) {
-		if err := om.addErrorSilence(ar); err != nil {
-			om.log.Error("Alert migration error: failed to create silence for Error", "rule_name", ar.Title, "err", err)
-		}
-	}
-
-	if parsedSettings.NoDataState == string(legacymodels.NoDataKeepState) {
-		if err := om.addNoDataSilence(ar); err != nil {
-			om.log.Error("Alert migration error: failed to create silence for NoData", "rule_name", ar.Title, "err", err)
-		}
-	}
+	om.silences.handleSilenceLabels(ar, parsedSettings)
 
 	// We do some validation and pre-save operations early in order to track these errors as part of the migration state.
 	if err := ar.ValidateAlertRule(om.cfg.UnifiedAlerting); err != nil {
@@ -249,7 +235,7 @@ func transNoData(l log.Logger, s string) ngmodels.NoDataState {
 	case legacymodels.NoDataSetAlerting:
 		return ngmodels.Alerting
 	case legacymodels.NoDataKeepState:
-		return ngmodels.NoData // "keep last state" translates to no data because we now emit a special alert when the state is "noData". The result is that the evaluation will not return firing and instead we'll raise the special alert.
+		return ngmodels.KeepLast
 	default:
 		l.Warn("Unable to translate execution of NoData state. Using default execution", "old", s, "new", ngmodels.NoData)
 		return ngmodels.NoData
@@ -261,9 +247,7 @@ func transExecErr(l log.Logger, s string) ngmodels.ExecutionErrorState {
 	case "", legacymodels.ExecutionErrorSetAlerting:
 		return ngmodels.AlertingErrState
 	case legacymodels.ExecutionErrorKeepState:
-		// Keep last state is translated to error as we now emit a
-		// DatasourceError alert when the state is error
-		return ngmodels.ErrorErrState
+		return ngmodels.KeepLastErrState
 	case legacymodels.ExecutionErrorSetOk:
 		return ngmodels.OkErrState
 	default:
