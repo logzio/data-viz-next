@@ -10,7 +10,7 @@ import {
   Field,
   Form,
   HorizontalGroup,
-  Input,
+  // Input, // LOGZ.IO GRAFANA CHANGE :: DEV-23444 Hide import via grafana.com
   Spinner,
   stylesFactory,
   TextArea,
@@ -35,7 +35,7 @@ import { cleanUpAction } from '../../core/actions/cleanUp';
 import { ImportDashboardOverview } from './components/ImportDashboardOverview';
 import { fetchGcomDashboard, importDashboardJson } from './state/actions';
 import { initialImportDashboardState } from './state/reducers';
-import { validateDashboardJson, validateGcomDashboard } from './utils/validation';
+import { validateDashboardJson /*, validateGcomDashboard */ } from './utils/validation'; // LOGZ.IO GRAFANA CHANGE
 
 type DashboardImportPageRouteSearchParams = {
   gcomDashboardId?: string;
@@ -151,6 +151,7 @@ class UnthemedDashboardImport extends PureComponent<Props> {
             />
           </FileDropzone>
         </div>
+        {/* LOGZ.IO GRAFANA CHANGE :: DEV-23444 Hide import via grafana.com
         <div className={styles.option}>
           <Form onSubmit={this.getGcomDashboard} defaultValues={{ gcomDashboard: '' }}>
             {({ register, errors }) => (
@@ -188,6 +189,7 @@ class UnthemedDashboardImport extends PureComponent<Props> {
             )}
           </Form>
         </div>
+                */}
         <div className={styles.option}>
           <Form onSubmit={this.getDashboardFromJson} defaultValues={{ dashboardJson: '' }}>
             {({ register, errors }) => (
