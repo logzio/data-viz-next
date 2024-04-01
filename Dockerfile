@@ -52,9 +52,6 @@ COPY grafana/.bingo .bingo
 
 # Include vendored dependencies
 COPY grafana/pkg/util/xorm/go.* pkg/util/xorm/
-COPY grafana/pkg/apiserver/go.* pkg/apiserver/
-COPY grafana/pkg/apimachinery/go.* pkg/apimachinery/
-COPY grafana/pkg/promlib/go.* pkg/promlib/
 
 RUN go mod download
 RUN if [[ "$BINGO" = "true" ]]; then \
