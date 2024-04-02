@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/grafana/grafana/pkg/services/ngalert/models" // LOGZ.IO GRAFANA CHANGE :: DEV-43744 Add logzio external evaluation
+	"github.com/grafana/grafana/pkg/services/ngalert/models" // LOGZ.IO GRAFANA CHANGE :: DEV-43744, DEV-43895 Add logzio external evaluation and notification
 	"reflect"
 	"sort"
 	"strings"
@@ -551,6 +551,14 @@ type PostableUserConfig struct {
 	AlertmanagerConfig PostableApiAlertingConfig `yaml:"alertmanager_config" json:"alertmanager_config"`
 	amSimple           map[string]interface{}    `yaml:"-" json:"-"`
 }
+
+// LOGZ.IO GRAFANA CHANGE :: DEV-43895 (add endpoint to send alert notifications).
+type AlertSendNotificationsRequest struct {
+	AlertRuleKey models.AlertRuleKey `json:"alertRuleKey"`
+	Alerts       PostableAlerts      `json:"alerts"`
+}
+
+// LOGZ.IO GRAFANA CHANGE :: end
 
 // LOGZ.IO GRAFANA CHANGE :: DEV-43744: add api models for alert evaluation requests/responses
 type AlertEvaluationRequest struct {
