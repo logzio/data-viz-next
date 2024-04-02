@@ -1,26 +1,27 @@
 package api
 
-// LOGZ.IO GRAFANA CHANGE :: 43744, DEV-43895: add endpoints to evaluate and process alerts
+// LOGZ.IO GRAFANA CHANGE :: DEV-43895 (add endpoint to send alert notifications).
 import (
+	"errors"
 	"fmt"
-	ngmodels "github.com/grafana/grafana/pkg/services/ngalert/models"
-	"github.com/grafana/grafana/pkg/services/ngalert/schedule"
-	"net/http"
-
 	"github.com/grafana/grafana/pkg/api/response"
 	"github.com/grafana/grafana/pkg/infra/log"
 	contextmodel "github.com/grafana/grafana/pkg/services/contexthandler/model"
 	apimodels "github.com/grafana/grafana/pkg/services/ngalert/api/tooling/definitions"
 	"github.com/grafana/grafana/pkg/services/ngalert/eval"
-
+	ngmodels "github.com/grafana/grafana/pkg/services/ngalert/models"
+	"github.com/grafana/grafana/pkg/services/ngalert/notifier"
+	"github.com/grafana/grafana/pkg/services/ngalert/schedule"
 	"github.com/grafana/grafana/pkg/setting"
+	"net/http"
 )
 
 type LogzioAlertingService struct {
-	Cfg              *setting.Cfg
-	EvaluatorFactory eval.EvaluatorFactory
-	Log              log.Logger
-	Schedule         schedule.ScheduleService
+	Cfg                  *setting.Cfg
+	EvaluatorFactory     eval.EvaluatorFactory
+	Log                  log.Logger
+	Schedule             schedule.ScheduleService
+	MultiOrgAlertmanager *notifier.MultiOrgAlertmanager
 }
 
 func NewLogzioAlertingService(
@@ -28,12 +29,14 @@ func NewLogzioAlertingService(
 	EvaluatorFactory eval.EvaluatorFactory,
 	log log.Logger,
 	Schedule schedule.ScheduleService,
+	MultiOrgAlertmanager *notifier.MultiOrgAlertmanager,
 ) *LogzioAlertingService {
 	return &LogzioAlertingService{
-		Cfg:              Cfg,
-		EvaluatorFactory: EvaluatorFactory,
-		Log:              log,
-		Schedule:         Schedule,
+		Cfg:                  Cfg,
+		EvaluatorFactory:     EvaluatorFactory,
+		Log:                  log,
+		Schedule:             Schedule,
+		MultiOrgAlertmanager: MultiOrgAlertmanager,
 	}
 }
 
@@ -72,3 +75,25 @@ func (srv *LogzioAlertingService) RouteEvaluateAlert(c *contextmodel.ReqContext,
 	c.Logger.Info("Evaluate Alert API - Done", "evalErrors", evaluationsErrors)
 	return response.JSON(http.StatusOK, apimodels.EvalRunsResponse{RunResults: evaluationsErrors})
 }
+
+func (srv *LogzioAlertingService) RouteSendAlertNotifications(c *contextmodel.ReqContext, sendNotificationsRequest apimodels.AlertSendNotificationsRequest) response.Response {
+	c.Logger.Info("Sending alerts to local notifier", "count", len(sendNotificationsRequest.Alerts.PostableAlerts))
+	n, err := srv.MultiOrgAlertmanager.AlertmanagerFor(sendNotificationsRequest.AlertRuleKey.OrgID)
+	if err == nil {
+		if err := n.PutAlerts(c.Req.Context(), sendNotificationsRequest.Alerts); err != nil {
+			c.Logger.Error("Failed to put alerts in the local notifier", "count", len(sendNotificationsRequest.Alerts.PostableAlerts), "error", err)
+		} else {
+			return response.Success("Put alerts was successful")
+		}
+	} else {
+		if errors.Is(err, notifier.ErrNoAlertmanagerForOrg) {
+			c.Logger.Debug("Local notifier was not found")
+		} else {
+			c.Logger.Error("Local notifier is not available", "error", err)
+		}
+	}
+
+	return response.Error(http.StatusInternalServerError, "Failed to put alerts", err)
+}
+
+// LOGZ.IO GRAFANA CHANGE :: end

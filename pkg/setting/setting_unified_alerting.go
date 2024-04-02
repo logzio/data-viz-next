@@ -62,7 +62,7 @@ const (
 	// DefaultRuleEvaluationInterval indicates a default interval of for how long a rule should be evaluated to change state from Pending to Alerting
 	DefaultRuleEvaluationInterval = SchedulerBaseInterval * 6 // == 60 seconds
 	stateHistoryDefaultEnabled    = true
-	logzioDefaultAlertsRouterUrl  = "http://localhost:3000/alertmanager" // LOGZ.IO GRAFANA CHANGE :: DEV-43744 Add logzio notification route
+	logzioDefaultAlertsRouterUrl  = "" // LOGZ.IO GRAFANA CHANGE :: DEV-43744 Add logzio notification route
 )
 
 type UnifiedAlertingSettings struct {
@@ -105,7 +105,7 @@ type UnifiedAlertingSettings struct {
 	MaxStateSaveConcurrency   int
 	StatePeriodicSaveInterval time.Duration
 	RulesPerRuleGroupLimit    int64
-	LogzioAlertsRouterUrl   string // LOGZ.IO GRAFANA CHANGE :: DEV-43744 Add logzio notification route
+	LogzioAlertsRouterUrl     string // LOGZ.IO GRAFANA CHANGE :: DEV-43744 Add logzio notification route
 }
 
 // RemoteAlertmanagerSettings contains the configuration needed

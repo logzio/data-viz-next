@@ -159,9 +159,13 @@ func (api *API) RegisterAPIEndpoints(m *metrics.API) {
 		hist:   api.Historian,
 	}), m)
 
-	// LOGZ.IO GRAFANA CHANGE :: DEV-43895: add logzio alerting endpoints
+	// LOGZ.IO GRAFANA CHANGE :: DEV-43744, DEV-43895: add logzio alerting endpoints
 	api.RegisterLogzioAlertingApiEndpoints(NewLogzioAlertingApi(
 		NewLogzioAlertingService(
+			api.Cfg,
+			api.EvaluatorFactory,
+			logger,
+			api.Schedule,
 			api.MultiOrgAlertmanager,
 		),
 	), m)
@@ -172,17 +176,6 @@ func (api *API) RegisterAPIEndpoints(m *metrics.API) {
 		receiverService:   api.ReceiverService,
 		muteTimingService: api.MuteTimings,
 	}), m)
-
-	// LOGZ.IO GRAFANA CHANGE :: DEV-43744: add logzio alert evaluation endpoint
-	api.RegisterLogzioAlertingApiEndpoints(NewLogzioAlertingApi(
-		NewLogzioAlertingService(
-			api.Cfg,
-			api.EvaluatorFactory,
-			logger,
-			api.Schedule,
-		),
-	), m)
-	// LOGZ.IO GRAFANA CHANGE :: end
 
 	// Inject upgrade endpoints if legacy alerting is enabled and the feature flag is enabled.
 	if !api.Cfg.UnifiedAlerting.IsEnabled() && api.FeatureManager.IsEnabledGlobally(featuremgmt.FlagAlertingPreviewUpgrade) {

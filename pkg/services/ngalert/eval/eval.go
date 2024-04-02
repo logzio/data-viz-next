@@ -347,9 +347,11 @@ func getExprRequest(ctx EvaluationContext, condition models.Condition, dsCacheSe
 			case expr.TypeDatasourceNode:
 				ds, err = dsCacheService.GetDatasourceByUID(ctx.Ctx, q.DatasourceUID, ctx.User, false /*skipCache*/)
 				// LOGZ.IO GRAFANA CHANGE :: DEV-43889 - Add logzio datasource url override
-				if dsOverride, found := ctx.LogzioEvalContext.DsOverrideByDsUid[q.DatasourceUID]; found {
-					logger.Debug("Added dsOverride", "dsOverride", dsOverride.UrlOverride)
-					ds.URL = dsOverride.UrlOverride
+				if ds != nil {
+					if dsOverride, found := ctx.LogzioEvalContext.DsOverrideByDsUid[q.DatasourceUID]; found {
+						logger.Debug("Adding dsOverride", "datasource_uid", q.DatasourceUID, "dsOverride", dsOverride.UrlOverride)
+						ds.URL = dsOverride.UrlOverride
+					}
 				}
 				// // LOGZ.IO GRAFANA CHANGE :: End
 			default:

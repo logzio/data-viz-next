@@ -44,21 +44,26 @@ func (d *LogzioAlertsRouter) Send(ctx context.Context, key models.AlertRuleKey, 
 	}
 	// TODO: add relevant headers if needed? or remove if not
 	headers := make(map[string]string)
-	payload, err := json.Marshal(alerts)
+	body := map[string]interface{}{
+		"alertRuleKey": key,
+		"alerts":       alerts,
+	}
+
+	payload, err := json.Marshal(body)
 	if err != nil {
 		logger.Error("Failed to marshal to json the alerts to send", "err", err)
 		return
 	}
 
-	logger.Info("Sending alerts to external url", "url", d.url, "headers", headers, "alerts", alerts)
-	err = sendAlert(ctx, d.client, d.url, payload, headers)
+	logger.Info("Sending alerts to external url", "url", d.url, "headers", headers, "payload", body)
+	err = sendAlert(logger, ctx, d.client, d.url, payload, headers)
 	if err != nil {
 		logger.Warn("Error from sending alerts to notify", "err", err)
 	}
 
 }
 
-func sendAlert(ctx context.Context, c *http.Client, url string, payload []byte, headers map[string]string) error {
+func sendAlert(logger *log.ConcreteLogger, ctx context.Context, c *http.Client, url string, payload []byte, headers map[string]string) error {
 	req, err := http.NewRequest("POST", url, bytes.NewReader(payload))
 	if err != nil {
 		return err
@@ -70,18 +75,27 @@ func sendAlert(ctx context.Context, c *http.Client, url string, payload []byte, 
 		req.Header.Set(k, v)
 	}
 
-	resp, err := c.Do(req.WithContext(ctx))
-	if err != nil {
-		return err
-	}
-	defer func() {
-		io.Copy(io.Discard, resp.Body)
-		resp.Body.Close()
-	}()
+	if url == "" {
+		logger.Warn("No url provided for sending notifications")
+	} else {
+		resp, err := c.Do(req.WithContext(ctx))
+		if err != nil {
+			return err
+		}
+		defer func() {
+			if _, err := io.Copy(io.Discard, resp.Body); err != nil {
+				logger.Warn("error copy response body", "err", err)
+			} else {
+				if err := resp.Body.Close(); err != nil {
+					logger.Warn("error closing response body", "err", err)
+				}
+			}
+		}()
 
-	// Any HTTP status 2xx is OK.
-	if resp.StatusCode/100 != 2 {
-		return fmt.Errorf("bad response status %s", resp.Status)
+		// Any HTTP status 2xx is OK.
+		if resp.StatusCode/100 != 2 {
+			return fmt.Errorf("bad response status %s", resp.Status)
+		}
 	}
 
 	return nil
