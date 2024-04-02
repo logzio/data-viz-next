@@ -21,8 +21,8 @@ import {
   DropzoneFile,
   FileDropzoneDefaultChildren,
   LinkButton,
-  TextLink,
-  Label,
+  // TextLink, // LOGZ.IO GRAFANA CHANGE :: DEV-23444 Hide import via grafana.com
+  // Label, // LOGZ.IO GRAFANA CHANGE :: DEV-23444 Hide import via grafana.com
 } from '@grafana/ui';
 import appEvents from 'app/core/app_events';
 import { Page } from 'app/core/components/Page/Page';
@@ -127,11 +127,12 @@ class UnthemedDashboardImport extends PureComponent<Props> {
   renderImportForm() {
     const styles = importStyles(this.props.theme);
 
-    const GcomDashboardsLink = () => (
-      <TextLink variant="bodySmall" href="https://grafana.com/grafana/dashboards/" external>
-        grafana.com/dashboards
-      </TextLink>
-    );
+    // LOGZ.IO GRAFANA CHANGE :: DEV-23444 Hide import via grafana.com
+    // const GcomDashboardsLink = () => (
+    //   <TextLink variant="bodySmall" href="https://grafana.com/grafana/dashboards/" external>
+    //     grafana.com/dashboards
+    //   </TextLink>
+    // );
 
     return (
       <>
