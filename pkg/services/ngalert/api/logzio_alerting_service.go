@@ -1,5 +1,6 @@
 package api
 
+// LOGZ.IO GRAFANA CHANGE :: DEV-43895 (add endpoint to send alert notifications).
 import (
 	"errors"
 	"github.com/grafana/grafana/pkg/api/response"
@@ -8,8 +9,6 @@ import (
 	"github.com/grafana/grafana/pkg/services/ngalert/notifier"
 	"net/http"
 )
-
-// LOGZ.IO GRAFANA CHANGE :: DEV-43895 (add endpoint to send alert notifications).
 
 type LogzioAlertingService struct {
 	MultiOrgAlertmanager *notifier.MultiOrgAlertmanager
