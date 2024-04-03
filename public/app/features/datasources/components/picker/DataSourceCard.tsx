@@ -69,7 +69,6 @@ function getStyles(theme: GrafanaTheme2, builtIn = false) {
     logo: css`
       width: 45px;
       height: 32px; /* LOGZ.IO GRAFANA CHANGE :: DEV-19985: add datasource logos */
-      margin-inline-end: 0; /* LOGZ.IO GRAFANA CHANGE :: DEV-19985: add datasource logos */
       padding-inline-end: 0; /* LOGZ.IO GRAFANA CHANGE :: DEV-19985: add datasource logos */
       padding: ${theme.spacing(0, 1)};
       display: flex;
