@@ -14,7 +14,7 @@ import {
   // locationUtil, // LOGZ.IO GRAFANA CHANGE :: comment out to prevent ts errors
   ScopedVars,
   textUtil,
-  urlUtil,
+  // urlUtil, // LOGZ.IO GRAFANA CHANGE :: comment out to prevent ts errors
   VariableOrigin,
   VariableSuggestion,
   VariableSuggestionsScope,

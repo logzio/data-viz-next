@@ -7,7 +7,7 @@ import { AlertingAction } from '../../hooks/useAbilities';
 import { isCloudRulesSource, isGrafanaRulesSource } from '../../utils/datasource';
 import { Authorize } from '../Authorize';
 
-import { CloudRules } from './CloudRules';
+// import { CloudRules } from './CloudRules'; // LOGZ.IO GRAFANA CHANGE :: hide cloud managed alerts
 import { GrafanaRules } from './GrafanaRules';
 
 interface Props {

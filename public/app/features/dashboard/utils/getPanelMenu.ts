@@ -19,7 +19,7 @@ import {
   copyPanel,
   duplicatePanel,
   removePanel,
-  sharePanel,
+  // sharePanel, // LOGZ.IO GRAFANA CHANGE :: hide share for now
   toggleLegend,
   unlinkLibraryPanel,
 } from 'app/features/dashboard/utils/panel';
