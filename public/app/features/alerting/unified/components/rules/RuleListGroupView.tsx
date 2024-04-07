@@ -16,7 +16,7 @@ interface Props {
 }
 
 export const RuleListGroupView = ({ namespaces, expandAll }: Props) => {
-  const [grafanaNamespaces, cloudNamespaces] = useMemo(() => {
+  const [grafanaNamespaces /*, cloudNamespaces LOGZ.IO Change */] = useMemo(() => {
     const sorted = namespaces
       .map((namespace) => ({
         ...namespace,
@@ -38,9 +38,10 @@ export const RuleListGroupView = ({ namespaces, expandAll }: Props) => {
       <Authorize actions={[AlertingAction.ViewAlertRule]}>
         <GrafanaRules namespaces={grafanaNamespaces} expandAll={expandAll} />
       </Authorize>
-      <Authorize actions={[AlertingAction.ViewExternalAlertRule]}>
+      {// LOGZ.IO Changes
+      /* <Authorize actions={[AccessControlAction.AlertingRuleExternalRead]}>
         <CloudRules namespaces={cloudNamespaces} expandAll={expandAll} />
-      </Authorize>
+      </Authorize> */}
     </>
   );
 };
