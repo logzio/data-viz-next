@@ -77,8 +77,8 @@ var NewClient = func(ctx context.Context, ds *DatasourceInfo, timeRange backend.
 	headers := ctx.Value("logzioHeaders")
 	if headers != nil {
 		logzIoHeaders.RequestHeaders = http.Header{}
-		for key, value := range headers.(map[string]string) {
-			logzIoHeaders.RequestHeaders.Set(key, value)
+		for k, v := range headers.(http.Header) {
+			logzIoHeaders.RequestHeaders[k] = v
 		}
 	}
 	// LOGZ.IO GRAFANA CHANGE :: End
@@ -175,7 +175,7 @@ func (c *baseClientImpl) executeRequest(method, uriPath, uriQuery string, body [
 	req.Header = c.logzIoHeaders.GetDatasourceQueryHeaders(req.Header) // LOGZ.IO GRAFANA CHANGE :: DEV-43883 Support external alert evaluation
 
 	req.Header.Set("Content-Type", "application/json") // LOGZ.IO GRAFANA CHANGE :: DEV-43744 use application/json to interact with query-service
-
+	c.logger.Debug("request headers", "headers", req.Header)
 	//nolint:bodyclose
 	resp, err := c.ds.HTTPClient.Do(req)
 	if err != nil {

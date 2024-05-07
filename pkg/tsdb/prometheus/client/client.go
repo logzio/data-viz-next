@@ -3,6 +3,8 @@ package client
 import (
 	"bytes"
 	"context"
+	"github.com/grafana/grafana/pkg/infra/log"
+	m "github.com/grafana/grafana/pkg/models"
 	"io"
 	"net/http"
 	"net/url"
@@ -47,8 +49,6 @@ func (c *Client) QueryRange(ctx context.Context, q *models.Query, headers map[st
 		return nil, err
 	}
 
-	c.addHeaders(headers, req) // LOGZ.IO GRAFANA CHANGE :: DEV-43889 - Add headers for logzio datasources support
-
 	return c.doer.Do(req)
 }
 
@@ -65,8 +65,6 @@ func (c *Client) QueryInstant(ctx context.Context, q *models.Query, headers map[
 		return nil, err
 	}
 
-	c.addHeaders(headers, req) // LOGZ.IO GRAFANA CHANGE :: DEV-43889 - Add headers for logzio datasources support
-
 	return c.doer.Do(req)
 }
 
@@ -82,8 +80,6 @@ func (c *Client) QueryExemplars(ctx context.Context, q *models.Query, headers ma
 	if err != nil {
 		return nil, err
 	}
-
-	c.addHeaders(headers, req) // LOGZ.IO GRAFANA CHANGE :: DEV-43889 - Add headers for logzio datasources support
 
 	return c.doer.Do(req)
 }
@@ -170,6 +166,21 @@ func createRequest(ctx context.Context, method string, u *url.URL, bodyReader io
 		// It's set to nil so it is not actually sent over the wire, just used in Go http lib to retry requests.
 		request.Header["Idempotency-Key"] = nil
 	}
+
+	logger := log.New(ctx)
+	logzHeaders := ctx.Value("logzioHeaders")
+	if logzHeaders != nil {
+		logzIoHeaders := &m.LogzIoHeaders{}
+		logzIoHeaders.RequestHeaders = http.Header{}
+		for k, v := range logzHeaders.(http.Header) {
+			logzIoHeaders.RequestHeaders[k] = v
+		}
+
+		request.Header = logzIoHeaders.GetDatasourceQueryHeaders(request.Header)
+	}
+
+	logger.Debug("created request", "headers", request.Header, "url", request.URL)
+
 	return request, nil
 }
 
