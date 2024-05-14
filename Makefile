@@ -20,7 +20,7 @@ targets := $(shell echo '$(sources)' | tr "," " ")
 GO_INTEGRATION_TESTS := $(shell find ./pkg -type f -name '*_test.go' -exec grep -l '^func TestIntegration' '{}' '+' | grep -o '\(.*\)/' | sort -u)
 
 all: deps build
-
+# Dummy
 ##@ Dependencies
 
 deps-go: ## Install backend dependencies.
