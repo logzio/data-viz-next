@@ -178,6 +178,9 @@ func createRequest(ctx context.Context, method string, u *url.URL, bodyReader io
 
 		request.Header = logzIoHeaders.GetDatasourceQueryHeaders(request.Header)
 	}
+	if request.Header.Get("Query-Source") == "" {
+		request.Header.Set("Query-Source", "GRAFANA")
+	}
 
 	logger.Debug("created request", "headers", request.Header, "url", request.URL)
 

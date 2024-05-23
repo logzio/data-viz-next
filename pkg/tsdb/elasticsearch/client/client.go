@@ -175,7 +175,7 @@ func (c *baseClientImpl) executeRequest(method, uriPath, uriQuery string, body [
 	req.Header = c.logzIoHeaders.GetDatasourceQueryHeaders(req.Header) // LOGZ.IO GRAFANA CHANGE :: DEV-43883 Support external alert evaluation
 
 	req.Header.Set("Content-Type", "application/json") // LOGZ.IO GRAFANA CHANGE :: DEV-43744 use application/json to interact with query-service
-	c.logger.Debug("request headers", "headers", req.Header)
+	c.logger.Debug("request details", "headers", req.Header, "url", req.URL.String())
 	//nolint:bodyclose
 	resp, err := c.ds.HTTPClient.Do(req)
 	if err != nil {
@@ -288,14 +288,26 @@ func (c *baseClientImpl) createMultiSearchRequests(searchRequests []*SearchReque
 func (c *baseClientImpl) getMultiSearchQueryParameters() string {
 	var qs []string
 
-	// LOGZ.IO GRAFANA CHANGE :: DEV-43889 Grafana alerts evaluation - set 'accountsToSearch' query param
+	// LOGZ.IO GRAFANA CHANGE :: DEV-43889 Grafana alerts evaluation - set 'accountsToSearch' and 'querySource' params
+	var querySourceFromLogzHeaders []string
+	headers := c.logzIoHeaders.RequestHeaders
+	if headers != nil {
+		querySourceFromLogzHeaders = headers["Query-Source"]
+		if len(querySourceFromLogzHeaders) > 0 {
+			qs = append(qs, fmt.Sprintf("querySource=%s", querySourceFromLogzHeaders[0]))
+		}
+	}
+
 	datasourceUrl, _ := url.Parse(c.ds.URL)
 	q, _ := url.ParseQuery(datasourceUrl.RawQuery)
-	if len(q.Get("querySource")) > 0 {
-		// set/override 'accountsToSearch' as Database (accountId)
-		qs = append(qs, fmt.Sprintf("accountsToSearch=%s", c.ds.Database))
-		qs = append(qs, "querySource=INTERNAL_METRICS_ALERTS")
+	for key, values := range q {
+		if key != "querySource" || len(querySourceFromLogzHeaders) == 0 {
+			for _, v := range values {
+				qs = append(qs, fmt.Sprintf("%s=%s", key, v))
+			}
+		}
 	}
+
 	// LOGZ.IO end
 
 	maxConcurrentShardRequests := c.ds.MaxConcurrentShardRequests
