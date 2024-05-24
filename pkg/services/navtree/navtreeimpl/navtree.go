@@ -158,7 +158,7 @@ func (s *ServiceImpl) GetNavTree(c *contextmodel.ReqContext, prefs *pref.Prefere
 	orgAdminNode, err := s.getAdminNode(c)
 
 	if orgAdminNode != nil {
-		treeRoot.AddSection(orgAdminNode)
+		// treeRoot.AddSection(orgAdminNode) LOGZ.IO GRAFANA CHANGE :: hide administration from menu
 	} else if err != nil {
 		return nil, err
 	}
