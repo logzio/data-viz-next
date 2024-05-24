@@ -485,7 +485,7 @@ func (s *ServiceImpl) buildDataConnectionsNavLink(c *contextmodel.ReqContext) *n
 
 	baseUrl := s.cfg.AppSubURL + "/connections"
 
-	if hasAccess(datasources.ConfigurationPageAccess) {
+	if false && hasAccess(datasources.ConfigurationPageAccess) { // LOGZ.IO GRAFANA CHANGE :: hide datasources menu, should be done by altering permissions
 		// Add new connection
 		children = append(children, &navtree.NavLink{
 			Id:       "connections-add-new-connection",
