@@ -50,7 +50,7 @@ export const TopSearchBar = React.memo(function TopSearchBar() {
 
       <TopSearchBarSection align="right">
         <QuickAdd />
-        {enrichedHelpNode &&  ( 
+        {enrichedHelpNode && ( 
           <Dropdown overlay={() => <TopNavBarMenu node={enrichedHelpNode} />} placement="bottom-end">
             <ToolbarButton iconOnly icon="question-circle" aria-label="Help" />
           </Dropdown>

@@ -10,7 +10,7 @@ export interface BrandComponentProps {
 }
 
 export const LoginLogo: FC<BrandComponentProps & { logo?: string }> = ({ className, logo }) => {
-  return null;
+  return null; // LOGZ.IO GRAFANA CHANGE :: remove original logo
   return <img className={className} src={`${logo ? logo : 'public/img/grafana_icon.svg'}`} alt="Grafana" />;
 };
 
