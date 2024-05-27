@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
+	"net/http" // LOGZ.IO GRAFANA CHANGE :: DEV-43889 - Add headers for logzio datasources support
 	"strings"
 	"time"
 
