@@ -3,6 +3,7 @@ package models
 
 import (
 	"net/http"
+	"net/url"
 )
 
 type LogzIoHeaders struct {
@@ -22,7 +23,10 @@ func (logzioHeaders *LogzIoHeaders) GetDatasourceQueryHeaders(grafanaGeneratedHe
 	for _, whitelistedHeader := range logzioHeadersWhitelist {
 		if requestHeader := logzioGrafanaRequestHeaders.Get(whitelistedHeader); requestHeader != "" {
 			if whitelistedHeader == "X-Logz-Query-Context" {
-				datasourceRequestHeaders.Set("User-Context", requestHeader)
+				unescapedHeader, err := url.PathUnescape(requestHeader)
+				if err == nil {
+					datasourceRequestHeaders.Set("User-Context", unescapedHeader)
+				}
 			} else {
 				datasourceRequestHeaders.Set(whitelistedHeader, requestHeader)
 			}

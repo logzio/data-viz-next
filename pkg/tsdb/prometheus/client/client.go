@@ -3,8 +3,8 @@ package client
 import (
 	"bytes"
 	"context"
-	"github.com/grafana/grafana/pkg/infra/log"
-	m "github.com/grafana/grafana/pkg/models"
+	"github.com/grafana/grafana/pkg/infra/log" // LOGZ.IO GRAFANA CHANGE :: DEV-43889 - Add headers for logzio datasources support
+	m "github.com/grafana/grafana/pkg/models"  // LOGZ.IO GRAFANA CHANGE :: DEV-43889 - Add headers for logzio datasources support
 	"io"
 	"net/http"
 	"net/url"
@@ -167,6 +167,7 @@ func createRequest(ctx context.Context, method string, u *url.URL, bodyReader io
 		request.Header["Idempotency-Key"] = nil
 	}
 
+	// LOGZ.IO GRAFANA CHANGE :: DEV-43889 - Add headers for logzio datasources support
 	logger := log.New(ctx)
 	logzHeaders := ctx.Value("logzioHeaders")
 	if logzHeaders != nil {
@@ -183,6 +184,7 @@ func createRequest(ctx context.Context, method string, u *url.URL, bodyReader io
 	}
 
 	logger.Debug("created request", "headers", request.Header, "url", request.URL)
+	// LOGZ.IO GRAFANA CHANGE :: End
 
 	return request, nil
 }
@@ -190,12 +192,3 @@ func createRequest(ctx context.Context, method string, u *url.URL, bodyReader io
 func formatTime(t time.Time) string {
 	return strconv.FormatFloat(float64(t.Unix())+float64(t.Nanosecond())/1e9, 'f', -1, 64)
 }
-
-// LOGZ.IO GRAFANA CHANGE :: DEV-43889 - Add headers for logzio datasources support
-func (c *Client) addHeaders(headers map[string]string, req *http.Request) {
-	for k, v := range headers {
-		req.Header[k] = []string{v}
-	}
-}
-
-// LOGZ.IO GRAFANA CHANGE :: End
