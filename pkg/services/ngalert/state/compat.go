@@ -3,7 +3,7 @@ package state
 import (
 	"encoding/json"
 	"fmt"
-	"net/http" // LOGZ.IO GRAFANA CHANGE :: DEV-37746: Add switch to account query param
+	"net/http" // LOGZ.IO GRAFANA CHANGE :: DEV-45327: Add switch to account query param
 	"net/url"
 	"path"
 	"strconv"
