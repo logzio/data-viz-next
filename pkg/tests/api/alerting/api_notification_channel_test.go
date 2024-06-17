@@ -1298,7 +1298,7 @@ func (nc *mockNotificationChannel) matchesExpNotifications(t *testing.T, exp map
 				r1 = regexp.MustCompile(`.*"source"\s*:\s*"([^"]+)"`)
 			case "googlechat_recv/googlechat_test":
 				// "Grafana v | 25 May 21 17:44 IST"
-				r1 = regexp.MustCompile(`.*"text"\s*:\s*"(Grafana v[^"]+)"`)
+				r1 = regexp.MustCompile(`.*"text"\s*:\s*"([^"]+)"`) // LOGZ.IO GRAFANA CHANGE :: DEV-43549 Fix Google chat notification messages
 			case "victorops_recv/victorops_test":
 				// It has a time component "timestamp".
 				r1 = regexp.MustCompile(`.*"timestamp"\s*:\s*([0-9]+)`)
@@ -2755,7 +2755,7 @@ var expNonEmailNotifications = map[string][]string{
 					  "buttons": [
 						{
 						  "textButton": {
-							"text": "OPEN IN GRAFANA",
+							"text": "OPEN IN LOGZIO",
 							"onClick": {
 							  "openLink": {
 								"url": "http://localhost:3000/alerting/list"
