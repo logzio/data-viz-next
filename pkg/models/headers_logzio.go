@@ -6,8 +6,6 @@ import (
 	"net/url"
 )
 
-const LogzioRequestIdHeaderName string = "x-request-id"
-
 type LogzIoHeaders struct {
 	RequestHeaders http.Header
 }
@@ -16,7 +14,6 @@ var logzioHeadersWhitelist = []string{
 	"user-context",
 	"X-Logz-Query-Context",
 	"Query-Source",
-	LogzioRequestIdHeaderName,
 }
 
 func (logzioHeaders *LogzIoHeaders) GetDatasourceQueryHeaders(grafanaGeneratedHeaders http.Header) http.Header {

@@ -249,7 +249,6 @@ func (r *xormRepositoryImpl) Get(ctx context.Context, query *annotations.ItemQue
 	var sql bytes.Buffer
 	params := make([]interface{}, 0)
 	items := make([]*annotations.ItemDTO, 0)
-	// LOGZ.IO GRAFANA CHANGE :: DEV-19056 - usr.login to usr.name as login field
 	err := r.db.WithDbSession(ctx, func(sess *db.Session) error {
 		sql.WriteString(`
 			SELECT
@@ -267,7 +266,7 @@ func (r *xormRepositoryImpl) Get(ctx context.Context, query *annotations.ItemQue
 				annotation.created,
 				annotation.updated,
 				usr.email,
-				usr.name as login,
+				usr.login,
 				alert.name as alert_name
 			FROM annotation
 			LEFT OUTER JOIN ` + r.db.GetDialect().Quote("user") + ` as usr on usr.id = annotation.user_id
