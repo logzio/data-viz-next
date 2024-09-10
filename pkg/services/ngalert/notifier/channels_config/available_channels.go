@@ -1340,6 +1340,110 @@ func GetAvailableNotifiers() []*NotifierPlugin {
 			},
 		},
 		{
+			Type:        "logzio_opsgenie",
+			Name:        "LogzioOpsGenie",
+			Description: "Sends notifications to OpsGenie",
+			Heading:     "LogzioOpsGenie settings",
+			Options: []NotifierOption{
+				{
+					Label:        "API Key",
+					Element:      ElementTypeInput,
+					InputType:    InputTypeText,
+					Placeholder:  "LogzioOpsGenie API Key",
+					PropertyName: "apiKey",
+					Required:     true,
+					Secure:       true,
+				},
+				{
+					Label:        "Alert API URL",
+					Element:      ElementTypeInput,
+					InputType:    InputTypeText,
+					Placeholder:  "https://api.opsgenie.com/v1/json/logzio",
+					PropertyName: "apiUrl",
+					Required:     true,
+				},
+				{
+					Label:        "Message",
+					Description:  "Alert text limited to 130 characters.",
+					Element:      ElementTypeInput,
+					InputType:    InputTypeText,
+					Placeholder:  alertingTemplates.DefaultMessageTitleEmbed,
+					PropertyName: "message",
+				},
+				{
+					Label:        "Description",
+					Description:  "A description of the incident.",
+					Element:      ElementTypeTextArea,
+					PropertyName: "description",
+				},
+				{
+					Label:        "Auto close incidents",
+					Element:      ElementTypeCheckbox,
+					Description:  "Automatically close alerts in LogzioOpsGenie once the alert goes back to ok.",
+					PropertyName: "autoClose",
+				}, {
+					Label:        "Override priority",
+					Element:      ElementTypeCheckbox,
+					Description:  "Allow the alert priority to be set using the og_priority annotation",
+					PropertyName: "overridePriority",
+				},
+				{
+					Label:   "Send notification tags as",
+					Element: ElementTypeSelect,
+					SelectOptions: []SelectOption{
+						{
+							Value: alertingOpsgenie.SendTags,
+							Label: "Tags",
+						},
+						{
+							Value: alertingOpsgenie.SendDetails,
+							Label: "Extra Properties",
+						},
+						{
+							Value: alertingOpsgenie.SendBoth,
+							Label: "Tags & Extra Properties",
+						},
+					},
+					Description:  "Send the common annotations to LogzioOpsgenie as either Extra Properties, Tags or both",
+					PropertyName: "sendTagsAs",
+				},
+				// New in 10.3
+				{
+					Label:        "Responders",
+					PropertyName: "responders",
+					Description:  "If the API key belongs to a team, this field is ignored.",
+					Element:      ElementSubformArray,
+					SubformOptions: []NotifierOption{
+						{
+							Label:        "Type",
+							Description:  fmt.Sprintf("%s or a template", strings.Join(alertingOpsgenie.SupportedResponderTypes, ", ")),
+							Element:      ElementTypeInput,
+							Required:     true,
+							PropertyName: "type",
+						},
+						{
+							Label:        "Name",
+							Element:      ElementTypeInput,
+							Description:  "Name of the responder. Must be specified if ID and Username are empty or if the type is 'teams'.",
+							PropertyName: "name",
+						},
+						{
+							Label:        "ID",
+							Element:      ElementTypeInput,
+							Description:  "ID of the responder. Must be specified if name and Username are empty.",
+							PropertyName: "id",
+						},
+						{
+							Label:        "Username",
+							Element:      ElementTypeInput,
+							Description:  "User name of the responder. Must be specified if ID and Name are empty.",
+							PropertyName: "username",
+						},
+					},
+				},
+			},
+		},
+		{
 			Type:        "webex",
 			Name:        "Cisco Webex Teams",
 			Description: "Sends notifications to Cisco Webex Teams",
