@@ -1355,14 +1355,6 @@ func GetAvailableNotifiers() []*NotifierPlugin {
 					Secure:       true,
 				},
 				{
-					Label:        "Alert API URL",
-					Element:      ElementTypeInput,
-					InputType:    InputTypeText,
-					Placeholder:  "https://api.opsgenie.com/v1/json/logzio",
-					PropertyName: "apiUrl",
-					Required:     true,
-				},
-				{
 					Label:        "Message",
 					Description:  "Alert text limited to 130 characters.",
 					Element:      ElementTypeInput,
