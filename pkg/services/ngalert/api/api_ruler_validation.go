@@ -54,7 +54,7 @@ func validateRuleNode(
 		}
 	}
 
-	errorState := ngmodels.OkErrState // LOGZ.IO GRAFANA CHANGE :: DEV-46410 - // LOGZ.IO GRAFANA CHANGE :: DEV-46410 - Change default ExecErrState to OK
+	errorState := ngmodels.OkErrState // LOGZ.IO GRAFANA CHANGE :: DEV-46410 - Change default ExecErrState to OK
 
 	if ruleNode.GrafanaManagedAlert.ExecErrState == "" && canPatch {
 		errorState = ""
