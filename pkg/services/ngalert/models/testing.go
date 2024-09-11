@@ -35,14 +35,17 @@ func AlertRuleGen(mutators ...AlertRuleMutator) func() *AlertRule {
 			return s[rand.Intn(len(s))]
 		}
 
-		randErrState := func() ExecutionErrorState {
-			s := [...]ExecutionErrorState{
-				AlertingErrState,
-				ErrorErrState,
-				OkErrState,
-			}
-			return s[rand.Intn(len(s))]
-		}
+		// LOGZ.IO GRAFANA CHANGE :: DEV-46410 - Change default ExecErrState to OK and enforce OK state to validation
+		//randErrState := func() ExecutionErrorState {
+		//	s := [...]ExecutionErrorState{
+		//		AlertingErrState,
+		//		ErrorErrState,
+		//		OkErrState,
+		//	}
+		//	return s[rand.Intn(len(s))]
+		//}
+		randErrState := func() ExecutionErrorState { return OkErrState }
+		// LOGZ.IO GRAFANA CHANGE :: End
 
 		interval := (rand.Int63n(6) + 1) * 10
 		forInterval := time.Duration(interval*rand.Int63n(6)) * time.Second

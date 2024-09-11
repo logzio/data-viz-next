@@ -40,7 +40,7 @@
         "namespace_uid": "<dynamic>",
         "rule_group": "Group1",
         "no_data_state": "NoData",
-        "exec_err_state": "Alerting",
+        "exec_err_state": "OK",
         "is_paused": false
       }
     },
@@ -82,7 +82,7 @@
         "namespace_uid": "<dynamic>",
         "rule_group": "Group1",
         "no_data_state": "NoData",
-        "exec_err_state": "Alerting",
+        "exec_err_state": "OK",
         "is_paused": false
       }
     }

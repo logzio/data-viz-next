@@ -133,7 +133,7 @@ func CreateTestAlertRuleWithLabels(t testing.TB, ctx context.Context, dbstore *s
 			NamespaceUID:    folderUID,
 			RuleGroup:       ruleGroup,
 			NoDataState:     models.NoData,
-			ExecErrState:    models.AlertingErrState,
+			ExecErrState:    models.OkErrState, // LOGZ.IO GRAFANA CHANGE :: DEV-46410 - Change default ExecErrState to OK
 		},
 	})
 	require.NoError(t, err)

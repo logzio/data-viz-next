@@ -7,7 +7,7 @@
         "title": "Hysteresis Test",
         "condition": "C",
         "no_data_state": "NoData",
-        "exec_err_state": "Error",
+        "exec_err_state": "OK",
         "data": [
           {
             "refId": "A",

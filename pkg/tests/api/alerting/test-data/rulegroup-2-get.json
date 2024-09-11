@@ -40,7 +40,7 @@
         "namespace_uid": "<dynamic>",
         "rule_group": "Group2",
         "no_data_state": "NoData",
-        "exec_err_state": "Error",
+        "exec_err_state": "OK",
         "is_paused": false
       }
     }

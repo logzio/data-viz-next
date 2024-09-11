@@ -25,7 +25,7 @@
             }
           ],
           "no_data_state": "NoData",
-          "exec_err_state": "Alerting",
+          "exec_err_state": "OK",
           "notification_settings": {
             "receiver": "rule-receiver",
             "group_by": [

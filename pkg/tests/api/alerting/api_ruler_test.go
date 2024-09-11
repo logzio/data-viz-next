@@ -971,7 +971,7 @@ func TestIntegrationRulerRulesFilterByDashboard(t *testing.T) {
 							},
 						},
 						NoDataState:  apimodels.NoDataState(ngmodels.Alerting),
-						ExecErrState: apimodels.ExecutionErrorState(ngmodels.AlertingErrState),
+						ExecErrState: apimodels.ExecutionErrorState(ngmodels.OkErrState), // LOGZ.IO GRAFANA CHANGE :: DEV-46410 - Change default ExecErrState to OK
 					},
 				},
 			},
@@ -981,6 +981,7 @@ func TestIntegrationRulerRulesFilterByDashboard(t *testing.T) {
 		require.Len(t, resp.Created, len(rules.Rules))
 	}
 
+	// LOGZ.IO GRAFANA CHANGE :: DEV-46410 - Change default ExecErrState to OK
 	expectedAllJSON := fmt.Sprintf(`
 {
 	"default": [{
@@ -1021,7 +1022,7 @@ func TestIntegrationRulerRulesFilterByDashboard(t *testing.T) {
 				"namespace_uid": "nsuid",
 				"rule_group": "anotherrulegroup",
 				"no_data_state": "NoData",
-				"exec_err_state": "Alerting"
+				"exec_err_state": "OK"
 			}
 		}, {
 			"expr": "",
@@ -1054,7 +1055,7 @@ func TestIntegrationRulerRulesFilterByDashboard(t *testing.T) {
 				"namespace_uid": "nsuid",
 				"rule_group": "anotherrulegroup",
 				"no_data_state": "Alerting",
-				"exec_err_state": "Alerting"
+				"exec_err_state": "OK"
 			}
 		}]
 	}]
@@ -1099,7 +1100,7 @@ func TestIntegrationRulerRulesFilterByDashboard(t *testing.T) {
 				"namespace_uid": "nsuid",
 				"rule_group": "anotherrulegroup",
 				"no_data_state": "NoData",
-				"exec_err_state": "Alerting"
+				"exec_err_state": "OK"
 			}
 		}]
 	}]

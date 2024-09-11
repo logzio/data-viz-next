@@ -135,7 +135,7 @@ func TestIntegrationPrometheusRules(t *testing.T) {
 							},
 						},
 						NoDataState:  apimodels.NoDataState(ngmodels.Alerting),
-						ExecErrState: apimodels.ExecutionErrorState(ngmodels.AlertingErrState),
+						ExecErrState: apimodels.ExecutionErrorState(ngmodels.OkErrState), // LOGZ.IO GRAFANA CHANGE :: DEV-46410 - Change default ExecErrState to OK
 					},
 				},
 			},
@@ -416,7 +416,7 @@ func TestIntegrationPrometheusRulesFilterByDashboard(t *testing.T) {
 							},
 						},
 						NoDataState:  apimodels.NoDataState(ngmodels.Alerting),
-						ExecErrState: apimodels.ExecutionErrorState(ngmodels.AlertingErrState),
+						ExecErrState: apimodels.ExecutionErrorState(ngmodels.OkErrState), // LOGZ.IO GRAFANA CHANGE :: DEV-46410 - Change default ExecErrState to OK
 					},
 				},
 			},

@@ -351,7 +351,7 @@ func TestIntegrationProvisioning(t *testing.T) {
 
 	t.Run("when provisioning alert rules", func(t *testing.T) {
 		url := fmt.Sprintf("http://%s/api/v1/provisioning/alert-rules", grafanaListedAddr)
-		body := `{"orgID":1,"folderUID":"default","ruleGroup":"Test Group","title":"Provisioned","condition":"A","data":[{"refId":"A","queryType":"","relativeTimeRange":{"from":600,"to":0},"datasourceUid":"f558c85f-66ad-4fd1-b31d-7979e6c93db4","model":{"editorMode":"code","exemplar":false,"expr":"sum(rate(low_card[5m])) \u003e 0","format":"time_series","instant":true,"intervalMs":1000,"legendFormat":"__auto","maxDataPoints":43200,"range":false,"refId":"A"}}],"noDataState":"NoData","execErrState":"Error","for":"0s"}`
+		body := `{"orgID":1,"folderUID":"default","ruleGroup":"Test Group","title":"Provisioned","condition":"A","data":[{"refId":"A","queryType":"","relativeTimeRange":{"from":600,"to":0},"datasourceUid":"f558c85f-66ad-4fd1-b31d-7979e6c93db4","model":{"editorMode":"code","exemplar":false,"expr":"sum(rate(low_card[5m])) \u003e 0","format":"time_series","instant":true,"intervalMs":1000,"legendFormat":"__auto","maxDataPoints":43200,"range":false,"refId":"A"}}],"noDataState":"NoData","execErrState":"OK","for":"0s"}` // LOGZ.IO GRAFANA CHANGE :: DEV-46410 - Change default ExecErrState to OK
 		req := createTestRequest("POST", url, "admin", body)
 		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
