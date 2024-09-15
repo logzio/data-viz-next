@@ -1355,14 +1355,6 @@ func GetAvailableNotifiers() []*NotifierPlugin {
 					Secure:       true,
 				},
 				{
-					Label:        "Message",
-					Description:  "Alert text limited to 130 characters.",
-					Element:      ElementTypeInput,
-					InputType:    InputTypeText,
-					Placeholder:  alertingTemplates.DefaultMessageTitleEmbed,
-					PropertyName: "message",
-				},
-				{
 					Label:        "Description",
 					Description:  "A description of the incident.",
 					Element:      ElementTypeTextArea,
@@ -1373,11 +1365,6 @@ func GetAvailableNotifiers() []*NotifierPlugin {
 					Element:      ElementTypeCheckbox,
 					Description:  "Automatically close alerts in LogzioOpsGenie once the alert goes back to ok.",
 					PropertyName: "autoClose",
-				}, {
-					Label:        "Override priority",
-					Element:      ElementTypeCheckbox,
-					Description:  "Allow the alert priority to be set using the og_priority annotation",
-					PropertyName: "overridePriority",
 				},
 				{
 					Label:   "Send notification tags as",
@@ -1398,40 +1385,6 @@ func GetAvailableNotifiers() []*NotifierPlugin {
 					},
 					Description:  "Send the common annotations to LogzioOpsgenie as either Extra Properties, Tags or both",
 					PropertyName: "sendTagsAs",
-				},
-				// New in 10.3
-				{
-					Label:        "Responders",
-					PropertyName: "responders",
-					Description:  "If the API key belongs to a team, this field is ignored.",
-					Element:      ElementSubformArray,
-					SubformOptions: []NotifierOption{
-						{
-							Label:        "Type",
-							Description:  fmt.Sprintf("%s or a template", strings.Join(alertingOpsgenie.SupportedResponderTypes, ", ")),
-							Element:      ElementTypeInput,
-							Required:     true,
-							PropertyName: "type",
-						},
-						{
-							Label:        "Name",
-							Element:      ElementTypeInput,
-							Description:  "Name of the responder. Must be specified if ID and Username are empty or if the type is 'teams'.",
-							PropertyName: "name",
-						},
-						{
-							Label:        "ID",
-							Element:      ElementTypeInput,
-							Description:  "ID of the responder. Must be specified if name and Username are empty.",
-							PropertyName: "id",
-						},
-						{
-							Label:        "Username",
-							Element:      ElementTypeInput,
-							Description:  "User name of the responder. Must be specified if ID and Name are empty.",
-							PropertyName: "username",
-						},
-					},
 				},
 			},
 		},
