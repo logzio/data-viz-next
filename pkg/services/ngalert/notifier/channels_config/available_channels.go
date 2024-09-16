@@ -1366,26 +1366,6 @@ func GetAvailableNotifiers() []*NotifierPlugin {
 					Description:  "Automatically close alerts in LogzioOpsGenie once the alert goes back to ok.",
 					PropertyName: "autoClose",
 				},
-				{
-					Label:   "Send notification tags as",
-					Element: ElementTypeSelect,
-					SelectOptions: []SelectOption{
-						{
-							Value: alertingOpsgenie.SendTags,
-							Label: "Tags",
-						},
-						{
-							Value: alertingOpsgenie.SendDetails,
-							Label: "Extra Properties",
-						},
-						{
-							Value: alertingOpsgenie.SendBoth,
-							Label: "Tags & Extra Properties",
-						},
-					},
-					Description:  "Send the common annotations to LogzioOpsgenie as either Extra Properties, Tags or both",
-					PropertyName: "sendTagsAs",
-				},
 			},
 		},
 		{
