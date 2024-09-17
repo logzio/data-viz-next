@@ -782,7 +782,7 @@ func TestAlertRulePostExport(t *testing.T) {
 		pathsToIgnore := []string{
 			"Groups.Rules.UID",
 			"Groups.Folder",
-			"Data.Model",                // Model is not amended with default values
+			"Data.Model", // Model is not amended with default values
 			"Groups.Rules.ExecErrState", // LOGZ.IO GRAFANA CHANGE :: DEV-46410 - Change default ExecErrState to OK and enforce OK value
 		}
 
