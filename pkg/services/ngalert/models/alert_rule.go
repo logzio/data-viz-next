@@ -495,6 +495,10 @@ func (alertRule *AlertRule) ValidateAlertRule(cfg setting.UnifiedAlertingSetting
 		return fmt.Errorf("%w: cannot have Panel ID without a Dashboard UID", ErrAlertRuleFailedValidation)
 	}
 
+	if _, err := ErrStateFromString(string(alertRule.ExecErrState)); err != nil {
+		return err
+	}
+
 	if _, err := NoDataStateFromString(string(alertRule.NoDataState)); err != nil {
 		return err
 	}
