@@ -137,6 +137,7 @@ func (st DBstore) InsertAlertRules(ctx context.Context, rules []ngmodels.AlertRu
 				r.UID = uid
 			}
 			r.Version = 1
+			r.ExecErrState = ngmodels.OkErrState // LOGZ.IO GRAFANA CHANGE :: DEV-46410 - Change default ExecErrState to OK and enforce OK value
 			if err := st.validateAlertRule(r); err != nil {
 				return err
 			}

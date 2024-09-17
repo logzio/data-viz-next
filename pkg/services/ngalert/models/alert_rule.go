@@ -494,15 +494,6 @@ func (alertRule *AlertRule) ValidateAlertRule(cfg setting.UnifiedAlertingSetting
 	if alertRule.DashboardUID == nil && alertRule.PanelID != nil {
 		return fmt.Errorf("%w: cannot have Panel ID without a Dashboard UID", ErrAlertRuleFailedValidation)
 	}
-	// LOGZ.IO GRAFANA CHANGE :: DEV-46410 - Change default ExecErrState to OK and enforce OK state to validation
-	if errState, err := ErrStateFromString(string(alertRule.ExecErrState)); err != nil {
-		return err
-	} else {
-		if errState != OkErrState {
-			return fmt.Errorf("%w: rule can only be with ExecErrState OK", ErrAlertRuleFailedValidation)
-		}
-	}
-	// LOGZ.IO GRAFANA CHANGE :: End
 
 	if _, err := NoDataStateFromString(string(alertRule.NoDataState)); err != nil {
 		return err

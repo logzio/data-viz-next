@@ -28,7 +28,7 @@
             }
           ],
           "noDataState": "NoData",
-          "execErrState": "OK",
+          "execErrState": "Alerting",
           "for": "5m",
           "annotations": {
             "annotation": "test-annotation"
@@ -59,7 +59,7 @@
             }
           ],
           "noDataState": "NoData",
-          "execErrState": "OK",
+          "execErrState": "Alerting",
           "for": "5m",
           "annotations": {
             "annotation": "test-annotation"

@@ -24,7 +24,7 @@
           }
         ],
         "no_data_state": "NoData",
-        "exec_err_state": "OK"
+        "exec_err_state": "Error"
       }
     }
   ]
