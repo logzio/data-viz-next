@@ -572,7 +572,7 @@ func TestCreateAlertRule(t *testing.T) {
 	})
 
 	// LOGZ.IO GRAFANA CHANGE :: DEV-46410 - Change default ExecErrState to OK and enforce OK value
-	t.Run("should create rule with OK state enforced", func(t *testing.T) {
+	t.Run("should create rule with ExecErrState OK state enforced", func(t *testing.T) {
 		rule := dummyRule("test-create-errstate", orgID)
 		rule.ExecErrState = models.AlertingErrState
 		rule, err := ruleService.CreateAlertRule(context.Background(), rule, models.ProvenanceNone, 0)
