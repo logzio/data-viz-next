@@ -1342,7 +1342,7 @@ func GetAvailableNotifiers() []*NotifierPlugin {
 		{
 			Type:        "logzio_opsgenie",
 			Name:        "LogzioOpsGenie",
-			Description: "Sends notifications to OpsGenie",
+			Description: "Sends notifications to OpsGenie with Logz.io integration",
 			Heading:     "LogzioOpsGenie settings",
 			Options: []NotifierOption{
 				{
