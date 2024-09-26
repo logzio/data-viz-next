@@ -121,6 +121,7 @@ type OpsgenieIntegration struct {
 	Responders       []OpsgenieIntegrationResponder `json:"responders,omitempty" yaml:"responders,omitempty" hcl:"responders,block"`
 }
 
+// LOGZ.IO GRAFANA CHANGE :: DEV-46341: Add Logzio Opsgenie Integration
 type LogzioOpsgenieIntegration struct {
 	DisableResolveMessage *bool `json:"-" yaml:"-" hcl:"disable_resolve_message"`
 
@@ -133,6 +134,8 @@ type LogzioOpsgenieIntegration struct {
 	OverridePriority *bool   `json:"overridePriority,omitempty" yaml:"overridePriority,omitempty" hcl:"override_priority"`
 	SendTagsAs       *string `json:"sendTagsAs,omitempty" yaml:"sendTagsAs,omitempty" hcl:"send_tags_as"`
 }
+
+// LOGZ.IO GRAFANA CHANGE :: end
 
 type PagerdutyIntegration struct {
 	DisableResolveMessage *bool `json:"-" yaml:"-" hcl:"disable_resolve_message"`
@@ -291,7 +294,7 @@ type ContactPoint struct {
 	Kafka          []KafkaIntegration          `json:"kafka" yaml:"kafka" hcl:"kafka,block"`
 	Line           []LineIntegration           `json:"line" yaml:"line" hcl:"line,block"`
 	Opsgenie       []OpsgenieIntegration       `json:"opsgenie" yaml:"opsgenie" hcl:"opsgenie,block"`
-	LogzioOpsgenie []LogzioOpsgenieIntegration `json:"logzio_opsgenie" yaml:"logzio_opsgenie" hcl:"logzio_opsgenie,block"`
+	LogzioOpsgenie []LogzioOpsgenieIntegration `json:"logzio_opsgenie" yaml:"logzio_opsgenie" hcl:"logzio_opsgenie,block"` // LOGZ.IO GRAFANA CHANGE :: DEV-46341: Add Logzio Opsgenie Integration
 	Pagerduty      []PagerdutyIntegration      `json:"pagerduty" yaml:"pagerduty" hcl:"pagerduty,block"`
 	OnCall         []OnCallIntegration         `json:"oncall" yaml:"oncall" hcl:"oncall,block"`
 	Pushover       []PushoverIntegration       `json:"pushover" yaml:"pushover" hcl:"pushover,block"`

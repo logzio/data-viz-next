@@ -1339,6 +1339,7 @@ func GetAvailableNotifiers() []*NotifierPlugin {
 				},
 			},
 		},
+		// LOGZ.IO GRAFANA CHANGE :: DEV-46341 - Add support for logzio opsgenie integration
 		{
 			Type:        "logzio_opsgenie",
 			Name:        "LogzioOpsGenie",
@@ -1368,6 +1369,7 @@ func GetAvailableNotifiers() []*NotifierPlugin {
 				},
 			},
 		},
+		// LOGZ.IO GRAFANA CHANGE :: end
 		{
 			Type:        "webex",
 			Name:        "Cisco Webex Teams",
