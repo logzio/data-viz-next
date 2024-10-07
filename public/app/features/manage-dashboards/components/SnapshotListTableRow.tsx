@@ -14,13 +14,14 @@ export interface Props {
 
 const SnapshotListTableRowComponent = ({ snapshot, onRemove }: Props) => {
   const url = snapshot.externalUrl || snapshot.url;
+  // LOGZ.IO CHANGE :: DEV-46516 - fix shapshot url, line 24
   return (
     <tr>
       <td>
         <a href={url}>{snapshot.name}</a>
       </td>
       <td>
-        <a href={url}>{url}</a>
+        <a href={url}>{`${window.location.origin}${url}`}</a>
       </td>
       <td>
         {snapshot.external && (

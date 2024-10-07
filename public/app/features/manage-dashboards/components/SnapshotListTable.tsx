@@ -14,7 +14,7 @@ export function getSnapshots() {
     .then((result: Snapshot[]) => {
       return result.map((snapshot) => ({
         ...snapshot,
-        url: `${config.appUrl}dashboard/snapshot/${snapshot.key}`,
+        url: `/dashboard/snapshot/${snapshot.key}`, // LOGZ.IO CHANGE :: DEV-46516 - fix shapshot url
       }));
     });
 }
