@@ -30,8 +30,6 @@ import { getRulesSourceName, isCloudRulesSource, isGrafanaRulesSource } from '..
 import {
   createExploreLink,
   createShareLink,
-  isLocalDevEnv,
-  isOpenSourceEdition,
   makeRuleBasedSilenceLink,
 } from '../../utils/misc';
 import * as ruleId from '../../utils/rule-id';
