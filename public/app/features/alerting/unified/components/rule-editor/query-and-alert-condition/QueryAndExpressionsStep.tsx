@@ -371,6 +371,12 @@ export const QueryAndExpressionsStep = ({ editingExistingRule, onDataChange }: P
     removeExpressionsInQueries,
     condition,
   ]);
+  
+  // LOGZ.IO CHANGE :: DEV-46521 remove rule type switch. need this useless call
+  // in order to mitigate the not-in-use error
+  useEffect(() => {
+    onClickSwitch();
+  }, [onClickSwitch]);
 
   const { sectionTitle, helpLabel, helpContent, helpLink } = DESCRIPTIONS[type ?? RuleFormType.grafana];
 
