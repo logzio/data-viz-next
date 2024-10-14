@@ -42,6 +42,13 @@ export const AlertGroup = ({ alertManagerSourceName, group, expandAll }: Props) 
               start: new Date(alert.startsAt),
               end: Date.now(),
             });
+            
+            // LOGZ.IO CHANGE :: DEV-46517 - fix "see source button"
+            if (alert.generatorURL) {
+              const url = new URL(alert.generatorURL);
+              alert.generatorURL = url.hash.replace(/^#/, '/grafana-app');
+            }
+            // LOGZ.IO CHANGE :: DEV-46517 - fix "see source button" end
 
             return (
               <div data-testid={'alert-group-alert'} className={styles.alert} key={`${alert.fingerprint}-${index}`}>
@@ -75,9 +82,8 @@ export const AlertGroup = ({ alertManagerSourceName, group, expandAll }: Props) 
                       Silence
                     </LinkButton>
                   )}
-                  { /* LOGZ.IO CHANGE :: DEV-46517 - add link target to _top */ }
                   {alert.generatorURL && (
-                    <LinkButton target="_top" className={styles.button} href={alert.generatorURL} icon={'chart-line'} size={'sm'}>
+                    <LinkButton className={styles.button} href={alert.generatorURL} icon={'chart-line'} size={'sm'}>
                       See source
                     </LinkButton>
                   )}
