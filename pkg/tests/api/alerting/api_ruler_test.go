@@ -41,6 +41,7 @@ import (
 var testData embed.FS
 
 func TestIntegrationAlertRulePermissions(t *testing.T) {
+
 	testinfra.SQLiteIntegrationTest(t)
 
 	// Setup Grafana and its Database
