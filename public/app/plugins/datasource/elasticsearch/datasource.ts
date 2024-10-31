@@ -774,7 +774,9 @@ export class ElasticDatasource
           if (index && index.mappings) {
             const mappings = index.mappings;
 
-            const properties = mappings.properties;
+            // LOGZ.IO GRAFANA CHANGE :: DEV-46404 - mappings not showing on query building
+            // the format of the response depends on the esversion. we have v7 , seems to, which requires the _doc.
+            const properties = mappings.properties || mappings._doc.properties;
             getFieldsRecursively(properties);
           }
         }
@@ -1029,6 +1031,7 @@ export class ElasticDatasource
   }
 
   private getDatabaseVersionUncached(): Promise<SemVer | null> {
+    return Promise.resolve(null); // LOGZ.IO GRAFANA CHANGE :: DEV-46435-grafana-10-error-500-on-get-api-datasources-uid-uid-resources
     // we want this function to never fail
     const getDbVersionObservable = config.featureToggles.enableElasticsearchBackendQuerying
       ? from(this.getResourceRequest(''))

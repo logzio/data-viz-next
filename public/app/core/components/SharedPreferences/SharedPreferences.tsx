@@ -20,7 +20,6 @@ import { DashboardPicker } from 'app/core/components/Select/DashboardPicker';
 import { t, Trans } from 'app/core/internationalization';
 import { LANGUAGES } from 'app/core/internationalization/constants';
 import { PreferencesService } from 'app/core/services/PreferencesService';
-import { backendSrv } from "app/core/services/backend_srv";// LOGZ.IO GRAFANA CHANGE :: DEV-20609 Home dashboard
 import { changeTheme } from 'app/core/services/theme';
 
 export interface Props {
@@ -75,7 +74,7 @@ export class SharedPreferences extends PureComponent<Props, State> {
   }
 
   async componentDidMount() {
-    const prefs = await backendSrv.get(`/api/${this.props.resourceUri.toLowerCase()}/preferences`);// LOGZ.IO GRAFANA CHANGE :: DEV-20609 Home dashboard
+    const prefs = await this.service.load();
 
     this.setState({
       homeDashboardUID: prefs.homeDashboardUID,
@@ -92,14 +91,8 @@ export class SharedPreferences extends PureComponent<Props, State> {
     const confirmationResult = this.props.onConfirm ? await this.props.onConfirm() : true;
 
     if (confirmationResult) {
-      // LOGZ.IO GRAFANA CHANGE :: DEV-20609 Home dashboard
-      const { homeDashboardUID, theme, timezone } = this.state;
-      await backendSrv.put(`/api/${this.props.resourceUri.toLowerCase()}/preferences`, {
-        homeDashboardId: homeDashboardUID,
-        theme,
-        timezone,
-      });
-      // LOGZ.IO GRAFANA CHANGE :: end
+      const { homeDashboardUID, theme, timezone, weekStart, language, queryHistory } = this.state;
+      await this.service.update({ homeDashboardUID, theme, timezone, weekStart, language, queryHistory });
       window.location.reload();
     }
   };
