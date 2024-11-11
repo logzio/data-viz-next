@@ -422,7 +422,7 @@ func (sch *schedule) ruleRoutine(grafanaCtx context.Context, key ngmodels.AlertR
 	}
 
 	evaluate := func(ctx context.Context, f fingerprint, attempt int64, e *evaluation, span trace.Span, retry bool) error {
-		logger := logger.New("version", e.rule.Version, "fingerprint", f, "attempt", attempt, "eval_time", e.scheduledAt, "rule_uid", e.rule.UID, "org_id", e.rule.OrgID).FromContext(ctx) // LOGZ.IO GRAFANA CHANGE :: DEV-47164: Add observability to alerting
+		logger := logger.New("version", e.rule.Version, "fingerprint", f, "attempt", attempt, "eval_time", e.scheduledAt).FromContext(ctx) // LOGZ.IO GRAFANA CHANGE :: DEV-47164: Add observability to alerting
 		start := sch.clock.Now()
 
 		// LOGZ.IO GRAFANA CHANGE :: DEV-43889 - Add headers for logzio datasources support
@@ -588,7 +588,7 @@ func (sch *schedule) ruleRoutine(grafanaCtx context.Context, key ngmodels.AlertR
 					if tracingCtx.Err() != nil {
 						span.SetStatus(codes.Error, "rule evaluation cancelled")
 						span.End()
-						logger.Error("Skip evaluation and updating the state because the context has been cancelled", "version", ctx.rule.Version, "fingerprint", f, "attempt", attempt, "now", ctx.scheduledAt)
+						logger.Error("Skip evaluation and updating the state because the context has been cancelled", "version", ctx.rule.Version, "fingerprint", f, "attempt", attempt, "eval_time", ctx.scheduledAt)
 						return
 					}
 
@@ -601,10 +601,10 @@ func (sch *schedule) ruleRoutine(grafanaCtx context.Context, key ngmodels.AlertR
 						return
 					}
 
-					logger.Error("Failed to evaluate rule", "version", ctx.rule.Version, "fingerprint", f, "attempt", attempt, "now", ctx.scheduledAt, "error", err)
+					logger.Error("Failed to evaluate rule", "version", ctx.rule.Version, "fingerprint", f, "attempt", attempt, "eval_time", ctx.scheduledAt, "error", err)
 					select {
 					case <-tracingCtx.Done():
-						logger.Error("Context has been cancelled while backing off", "version", ctx.rule.Version, "fingerprint", f, "attempt", attempt, "now", ctx.scheduledAt)
+						logger.Error("Context has been cancelled while backing off", "version", ctx.rule.Version, "fingerprint", f, "attempt", attempt, "eval_time", ctx.scheduledAt)
 						return
 					case <-time.After(retryDelay):
 						continue
