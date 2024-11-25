@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/grafana/grafana/pkg/services/ngalert/store" // LOGZ.IO GRAFANA CHANGE :: DEV-47243 Handle state cache inconsistency on eval
+	"github.com/grafana/grafana/pkg/services/ngalert/store" // LOGZ.IO GRAFANA CHANGE :: DEV-47243 Handle state cache inconsistency on eval - warm cache in scheduler as temporary solution
 	"net/url"
 	"time"
 
@@ -101,7 +101,7 @@ type schedule struct {
 
 	scheduledEvalEnabled bool // LOGZ.IO GRAFANA CHANGE :: DEV-43744 Add scheduled evaluation enabled config
 
-	store *store.DBstore // LOGZ.IO GRAFANA CHANGE :: DEV-47243 Handle state cache inconsistency on eval
+	store *store.DBstore // LOGZ.IO GRAFANA CHANGE :: DEV-47243 Handle state cache inconsistency on eval - warm cache in scheduler as temporary solution
 }
 
 // SchedulerCfg is the scheduler configuration.
@@ -123,7 +123,7 @@ type SchedulerCfg struct {
 }
 
 // NewScheduler returns a new schedule.
-func NewScheduler(cfg SchedulerCfg, stateManager *state.Manager, store *store.DBstore) *schedule { // LOGZ.IO GRAFANA CHANGE :: DEV-47243 Handle state cache inconsistency on eval
+func NewScheduler(cfg SchedulerCfg, stateManager *state.Manager, store *store.DBstore) *schedule { // LOGZ.IO GRAFANA CHANGE :: DEV-47243 Handle state cache inconsistency on eval - warm cache in scheduler as temporary solution
 	const minMaxAttempts = int64(1)
 	if cfg.MaxAttempts < minMaxAttempts {
 		cfg.Log.Warn("Invalid scheduler maxAttempts, using a safe minimum", "configured", cfg.MaxAttempts, "actual", minMaxAttempts)
@@ -148,7 +148,7 @@ func NewScheduler(cfg SchedulerCfg, stateManager *state.Manager, store *store.DB
 		alertsSender:          cfg.AlertSender,
 		tracer:                cfg.Tracer,
 		scheduledEvalEnabled:  cfg.ScheduledEvalEnabled, // LOGZ.IO GRAFANA CHANGE :: DEV-43744 Add scheduled evaluation enabled config
-		store:                 store,                    // LOGZ.IO GRAFANA CHANGE :: DEV-47243 Handle state cache inconsistency on eval
+		store:                 store,                    // LOGZ.IO GRAFANA CHANGE :: DEV-47243 Handle state cache inconsistency on eval - warm cache in scheduler as temporary solution
 	}
 
 	return &sch
@@ -357,7 +357,7 @@ func (sch *schedule) processTick(ctx context.Context, dispatcherGroup *errgroup.
 		toDelete = append(toDelete, key)
 	}
 	sch.deleteAlertRule(toDelete...)
-	sch.stateManager.Warm(ctx, sch.store) // LOGZ.IO GRAFANA CHANGE :: DEV-47243 Handle state cache inconsistency on eval
+	sch.stateManager.Warm(ctx, sch.store) // LOGZ.IO GRAFANA CHANGE :: DEV-47243 Handle state cache inconsistency on eval - warm cache in scheduler as temporary solution
 	return readyToRun, registeredDefinitions, updatedRules
 }
 
