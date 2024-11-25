@@ -14,6 +14,7 @@ import (
 	"github.com/grafana/grafana/pkg/services/ngalert/schedule"
 	"github.com/grafana/grafana/pkg/setting"
 	"net/http"
+	"context"
 )
 
 type LogzioAlertingService struct {
@@ -53,13 +54,10 @@ func (srv *LogzioAlertingService) RouteEvaluateAlert(c *contextmodel.ReqContext,
 			FolderTitle: evalRequest.FolderTitle,
 			LogzHeaders: srv.addQuerySourceHeader(c),
 		}
-		err := srv.Schedule.RunRuleEvaluation(c.Req.Context(), evalReq)
 
-		if err != nil {
-			evaluationsErrors = append(evaluationsErrors, apimodels.AlertEvalRunResult{UID: evalRequest.AlertRule.UID, EvalTime: evalRequest.EvalTime, RunResult: err.Error()})
-		} else {
-			evaluationsErrors = append(evaluationsErrors, apimodels.AlertEvalRunResult{UID: evalRequest.AlertRule.UID, EvalTime: evalRequest.EvalTime, RunResult: "success"})
-		}
+		go func(ctx context.Context, request ngmodels.ExternalAlertEvaluationRequest) {
+			srv.Schedule.RunRuleEvaluation(ctx, request)
+		}(c.Req.Context(), evalReq)
 	}
 
 	c.Logger.Info("Evaluate Alert API - Done", "evalErrors", evaluationsErrors)
