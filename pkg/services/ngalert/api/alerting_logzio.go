@@ -15,6 +15,7 @@ import (
 	"github.com/grafana/grafana/pkg/setting"
 	"net/http"
 	"context"
+	"time"
 )
 
 type LogzioAlertingService struct {
@@ -56,9 +57,11 @@ func (srv *LogzioAlertingService) RouteEvaluateAlert(c *contextmodel.ReqContext,
 			LogzHeaders: srv.addQuerySourceHeader(c),
 		}
 
-		go func(ctx context.Context, request ngmodels.ExternalAlertEvaluationRequest) {
-			srv.Schedule.RunRuleEvaluation(ctx, request)
-		}(c.Req.Context(), evalReq)
+		var step = evalRequest.AlertRule.ID % 30
+
+		time.AfterFunc(time.Duration(step * time.Second.Nanoseconds()), func() {
+			srv.Schedule.RunRuleEvaluation(c.Req.Context(), evalReq)
+		})
 
 		results = append(results, apimodels.AlertEvalRunResult{UID: evalRequest.AlertRule.UID, EvalTime: evalRequest.EvalTime, RunResult: "success"})
 	}
