@@ -73,7 +73,7 @@ func (srv *LogzioAlertingService) addQuerySourceHeader(c *contextmodel.ReqContex
 }
 
 func (srv *LogzioAlertingService) RouteSendAlertNotifications(c *contextmodel.ReqContext, sendNotificationsRequest apimodels.AlertSendNotificationsRequest) response.Response {
-	logger := c.Logger.New(sendNotificationsRequest.AlertRuleKey.LogContext()).FromContext(c.Req.Context())
+	logger := c.Logger.New(sendNotificationsRequest.AlertRuleKey.LogContext()...).FromContext(c.Req.Context())
 	logger.Info("Sending alerts to local notifier", "count", len(sendNotificationsRequest.Alerts.PostableAlerts))
 	n, err := srv.MultiOrgAlertmanager.AlertmanagerFor(sendNotificationsRequest.AlertRuleKey.OrgID)
 	if err == nil {
