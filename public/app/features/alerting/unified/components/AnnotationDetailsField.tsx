@@ -44,7 +44,7 @@ const AnnotationValue = ({ annotationKey, value, valueLink }: Props) => {
 
   if (valueLink) {
     // LOGZ.IO GRAFANA CHANGE :: DEV-47446 - open external links in new tab with valid url
-    const href = value.match(/grafana-app/) ? value : `/grafana-app/${value}`;
+    const href = value.match(/grafana-app/) ? value : `/grafana-app${value}`;
     return (
       <TextLink href={valueLink} external>
         {value}
