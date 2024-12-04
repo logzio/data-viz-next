@@ -42,9 +42,10 @@ const AnnotationValue = ({ annotationKey, value, valueLink }: Props) => {
 
   const tokenizeValue = <Tokenize input={value} delimiter={['{{', '}}']} />;
 
+  // LOGZ.IO GRAFANA CHANGE :: DEV-47446 - make links internal ( remove 'external' )
   if (valueLink) {
     return (
-      <TextLink href={valueLink} external>
+      <TextLink href={valueLink}>
         {value}
       </TextLink>
     );
