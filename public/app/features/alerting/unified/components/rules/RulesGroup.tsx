@@ -122,7 +122,6 @@ export const RulesGroup = React.memo(({ group, namespace, expandAll, viewMode }:
               icon="folder-open"
               tooltip="go to folder"
               to={baseUrl}
-              target="__blank"
             />
           );
 
@@ -134,7 +133,6 @@ export const RulesGroup = React.memo(({ group, namespace, expandAll, viewMode }:
                 icon="lock"
                 tooltip="manage permissions"
                 to={baseUrl + '/permissions'}
-                target="__blank"
               />
             );
           }
