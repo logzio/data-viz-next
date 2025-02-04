@@ -91,9 +91,11 @@ l1Fields:
 	}
 
 	if len(warnings) > 0 {
+		// LOGZ.IO GRAFANA CHANGE :: DEV-48075 - Fix missing warning from NoData in prometheus converter
 		if len(rsp.Frames) == 0 {
 			rsp.Frames = append(rsp.Frames, data.NewFrame("Warnings"))
 		}
+		// LOGZ.IO GRAFANA CHANGE :: End
 
 		for _, frame := range rsp.Frames {
 			if frame.Meta == nil {
