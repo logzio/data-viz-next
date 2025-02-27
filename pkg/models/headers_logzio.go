@@ -43,6 +43,9 @@ func (logzioHeaders *LogzIoHeaders) GetDatasourceQueryHeaders(grafanaGeneratedHe
 					datasourceRequestHeaders.Set("User-Context", unescapedHeader)
 				}
 			} else {
+				if whitelistedHeader == LogzioRequestIdHeaderName {
+					datasourceRequestHeaders.Set("logzIoRequestId", requestHeader)
+				}
 				datasourceRequestHeaders.Set(whitelistedHeader, requestHeader)
 			}
 		}
