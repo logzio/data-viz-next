@@ -7,6 +7,8 @@ import (
 	"net/url"
 )
 
+const LogzioRequestIdHeaderName string = "x-request-id"
+
 type LogzIoHeaders struct {
 	RequestHeaders http.Header
 }
@@ -17,6 +19,7 @@ var logzioHeadersWhitelist = []string{
 	"user-context",
 	"X-Logz-Query-Context",
 	"Query-Source",
+	LogzioRequestIdHeaderName,
 }
 
 func WithLogzHeaders(ctx context.Context, requestHeaders http.Header) context.Context {

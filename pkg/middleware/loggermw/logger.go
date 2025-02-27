@@ -18,6 +18,7 @@ package loggermw
 import (
 	"errors"
 	"fmt"
+	"github.com/grafana/grafana/pkg/models" // LOGZ.IO GRAFANA CHANGE :: DEV-46691 - Add request ID to logs
 	"net/http"
 	"net/url"
 	"time"
@@ -111,6 +112,7 @@ func (l *loggerImpl) prepareLogParams(c *contextmodel.ReqContext, duration time.
 		"time_ms", int64(duration / time.Millisecond),
 		"duration", duration.String(),
 		"size", rw.Size(),
+		"requestId", c.Req.Header.Get(models.LogzioRequestIdHeaderName), // LOGZ.IO GRAFANA CHANGE :: DEV-46691 - Add request ID to logs
 	}
 
 	referer, err := SanitizeURL(r.Referer())

@@ -4,8 +4,10 @@ package api
 import (
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/grafana/grafana/pkg/api/response"
 	"github.com/grafana/grafana/pkg/infra/log"
+	"github.com/grafana/grafana/pkg/models"
 	contextmodel "github.com/grafana/grafana/pkg/services/contexthandler/model"
 	apimodels "github.com/grafana/grafana/pkg/services/ngalert/api/tooling/definitions"
 	"github.com/grafana/grafana/pkg/services/ngalert/eval"
@@ -47,31 +49,36 @@ func (srv *LogzioAlertingService) RouteEvaluateAlert(c *contextmodel.ReqContext,
 	var results []apimodels.AlertEvalRunResult
 
 	for _, evalRequest := range evalRequests {
-		c.Logger.Info("Evaluate Alert API", "eval_time", evalRequest.EvalTime, "rule_title", evalRequest.AlertRule.Title, "rule_uid", evalRequest.AlertRule.UID, "org_id", evalRequest.AlertRule.OrgID)
+		requestId := uuid.NewString()
+		c.Logger.Info("Evaluate Alert API", "eval_time", evalRequest.EvalTime, "rule_title", evalRequest.AlertRule.Title, "rule_uid", evalRequest.AlertRule.UID, "org_id", evalRequest.AlertRule.OrgID, "requestId", requestId)
 
 		evalReq := ngmodels.ExternalAlertEvaluationRequest{
 			AlertRule:   evalRequest.AlertRule,
 			EvalTime:    evalRequest.EvalTime,
 			FolderTitle: evalRequest.FolderTitle,
-			LogzHeaders: srv.addQuerySourceHeader(c),
+			LogzHeaders: srv.addLogzRequestHeaders(c, requestId),
 		}
 
 		var step = evalRequest.AlertRule.ID % 30
 
-		time.AfterFunc(time.Duration(step * time.Second.Nanoseconds()), func() {
-			srv.Schedule.RunRuleEvaluation(c.Req.Context(), evalReq)
+		time.AfterFunc(time.Duration(step*time.Second.Nanoseconds()), func() {
+			err := srv.Schedule.RunRuleEvaluation(c.Req.Context(), evalReq)
+			if err != nil {
+				c.Logger.Error("Failed to run rule evaluation", "error", err, "rule_title", evalRequest.AlertRule.Title, "rule_uid", evalRequest.AlertRule.UID, "org_id", evalRequest.AlertRule.OrgID, "requestId", requestId)
+			}
 		})
 
-		results = append(results, apimodels.AlertEvalRunResult{UID: evalRequest.AlertRule.UID, EvalTime: evalRequest.EvalTime, RunResult: "success"})
+		results = append(results, apimodels.AlertEvalRunResult{UID: evalRequest.AlertRule.UID, EvalTime: evalRequest.EvalTime, RunResult: requestId})
 	}
 
 	c.Logger.Info("Evaluate Alert API - Done", "results", results)
 	return response.JSON(http.StatusOK, apimodels.EvalRunsResponse{RunResults: results})
 }
 
-func (srv *LogzioAlertingService) addQuerySourceHeader(c *contextmodel.ReqContext) http.Header {
+func (srv *LogzioAlertingService) addLogzRequestHeaders(c *contextmodel.ReqContext, requestId string) http.Header {
 	requestHeaders := c.Req.Header.Clone()
 	requestHeaders.Set("Query-Source", "METRICS_ALERTS")
+	requestHeaders.Set(models.LogzioRequestIdHeaderName, requestId)
 	return requestHeaders
 }
 
