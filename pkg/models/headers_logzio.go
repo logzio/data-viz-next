@@ -8,6 +8,7 @@ import (
 )
 
 const LogzioRequestIdHeaderName string = "x-request-id"
+const LogzioInternalRequestIdHeaderName string = "logzIoRequestId"
 
 type LogzIoHeaders struct {
 	RequestHeaders http.Header
@@ -44,7 +45,7 @@ func (logzioHeaders *LogzIoHeaders) GetDatasourceQueryHeaders(grafanaGeneratedHe
 				}
 			} else {
 				if whitelistedHeader == LogzioRequestIdHeaderName {
-					datasourceRequestHeaders.Set("logzIoRequestId", requestHeader)
+					datasourceRequestHeaders.Set(LogzioInternalRequestIdHeaderName, requestHeader)
 				}
 				datasourceRequestHeaders.Set(whitelistedHeader, requestHeader)
 			}

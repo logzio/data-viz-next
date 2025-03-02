@@ -519,7 +519,7 @@ func (sch *schedule) ruleRoutine(grafanaCtx context.Context, key ngmodels.AlertR
 		))
 		if len(alerts.PostableAlerts) > 0 {
 			logger.Info("Sending postable alerts", "alerts", len(alerts.PostableAlerts)) // LOGZ.IO GRAFANA CHANGE :: DEV-47164: Add observability to alerting
-			sch.alertsSender.Send(ctx, key, alerts)
+			sch.alertsSender.Send(ctxWithLogzHeaders, key, alerts)
 		}
 		sendDuration.Observe(sch.clock.Now().Sub(start).Seconds())
 
