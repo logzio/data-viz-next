@@ -13,7 +13,7 @@ import (
 func GetAvailableNotifiers() []*NotifierPlugin {
 	hostname, _ := os.Hostname()
 
-	// LOGZ.IO GRAFANA CHANGE :: DEV-47388 Remove upsupported contact points
+	// LOGZ.IO GRAFANA CHANGE :: DEV-47388 Remove unsupported contact points
 	//pushoverSoundOptions := []SelectOption{
 	//	{
 	//		Value: "default",
@@ -113,7 +113,7 @@ func GetAvailableNotifiers() []*NotifierPlugin {
 	// LOGZ.IO GRAFANA CHANGE :: End
 
 	return []*NotifierPlugin{
-		// LOGZ.IO GRAFANA CHANGE :: DEV-47388 Remove upsupported contact points
+		// LOGZ.IO GRAFANA CHANGE :: DEV-47388 Remove unsupported contact points
 		//{
 		//	Type:        "dingding",
 		//	Name:        "DingDing",
@@ -414,7 +414,7 @@ func GetAvailableNotifiers() []*NotifierPlugin {
 				},
 			},
 		},
-		// LOGZ.IO GRAFANA CHANGE :: DEV-47388 Remove upsupported contact points
+		// LOGZ.IO GRAFANA CHANGE :: DEV-47388 Remove unsupported contact points
 		//{
 		//	Type:        "oncall",
 		//	Name:        "Grafana OnCall",
@@ -703,7 +703,7 @@ func GetAvailableNotifiers() []*NotifierPlugin {
 				},
 			},
 		},
-		// LOGZ.IO GRAFANA CHANGE :: DEV-47388 Remove upsupported contact points
+		// LOGZ.IO GRAFANA CHANGE :: DEV-47388 Remove unsupported contact points
 		//{
 		//	Type:        "sensugo",
 		//	Name:        "Sensu Go",
@@ -800,7 +800,7 @@ func GetAvailableNotifiers() []*NotifierPlugin {
 				},
 			},
 		},
-		// LOGZ.IO GRAFANA CHANGE :: DEV-47388 Remove upsupported contact points
+		// LOGZ.IO GRAFANA CHANGE :: DEV-47388 Remove unsupported contact points
 		//{
 		//	Type:        "telegram",
 		//	Name:        "Telegram",
@@ -965,7 +965,7 @@ func GetAvailableNotifiers() []*NotifierPlugin {
 				},
 			},
 		},
-		// LOGZ.IO GRAFANA CHANGE :: DEV-47388 Remove upsupported contact points
+		// LOGZ.IO GRAFANA CHANGE :: DEV-47388 Remove unsupported contact points
 		//{
 		//	Type:        "wecom",
 		//	Name:        "WeCom",
@@ -1159,7 +1159,7 @@ func GetAvailableNotifiers() []*NotifierPlugin {
 				},
 			},
 		},
-		// LOGZ.IO GRAFANA CHANGE :: DEV-47388 Remove upsupported contact points
+		// LOGZ.IO GRAFANA CHANGE :: DEV-47388 Remove unsupported contact points
 		//{
 		//	Type:        "LINE",
 		//	Name:        "LINE",
@@ -1384,7 +1384,7 @@ func GetAvailableNotifiers() []*NotifierPlugin {
 			},
 		},
 		// LOGZ.IO GRAFANA CHANGE :: End
-		// LOGZ.IO GRAFANA CHANGE :: DEV-47388 Remove upsupported contact points
+		// LOGZ.IO GRAFANA CHANGE :: DEV-47388 Remove unsupported contact points
 		//{
 		//	Type:        "webex",
 		//	Name:        "Cisco Webex Teams",
