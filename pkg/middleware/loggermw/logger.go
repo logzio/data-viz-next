@@ -107,7 +107,7 @@ func (l *loggerImpl) prepareLogParams(c *contextmodel.ReqContext, duration time.
 	// LOGZ.IO GRAFANA CHANGE :: DEV-46691 - Add request ID to logs
 	requestId := c.Req.Header.Get(models.LogzioRequestIdHeaderName)
 	if requestId == "" {
-		c.Req.Header.Get(models.LogzioInternalRequestIdHeaderName)
+		requestId = c.Req.Header.Get(models.LogzioInternalRequestIdHeaderName)
 	}
 	// LOGZ.IO GRAFANA CHANGE :: End
 
