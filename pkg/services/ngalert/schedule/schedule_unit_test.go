@@ -461,6 +461,7 @@ func TestSchedule_ruleRoutine(t *testing.T) {
 			})
 
 			t.Run("it reports metrics", func(t *testing.T) {
+				// LOGZ.IO GRAFANA CHANGE :: DEV-47164: Add more observability to alerting based on rule uid
 				// duration metric has 0 values because of mocked clock that do not advance
 				expectedMetric := fmt.Sprintf(
 					`# HELP grafana_alerting_rule_evaluation_duration_seconds The time to evaluate a rule.
@@ -524,6 +525,7 @@ func TestSchedule_ruleRoutine(t *testing.T) {
 							grafana_alerting_rule_send_alerts_duration_seconds_sum{org="%[1]d",rule_uid="%[2]s"} 0
 							grafana_alerting_rule_send_alerts_duration_seconds_count{org="%[1]d",rule_uid="%[2]s"} 1
 				`, rule.OrgID, rule.UID)
+				// LOGZ.IO GRAFANA CHANGE :: End
 
 				err := testutil.GatherAndCompare(reg, bytes.NewBufferString(expectedMetric), "grafana_alerting_rule_evaluation_duration_seconds", "grafana_alerting_rule_evaluations_total", "grafana_alerting_rule_evaluation_failures_total", "grafana_alerting_rule_process_evaluation_duration_seconds", "grafana_alerting_rule_send_alerts_duration_seconds")
 				require.NoError(t, err)
@@ -685,6 +687,7 @@ func TestSchedule_ruleRoutine(t *testing.T) {
 		waitForTimeChannel(t, evalAppliedChan)
 
 		t.Run("it should increase failure counter", func(t *testing.T) {
+			// LOGZ.IO GRAFANA CHANGE :: DEV-47164: Add more observability to alerting based on rule uid
 			// duration metric has 0 values because of mocked clock that do not advance
 			expectedMetric := fmt.Sprintf(
 				`# HELP grafana_alerting_rule_evaluation_duration_seconds The time to evaluate a rule.
@@ -748,6 +751,7 @@ func TestSchedule_ruleRoutine(t *testing.T) {
 						grafana_alerting_rule_send_alerts_duration_seconds_sum{org="%[1]d",rule_uid="%[2]s"} 0
 						grafana_alerting_rule_send_alerts_duration_seconds_count{org="%[1]d",rule_uid="%[2]s"} 1
 				`, rule.OrgID, rule.UID)
+			// LOGZ.IO GRAFANA CHANGE :: End
 
 			err := testutil.GatherAndCompare(reg, bytes.NewBufferString(expectedMetric), "grafana_alerting_rule_evaluation_duration_seconds", "grafana_alerting_rule_evaluations_total", "grafana_alerting_rule_evaluation_failures_total", "grafana_alerting_rule_process_evaluation_duration_seconds", "grafana_alerting_rule_send_alerts_duration_seconds")
 			require.NoError(t, err)
