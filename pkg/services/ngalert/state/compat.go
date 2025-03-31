@@ -160,9 +160,8 @@ func FromStateTransitionToPostableAlerts(firingStates []StateTransition, stateMa
 			if logzAccountId != "" {
 				alert.Annotations[ngModels.LogzioAccountIdAnnotation] = logzAccountId
 			}
-
-			alert.Annotations[LogzioStateTransitionAnnotation] = fmt.Sprintf("{\"state\":\"%v\",\"previousState\":\"%v\"}", alertState.State.State, alertState.PreviousState) // LOGZ.IO GRAFANA CHANGE :: DEV-48550 - Add state transition to annotations
 		}
+		alert.Annotations[LogzioStateTransitionAnnotation] = fmt.Sprintf("{\"state\":\"%v\",\"previousState\":\"%v\"}", alertState.State.State, alertState.PreviousState) // LOGZ.IO GRAFANA CHANGE :: DEV-48550 - Add state transition to annotations
 		// LOGZ.IO GRAFANA CHANGE :: End
 		alerts.PostableAlerts = append(alerts.PostableAlerts, *alert)
 		if alertState.StateReason == ngModels.StateReasonMissingSeries { // do not put stale state back to state manager
