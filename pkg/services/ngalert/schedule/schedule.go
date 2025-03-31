@@ -404,10 +404,12 @@ func (sch *schedule) ruleRoutine(grafanaCtx context.Context, key ngmodels.AlertR
 
 	orgID := fmt.Sprint(key.OrgID)
 	evalTotal := sch.metrics.EvalTotal.WithLabelValues(orgID)
-	evalDuration := sch.metrics.EvalDuration.WithLabelValues(orgID)
-	evalTotalFailures := sch.metrics.EvalFailures.WithLabelValues(orgID)
-	processDuration := sch.metrics.ProcessDuration.WithLabelValues(orgID)
-	sendDuration := sch.metrics.SendDuration.WithLabelValues(orgID)
+	// LOGZ.IO GRAFANA CHANGE :: DEV-47164: Add more observability to alerting based on rule uid
+	evalDuration := sch.metrics.EvalDuration.WithLabelValues(orgID, key.UID)
+	evalTotalFailures := sch.metrics.EvalFailures.WithLabelValues(orgID, key.UID)
+	processDuration := sch.metrics.ProcessDuration.WithLabelValues(orgID, key.UID)
+	sendDuration := sch.metrics.SendDuration.WithLabelValues(orgID, key.UID)
+	// LOGZ.IO GRAFANA CHANGE :: End
 
 	notify := func(states []state.StateTransition) {
 		expiredAlerts := state.FromAlertsStateToStoppedAlert(states, sch.appURL, sch.clock)
@@ -427,7 +429,7 @@ func (sch *schedule) ruleRoutine(grafanaCtx context.Context, key ngmodels.AlertR
 	}
 
 	evaluate := func(ctx context.Context, f fingerprint, attempt int64, e *evaluation, span trace.Span, retry bool) error {
-		logger := logger.New("version", e.rule.Version, "fingerprint", f, "attempt", attempt, "eval_time", e.scheduledAt).FromContext(ctx) // LOGZ.IO GRAFANA CHANGE :: DEV-47164: Add observability to alerting
+		logger := logger.New("version", e.rule.Version, "fingerprint", f, "attempt", attempt, "eval_time", e.scheduledAt, "requestId", e.logzHeaders.Get(models.LogzioRequestIdHeaderName)).FromContext(ctx) // LOGZ.IO GRAFANA CHANGE :: DEV-47164: Add observability to alerting , DEV-46691 - Add request ID to logs
 		start := sch.clock.Now()
 
 		// LOGZ.IO GRAFANA CHANGE :: DEV-43889 - Add headers for logzio datasources support
@@ -517,7 +519,7 @@ func (sch *schedule) ruleRoutine(grafanaCtx context.Context, key ngmodels.AlertR
 		))
 		if len(alerts.PostableAlerts) > 0 {
 			logger.Info("Sending postable alerts", "alerts", len(alerts.PostableAlerts)) // LOGZ.IO GRAFANA CHANGE :: DEV-47164: Add observability to alerting
-			sch.alertsSender.Send(ctx, key, alerts)
+			sch.alertsSender.Send(ctxWithLogzHeaders, key, alerts)
 		}
 		sendDuration.Observe(sch.clock.Now().Sub(start).Seconds())
 
