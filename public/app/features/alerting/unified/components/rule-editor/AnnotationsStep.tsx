@@ -164,8 +164,7 @@ const AnnotationsStep = () => {
                   <div className={styles.annotationValueContainer}>
                     <Field
                       hidden={
-                        annotationField.key === Annotation.dashboardUID || 
-                        annotationField.key === Annotation.panelID
+                        annotationField.key === Annotation.dashboardUID || annotationField.key === Annotation.panelID
                       }
                       className={cx(styles.flexRowItemMargin, styles.field)}
                       invalid={!!errors.annotations?.[index]?.value?.message}
