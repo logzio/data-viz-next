@@ -175,7 +175,7 @@ const AnnotationsStep = () => {
                         <Checkbox
                           data-testid={`annotation-value-${index}`}
                           {...register(`annotations.${index}.value`, {onChange: handleChangeRCA })}
-                          label="Enable RCA"
+                          label="Send alert to Logz.io AI RCA Agent"
                         />
                       ) : (
                       <ValueInputComponent
