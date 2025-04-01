@@ -5,7 +5,7 @@ import { useFieldArray, useFormContext } from 'react-hook-form';
 import { useToggle } from 'react-use';
 
 import { GrafanaTheme2 } from '@grafana/data';
-import { Button, Field, Input, Text, TextArea, useStyles2, Stack } from '@grafana/ui';
+import { Button, Field, Input, Text, TextArea, useStyles2, Stack, Checkbox } from '@grafana/ui';
 
 import { DashboardModel } from '../../../../dashboard/state';
 import { RuleFormValues } from '../../types/rule-form';
@@ -40,6 +40,29 @@ const AnnotationsStep = () => {
   const [selectedPanel, setSelectedPanel] = useState<PanelDTO | undefined>(undefined);
 
   const { dashboardModel, isFetching: isDashboardFetching } = useDashboardQuery(selectedDashboardUid);
+
+// LOGZ.IO GRAFANA CHANGE :: DEV-48578 - rca checkbox
+  const [isRcaEnabled, setIsRcaEnabled] = useState(false);
+  console.log('%c [ [isRcaEnabled ]-46', 'font-size:13px; background:pink; color:#bf2c9f;', isRcaEnabled);
+  useEffect(() => {
+    const rcaAnnotation = annotations.find((a) => a.key === Annotation.logzioRCA);
+    setIsRcaEnabled(rcaAnnotation?.value === 'on');
+  }, [annotations]);
+  const handleChangeRCA = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.checked ? 'on' : '';
+    setIsRcaEnabled(e.target.checked);
+    const updatedAnnotations = produce(annotations, (draft) => {
+      const rcaAnnotation = draft.find((a) => a.key === Annotation.logzioRCA);
+      if (rcaAnnotation) {
+        rcaAnnotation.value = value;
+      } else {
+        draft.push({ key: Annotation.logzioRCA, value });
+      }
+    });
+    console.log('%c [ updatedAnnotations ]-55', 'font-size:13px; background:pink; color:#bf2c9f;', updatedAnnotations, value, annotations);
+    setValue('annotations', updatedAnnotations);
+  }
+// LOGZ.IO GRAFANA CHANGE :: DEV-48578 - rca checkbox
 
   useEffect(() => {
     if (isDashboardFetching || !dashboardModel) {
@@ -141,12 +164,20 @@ const AnnotationsStep = () => {
                   <div className={styles.annotationValueContainer}>
                     <Field
                       hidden={
-                        annotationField.key === Annotation.dashboardUID || annotationField.key === Annotation.panelID
+                        annotationField.key === Annotation.dashboardUID || 
+                        annotationField.key === Annotation.panelID
                       }
                       className={cx(styles.flexRowItemMargin, styles.field)}
                       invalid={!!errors.annotations?.[index]?.value?.message}
                       error={errors.annotations?.[index]?.value?.message}
                     >
+                      {annotationField.key === Annotation.logzioRCA ? ( // LOGZ.IO GRAFANA CHANGE :: DEV-48578 - rca checkbox
+                        <Checkbox
+                          data-testid={`annotation-value-${index}`}
+                          {...register(`annotations.${index}.value`, {onChange: handleChangeRCA })}
+                          label="Enable RCA"
+                        />
+                      ) : (
                       <ValueInputComponent
                         data-testid={`annotation-value-${index}`}
                         className={cx(styles.annotationValueInput, { [styles.textarea]: !isUrl })}
@@ -159,6 +190,7 @@ const AnnotationsStep = () => {
                         }
                         defaultValue={annotationField.value}
                       />
+                      )}
                     </Field>
                     {!annotationLabels[annotation] && (
                       <Button
