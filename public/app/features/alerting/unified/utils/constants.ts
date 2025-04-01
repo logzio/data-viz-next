@@ -29,7 +29,7 @@ export const annotationLabels: Record<Annotation, string> = {
   [Annotation.dashboardUID]: 'Dashboard UID',
   [Annotation.panelID]: 'Panel ID',
   [Annotation.alertId]: 'Alert ID',
-  [Annotation.logzioRCA]: 'Logz.io RCA',
+  [Annotation.logzioRCA]: 'AI Agent Analysis',
 };
 
 export const annotationDescriptions: Record<Annotation, string> = {

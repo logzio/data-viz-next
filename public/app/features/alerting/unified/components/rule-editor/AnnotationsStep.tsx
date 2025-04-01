@@ -42,15 +42,8 @@ const AnnotationsStep = () => {
   const { dashboardModel, isFetching: isDashboardFetching } = useDashboardQuery(selectedDashboardUid);
 
 // LOGZ.IO GRAFANA CHANGE :: DEV-48578 - rca checkbox
-  const [isRcaEnabled, setIsRcaEnabled] = useState(false);
-  console.log('%c [ [isRcaEnabled ]-46', 'font-size:13px; background:pink; color:#bf2c9f;', isRcaEnabled);
-  useEffect(() => {
-    const rcaAnnotation = annotations.find((a) => a.key === Annotation.logzioRCA);
-    setIsRcaEnabled(rcaAnnotation?.value === 'on');
-  }, [annotations]);
   const handleChangeRCA = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.checked ? 'on' : '';
-    setIsRcaEnabled(e.target.checked);
     const updatedAnnotations = produce(annotations, (draft) => {
       const rcaAnnotation = draft.find((a) => a.key === Annotation.logzioRCA);
       if (rcaAnnotation) {
@@ -59,7 +52,6 @@ const AnnotationsStep = () => {
         draft.push({ key: Annotation.logzioRCA, value });
       }
     });
-    console.log('%c [ updatedAnnotations ]-55', 'font-size:13px; background:pink; color:#bf2c9f;', updatedAnnotations, value, annotations);
     setValue('annotations', updatedAnnotations);
   }
 // LOGZ.IO GRAFANA CHANGE :: DEV-48578 - rca checkbox
@@ -136,6 +128,10 @@ const AnnotationsStep = () => {
     <RuleEditorSection stepNo={5} title="Add annotations" description={getAnnotationsSectionDescription()} fullWidth>
       <Stack direction="column" gap={1}>
         {fields.map((annotationField, index: number) => {
+          const isRcaEnabled = (window as any).logzio.configs.featureFlags.AlertsRca;
+          if (annotationField.key === Annotation.logzioRCA && !isRcaEnabled) {
+            return null;
+          }
           const isUrl = annotations[index]?.key?.toLocaleLowerCase().endsWith('url');
           const ValueInputComponent = isUrl ? Input : TextArea;
           // eslint-disable-next-line
@@ -174,7 +170,7 @@ const AnnotationsStep = () => {
                         <Checkbox
                           data-testid={`annotation-value-${index}`}
                           {...register(`annotations.${index}.value`, {onChange: handleChangeRCA })}
-                          label="Send alert to Logz.io AI RCA Agent"
+                          label="Activate Automatic AI RCA"
                         />
                       ) : (
                       <ValueInputComponent
