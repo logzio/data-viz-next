@@ -157,7 +157,7 @@ const createMetadata = (rule: CombinedRule): PageInfoItem[] => {
         <WithReturnButton
           title={rule.name}
           component={
-            <TextLink variant="bodySmall" href={makePanelLink(dashboardUID, panelID)}>
+            <TextLink variant="bodySmall" href={`/grafana-app/${makePanelLink(dashboardUID, panelID)}`}>
               View panel
             </TextLink>
           }
@@ -171,7 +171,7 @@ const createMetadata = (rule: CombinedRule): PageInfoItem[] => {
         <WithReturnButton
           title={rule.name}
           component={
-            <TextLink title={rule.name} variant="bodySmall" href={makeDashboardLink(dashboardUID)}>
+            <TextLink title={rule.name} variant="bodySmall" href={`/grafana-app/${makeDashboardLink(dashboardUID)}`}>
               View dashboard
             </TextLink>
           }
