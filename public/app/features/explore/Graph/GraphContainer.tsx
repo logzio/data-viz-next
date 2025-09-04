@@ -66,7 +66,7 @@ export const GraphContainer = ({
   const [graphStyle, setGraphStyle] = useState(loadGraphStyle);
   const styles = useStyles2(getStyles);
   // LOGZ.IO GRAFANA CHANGE :: make the max number of time series bigger by FF. requested by rrk
-  const showMoreTimeSeries = (window as any).logzio.configs.featureFlags.MaxNumberOfTimeSeriesBigger;
+  const showMoreTimeSeries = (window as any).logzio?.configs?.featureFlags?.MaxNumberOfTimeSeriesBigger;
   MAX_NUMBER_OF_TIME_SERIES = showMoreTimeSeries ? 500 : 20;
 
   const onGraphStyleChange = useCallback((graphStyle: ExploreGraphStyle) => {
