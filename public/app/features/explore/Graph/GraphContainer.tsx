@@ -30,7 +30,7 @@ import { ExploreGraph } from './ExploreGraph';
 import { ExploreGraphLabel } from './ExploreGraphLabel';
 import { loadGraphStyle } from './utils';
 
-const MAX_NUMBER_OF_TIME_SERIES = 20;
+let MAX_NUMBER_OF_TIME_SERIES = 20;
 
 interface Props extends Pick<PanelChromeProps, 'statusMessage'> {
   width: number;
@@ -65,6 +65,8 @@ export const GraphContainer = ({
   const [showAllSeries, toggleShowAllSeries] = useToggle(false);
   const [graphStyle, setGraphStyle] = useState(loadGraphStyle);
   const styles = useStyles2(getStyles);
+  const showMoreTimeSeries = (window as any).logzio.configs.featureFlags.MaxNumberOfTimeSeriesBigger;
+  MAX_NUMBER_OF_TIME_SERIES = showMoreTimeSeries ? 500 : 20;
 
   const onGraphStyleChange = useCallback((graphStyle: ExploreGraphStyle) => {
     storeGraphStyle(graphStyle);
