@@ -15,8 +15,9 @@ type MultiOrgAlertmanager struct {
 	Registerer prometheus.Registerer
 	registries *metrics.TenantRegistries
 
-	ActiveConfigurations     prometheus.Gauge
-	DiscoveredConfigurations prometheus.Gauge
+	ActiveConfigurations         prometheus.Gauge
+	DiscoveredConfigurations     prometheus.Gauge
+	SyncAlertmanagersTimeSeconds prometheus.Gauge
 
 	aggregatedMetrics *AlertmanagerAggregatedMetrics
 }
@@ -37,6 +38,12 @@ func NewMultiOrgAlertmanagerMetrics(r prometheus.Registerer) *MultiOrgAlertmanag
 			Subsystem: Subsystem,
 			Name:      "active_configurations",
 			Help:      "The number of active Alertmanager configurations.",
+		}),
+		SyncAlertmanagersTimeSeconds: promauto.With(r).NewGauge(prometheus.GaugeOpts{
+			Namespace: Namespace,
+			Subsystem: Subsystem,
+			Name:      "sync_alertmanagers_time_seconds",
+			Help:      "The time it took to sync all Alertmanagers.",
 		}),
 		aggregatedMetrics: NewAlertmanagerAggregatedMetrics(registries),
 	}

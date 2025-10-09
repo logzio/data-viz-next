@@ -238,7 +238,9 @@ func (moa *MultiOrgAlertmanager) LoadAndSyncAlertmanagersForOrgs(ctx context.Con
 	moa.metrics.DiscoveredConfigurations.Set(float64(len(orgIDs)))
 	moa.SyncAlertmanagersForOrgs(ctx, orgIDs)
 
-	moa.logger.Debug("Done synchronizing Alertmanagers for orgs", "duration_seconds", time.Since(startTime).Seconds())
+	loadingTime := time.Since(startTime).Seconds()
+	moa.metrics.SyncAlertmanagersTimeSeconds.Set(loadingTime)
+	moa.logger.Debug("Done synchronizing Alertmanagers for orgs", "duration_seconds", loadingTime)
 
 	return nil
 }
