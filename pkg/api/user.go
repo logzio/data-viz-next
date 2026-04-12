@@ -222,9 +222,10 @@ func (hs *HTTPServer) handleUpdateUser(ctx context.Context, cmd user.UpdateUserC
 		return response.Error(http.StatusInternalServerError, "Failed to validate User", err)
 	}
 
-	if isExternal {
-		return response.Error(http.StatusForbidden, "User info cannot be updated for external Users", nil)
-	}
+	// APPZ-2382 'External' user prevents user updation via API from grafana-sync, it didnt exist in grafana 8.5 and grafana-sync code relies on that
+	// if isExternal {
+	// 		return response.Error(http.StatusForbidden, "User info cannot be updated for external Users", nil)
+	// }
 
 	if len(cmd.Login) == 0 {
 		cmd.Login = cmd.Email
