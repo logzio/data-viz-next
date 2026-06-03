@@ -1,0 +1,41 @@
+name: Dispatch Grafana Build
+
+# Migrated trigger for the Jenkins `build-and-publish-grafana` job.
+# This repo (data-viz-next) is public, so the actual build runs in the private
+# logzio/release-engineering repo. On every push to the main Logz.io branch we send a
+# repository_dispatch that fires release-engineering/.github/workflows/build-grafana.yaml.
+#
+# Requires the org GitHub App (GH_APP_ID / GH_APP_PRIVATE_KEY secrets) to be installed on
+# both data-viz-next and release-engineering with actions:write on release-engineering.
+
+on:
+  push:
+    branches: [v10.4.x-logzio]
+
+permissions:
+  contents: read
+
+jobs:
+  dispatch:
+    name: Trigger release-engineering build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.GH_APP_ID }}
+          private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: release-engineering
+
+      - name: Send repository_dispatch to release-engineering
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          SHA: ${{ github.sha }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          jq -nc --arg sha "$SHA" --arg branch "$BRANCH" \
+            '{event_type: "grafana-build", client_payload: {sha: $sha, branch: $branch}}' \
+          | gh api -X POST repos/logzio/release-engineering/dispatches --input -
+          echo "Dispatched grafana-build for $BRANCH @ $SHA"
