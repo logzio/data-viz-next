@@ -45,6 +45,7 @@ const (
 }
 `
 	alertingDefaultInitializationTimeout       = 30 * time.Second // LOGZ.IO GRAFANA CHANGE :: DEV-48976 - Make context deadline on AlertNG service startup configurable - cherrypick from: 1fdc48fabafe8b8480a58fb4a169d01ebb535fb2
+	alertmanagerDefaultSyncConcurrency         = 10               // LOGZ.IO GRAFANA CHANGE :: APPZ-1782 - Parallelize per-org Alertmanager sync
 	evaluatorDefaultEvaluationTimeout          = 30 * time.Second
 	schedulerDefaultAdminConfigPollInterval    = time.Minute
 	schedulereDefaultExecuteAlerts             = true
@@ -84,6 +85,7 @@ type UnifiedAlertingSettings struct {
 	HARedisDB                      int
 	HARedisMaxConns                int
 	InitializationTimeout          time.Duration
+	SyncConcurrency                int // LOGZ.IO GRAFANA CHANGE :: APPZ-1782 - Number of orgs whose Alertmanagers are initialized concurrently during sync
 	MaxAttempts                    int64
 	MinInterval                    time.Duration
 	EvaluationTimeout              time.Duration
@@ -243,6 +245,13 @@ func (cfg *Cfg) ReadUnifiedAlertingSettings(iniFile *ini.File) error {
 	if err != nil {
 		return err
 	}
+
+	// LOGZ.IO GRAFANA CHANGE :: APPZ-1782 - Parallelize per-org Alertmanager sync
+	uaCfg.SyncConcurrency = ua.Key("alertmanager_sync_concurrency").MustInt(alertmanagerDefaultSyncConcurrency)
+	if uaCfg.SyncConcurrency < 1 {
+		uaCfg.SyncConcurrency = 1
+	}
+	// LOGZ.IO GRAFANA CHANGE :: End
 
 	uaCfg.AdminConfigPollInterval, err = gtime.ParseDuration(valueAsString(ua, "admin_config_poll_interval", (schedulerDefaultAdminConfigPollInterval).String()))
 	if err != nil {
