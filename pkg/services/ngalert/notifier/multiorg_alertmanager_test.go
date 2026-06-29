@@ -153,7 +153,6 @@ grafana_alerting_discovered_configurations 4
 	}
 }
 
-// LOGZ.IO GRAFANA CHANGE :: APPZ-1782 - Parallelize per-org Alertmanager sync.
 // TestMultiOrgAlertmanager_SyncAlertmanagersConcurrency verifies that syncing many orgs with a higher
 // alertmanager_sync_concurrency is faster than syncing them serially (concurrency=1). Per-org init is
 // simulated with a fixed delay in the Alertmanager factory so the difference is dominated by how many

@@ -26,7 +26,7 @@ func TestCfg_ReadUnifiedAlertingSettings(t *testing.T) {
 		require.Equal(t, 200*time.Millisecond, cfg.UnifiedAlerting.HAGossipInterval)
 		require.Equal(t, time.Minute, cfg.UnifiedAlerting.HAPushPullInterval)
 		require.Equal(t, alertingDefaultInitializationTimeout, cfg.UnifiedAlerting.InitializationTimeout) // LOGZ.IO GRAFANA CHANGE :: DEV-48976 - Make context deadline on AlertNG service startup configurable - cherrypick from: 1fdc48fabafe8b8480a58fb4a169d01ebb535fb2
-		require.Equal(t, alertmanagerDefaultSyncConcurrency, cfg.UnifiedAlerting.SyncConcurrency)        // LOGZ.IO GRAFANA CHANGE :: APPZ-1782 - Parallelize per-org Alertmanager sync
+		require.Equal(t, alertmanagerDefaultSyncConcurrency, cfg.UnifiedAlerting.SyncConcurrency)
 	}
 
 	// With peers set, it correctly parses them.
@@ -40,19 +40,17 @@ func TestCfg_ReadUnifiedAlertingSettings(t *testing.T) {
 		_, err = s.NewKey("initialization_timeout", "123s")
 		require.NoError(t, err)
 		// LOGZ.IO GRAFANA CHANGE :: End
-		// LOGZ.IO GRAFANA CHANGE :: APPZ-1782 - Parallelize per-org Alertmanager sync
 		_, err = s.NewKey("alertmanager_sync_concurrency", "25")
 		require.NoError(t, err)
-		// LOGZ.IO GRAFANA CHANGE :: End
 
 		require.NoError(t, cfg.ReadUnifiedAlertingSettings(cfg.Raw))
 		require.Len(t, cfg.UnifiedAlerting.HAPeers, 3)
 		require.ElementsMatch(t, []string{"hostname1:9090", "hostname2:9090", "hostname3:9090"}, cfg.UnifiedAlerting.HAPeers)
 		require.Equal(t, 123*time.Second, cfg.UnifiedAlerting.InitializationTimeout) // LOGZ.IO GRAFANA CHANGE :: DEV-48976 - Make context deadline on AlertNG service startup configurable - cherrypick from: 1fdc48fabafe8b8480a58fb4a169d01ebb535fb2
-		require.Equal(t, 25, cfg.UnifiedAlerting.SyncConcurrency)                     // LOGZ.IO GRAFANA CHANGE :: APPZ-1782 - Parallelize per-org Alertmanager sync
+		require.Equal(t, 25, cfg.UnifiedAlerting.SyncConcurrency)
 	}
 
-	// LOGZ.IO GRAFANA CHANGE :: APPZ-1782 - Parallelize per-org Alertmanager sync. A non-positive concurrency is floored to 1.
+	// A non-positive concurrency is floored to 1.
 	{
 		s, err := cfg.Raw.NewSection("unified_alerting")
 		require.NoError(t, err)
@@ -62,7 +60,6 @@ func TestCfg_ReadUnifiedAlertingSettings(t *testing.T) {
 		require.NoError(t, cfg.ReadUnifiedAlertingSettings(cfg.Raw))
 		require.Equal(t, 1, cfg.UnifiedAlerting.SyncConcurrency)
 	}
-	// LOGZ.IO GRAFANA CHANGE :: End
 
 	t.Run("should read 'scheduler_tick_interval'", func(t *testing.T) {
 		tmp := cfg.IsFeatureToggleEnabled

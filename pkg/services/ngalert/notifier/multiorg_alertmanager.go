@@ -11,7 +11,7 @@ import (
 
 	alertingCluster "github.com/grafana/alerting/cluster"
 	"github.com/prometheus/client_golang/prometheus"
-	"golang.org/x/sync/errgroup" // LOGZ.IO GRAFANA CHANGE :: APPZ-1782 - Parallelize per-org Alertmanager sync
+	"golang.org/x/sync/errgroup"
 
 	alertingNotify "github.com/grafana/alerting/notify"
 
@@ -242,8 +242,6 @@ func (moa *MultiOrgAlertmanager) LoadAndSyncAlertmanagersForOrgs(ctx context.Con
 	// LOGZ.IO GRAFANA CHANGE :: AI-40 - Add observability to alertmanagers load time
 	loadingTime := time.Since(startTime).Seconds()
 	moa.metrics.SyncAlertmanagersTimeSeconds.Set(loadingTime)
-	// LOGZ.IO GRAFANA CHANGE :: APPZ-1782 - Log org count and duration at Info level so the per-restart
-	// sync cost is visible without enabling debug logging for this logger.
 	moa.logger.Info("Done synchronizing Alertmanagers for orgs", "org_count", len(orgIDs), "duration_seconds", loadingTime)
 	// LOGZ.IO GRAFANA CHANGE :: End
 
@@ -273,10 +271,8 @@ func (moa *MultiOrgAlertmanager) SyncAlertmanagersForOrgs(ctx context.Context, o
 		moa.logger.Error("Failed to load Alertmanager configurations", "error", err)
 		return
 	}
-	// LOGZ.IO GRAFANA CHANGE :: APPZ-1782 - Parallelize per-org Alertmanager sync to reduce O(n) startup time.
-	// Snapshot the running Alertmanagers under a read lock. This method is the only writer of
-	// moa.alertmanagers and runs serially (once during init, then the single-goroutine poll loop), so the
-	// snapshot is consistent and lets the heavy per-org work run concurrently without touching the shared map.
+	// Snapshot the running Alertmanagers under a read lock so the per-org work below can run concurrently
+	// without holding the lock. This method is the only writer of moa.alertmanagers and runs serially.
 	moa.alertmanagersMtx.RLock()
 	existing := make(map[int64]Alertmanager, len(moa.alertmanagers))
 	for orgID, am := range moa.alertmanagers {
@@ -295,13 +291,11 @@ func (moa *MultiOrgAlertmanager) SyncAlertmanagersForOrgs(ctx context.Context, o
 		syncOrgs = append(syncOrgs, orgID)
 	}
 
-	// Run the expensive per-org work (factory + ApplyConfig) concurrently, bounded by the configured limit.
-	// Each goroutine writes its result into its own index-aligned slot, so no synchronization is needed during
-	// this phase. Failures are logged and leave a nil slot, preserving the previous "log and skip" behavior.
+	// Each goroutine writes its result into its own index-aligned slot, so no locking is needed here.
+	// Failures are logged and leave a nil slot, preserving the previous "log and skip" behavior.
 	synced := make([]Alertmanager, len(syncOrgs))
 	var g errgroup.Group
-	// Guard the limit here as well as in settings parsing: SetLimit(0) would block every goroutine
-	// forever, and the MOA can be constructed with a Cfg that wasn't built through ReadUnifiedAlertingSettings.
+	// SetLimit(0) would block every goroutine forever; floor it (a Cfg may be built without ReadUnifiedAlertingSettings).
 	concurrency := moa.settings.UnifiedAlerting.SyncConcurrency
 	if concurrency < 1 {
 		concurrency = 1
@@ -310,8 +304,8 @@ func (moa *MultiOrgAlertmanager) SyncAlertmanagersForOrgs(ctx context.Context, o
 	for i, orgID := range syncOrgs {
 		i, orgID := i, orgID
 		g.Go(func() error {
-			alertmanager, found := existing[orgID]
-			if !found {
+			alertmanager, alertmanagerFound := existing[orgID]
+			if !alertmanagerFound {
 				// These metrics are not exported by Grafana and are mostly a placeholder.
 				// To export them, we need to translate the metrics from each individual registry and,
 				// then aggregate them on the main registry.
@@ -322,14 +316,12 @@ func (moa *MultiOrgAlertmanager) SyncAlertmanagersForOrgs(ctx context.Context, o
 				}
 				alertmanager = am
 			}
-			// Register the Alertmanager as soon as it exists (created or reused), before applying config.
-			// This matches the original behavior where a failed config application leaves a non-ready
-			// Alertmanager in the map rather than dropping it.
+			// Register the AM before applying config: a failed apply must still leave it (not-ready) in the map.
 			synced[i] = alertmanager
 
 			dbConfig, cfgFound := dbConfigs[orgID]
 			if !cfgFound {
-				if found {
+				if alertmanagerFound {
 					// This means that the configuration is gone but the organization, as well as the Alertmanager, exists.
 					moa.logger.Warn("Alertmanager exists for org but the configuration is gone. Applying the default configuration", "org", orgID)
 				}
@@ -347,8 +339,7 @@ func (moa *MultiOrgAlertmanager) SyncAlertmanagersForOrgs(ctx context.Context, o
 	}
 	_ = g.Wait() // goroutines never return an error; failures are logged above and the org is skipped.
 
-	// Merge the synced Alertmanagers and prune removed orgs under the write lock. This phase is fast and does
-	// no I/O, so briefly holding the lock here does not reintroduce the O(n) cost.
+	// Merge results and prune removed orgs under the write lock. This phase is fast and does no I/O.
 	moa.alertmanagersMtx.Lock()
 	for i, orgID := range syncOrgs {
 		if synced[i] != nil {
@@ -366,7 +357,6 @@ func (moa *MultiOrgAlertmanager) SyncAlertmanagersForOrgs(ctx context.Context, o
 	}
 	moa.metrics.ActiveConfigurations.Set(float64(len(moa.alertmanagers)))
 	moa.alertmanagersMtx.Unlock()
-	// LOGZ.IO GRAFANA CHANGE :: End
 
 	// Now, we can stop the Alertmanagers without having to hold a lock.
 	for orgID, am := range amsToStop {

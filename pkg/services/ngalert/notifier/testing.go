@@ -16,8 +16,7 @@ import (
 )
 
 type fakeConfigStore struct {
-	// mtx guards the maps below. The real store is safe for concurrent use, and SyncAlertmanagersForOrgs
-	// now syncs orgs concurrently, so the fake must be too (otherwise -race flags the fake, not prod code).
+	// mtx guards the maps below for concurrent access (the real store is safe for concurrent use).
 	mtx     sync.Mutex
 	configs map[int64]*models.AlertConfiguration
 
