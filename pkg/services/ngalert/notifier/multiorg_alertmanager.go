@@ -251,6 +251,7 @@ func (moa *MultiOrgAlertmanager) LoadAndSyncAlertmanagersForOrgs(ctx context.Con
 		"org_count", len(orgIDs),
 		"duration_seconds", loadingTime,
 		"load_configs_seconds", timings.loadConfigsSeconds,
+		"preload_state_seconds", timings.preloadStateSeconds,
 		"sync_loop_seconds", timings.syncLoopSeconds,
 		"cleanup_seconds", timings.cleanupSeconds,
 		"concurrency", timings.concurrency,
@@ -278,10 +279,11 @@ func (moa *MultiOrgAlertmanager) getLatestConfigs(ctx context.Context) (map[int6
 // syncPhaseTimings breaks down where a sync spends time so the dominant phase (config load,
 // the per-org sync loop, or orphan cleanup) is visible in the completion log.
 type syncPhaseTimings struct {
-	loadConfigsSeconds float64
-	syncLoopSeconds    float64
-	cleanupSeconds     float64
-	concurrency        int
+	loadConfigsSeconds  float64
+	preloadStateSeconds float64
+	syncLoopSeconds     float64
+	cleanupSeconds      float64
+	concurrency         int
 }
 
 // SyncAlertmanagersForOrgs syncs configuration of the Alertmanager required by each organization.
@@ -295,6 +297,17 @@ func (moa *MultiOrgAlertmanager) SyncAlertmanagersForOrgs(ctx context.Context, o
 		return timings, err
 	}
 	timings.loadConfigsSeconds = time.Since(loadConfigsStart).Seconds()
+
+	// Bulk-load every org's Alertmanager file state (notification log + silences) in one query so the
+	// per-org factory below hydrates from memory instead of issuing 2 kvstore reads per org, which was
+	// the dominant cost of the sync loop. Falls back to per-org reads if the bulk load fails.
+	preloadStart := time.Now()
+	if fileState, err := moa.kvStore.GetAll(ctx, kvstore.AllOrganizations, KVNamespace); err != nil {
+		moa.logger.Warn("Failed to bulk-load Alertmanager file state; falling back to per-org reads", "error", err)
+	} else {
+		ctx = WithPreloadedFileState(ctx, fileState)
+	}
+	timings.preloadStateSeconds = time.Since(preloadStart).Seconds()
 	// Snapshot the running Alertmanagers under a read lock so the per-org work below can run concurrently
 	// without holding the lock. This method is the only writer of moa.alertmanagers and runs serially.
 	moa.alertmanagersMtx.RLock()
