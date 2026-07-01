@@ -252,7 +252,10 @@ func TestMultiOrgAlertmanager_SyncAlertmanagersForOrgs_PhaseTimings(t *testing.T
 		require.NoError(t, err)
 		require.Equal(t, 7, timings.concurrency)
 		require.GreaterOrEqual(t, timings.loadConfigsSeconds, 0.0)
+		require.GreaterOrEqual(t, timings.preloadStateSeconds, 0.0)
 		require.GreaterOrEqual(t, timings.syncLoopSeconds, 0.0)
+		require.GreaterOrEqual(t, timings.factorySeconds, 0.0)
+		require.GreaterOrEqual(t, timings.applyConfigSeconds, 0.0)
 		require.GreaterOrEqual(t, timings.cleanupSeconds, 0.0)
 	})
 

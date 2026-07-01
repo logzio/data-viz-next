@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	alertingCluster "github.com/grafana/alerting/cluster"
@@ -253,6 +254,8 @@ func (moa *MultiOrgAlertmanager) LoadAndSyncAlertmanagersForOrgs(ctx context.Con
 		"load_configs_seconds", timings.loadConfigsSeconds,
 		"preload_state_seconds", timings.preloadStateSeconds,
 		"sync_loop_seconds", timings.syncLoopSeconds,
+		"factory_seconds_total", timings.factorySeconds,
+		"apply_config_seconds_total", timings.applyConfigSeconds,
 		"cleanup_seconds", timings.cleanupSeconds,
 		"concurrency", timings.concurrency,
 	)
@@ -284,6 +287,11 @@ type syncPhaseTimings struct {
 	syncLoopSeconds     float64
 	cleanupSeconds      float64
 	concurrency         int
+	// factorySeconds and applyConfigSeconds are aggregate work-seconds summed across all concurrent
+	// workers (so they exceed wall-clock); their ratio shows which step dominates the sync loop, and
+	// each divided by concurrency approximates its wall-clock contribution.
+	factorySeconds     float64
+	applyConfigSeconds float64
 }
 
 // SyncAlertmanagersForOrgs syncs configuration of the Alertmanager required by each organization.
@@ -339,6 +347,8 @@ func (moa *MultiOrgAlertmanager) SyncAlertmanagersForOrgs(ctx context.Context, o
 	}
 	timings.concurrency = concurrency
 	g.SetLimit(concurrency)
+	// Aggregate per-org time in the two heavy steps (summed across workers) to reveal which dominates.
+	var factoryNanos, applyConfigNanos atomic.Int64
 	loopStart := time.Now()
 	for i, orgID := range syncOrgs {
 		i, orgID := i, orgID
@@ -348,7 +358,9 @@ func (moa *MultiOrgAlertmanager) SyncAlertmanagersForOrgs(ctx context.Context, o
 				// These metrics are not exported by Grafana and are mostly a placeholder.
 				// To export them, we need to translate the metrics from each individual registry and,
 				// then aggregate them on the main registry.
+				factoryStart := time.Now()
 				am, err := moa.factory(ctx, orgID)
+				factoryNanos.Add(int64(time.Since(factoryStart)))
 				if err != nil {
 					moa.logger.Error("Unable to create Alertmanager for org", "org", orgID, "error", err)
 					return nil // synced[i] stays nil: a failed factory means the org is not registered.
@@ -357,6 +369,9 @@ func (moa *MultiOrgAlertmanager) SyncAlertmanagersForOrgs(ctx context.Context, o
 			}
 			// Register the AM before applying config: a failed apply must still leave it (not-ready) in the map.
 			synced[i] = alertmanager
+
+			applyStart := time.Now()
+			defer func() { applyConfigNanos.Add(int64(time.Since(applyStart))) }()
 
 			dbConfig, cfgFound := dbConfigs[orgID]
 			if !cfgFound {
@@ -378,6 +393,8 @@ func (moa *MultiOrgAlertmanager) SyncAlertmanagersForOrgs(ctx context.Context, o
 	}
 	_ = g.Wait() // goroutines never return an error; failures are logged above and the org is skipped.
 	timings.syncLoopSeconds = time.Since(loopStart).Seconds()
+	timings.factorySeconds = float64(factoryNanos.Load()) / float64(time.Second)
+	timings.applyConfigSeconds = float64(applyConfigNanos.Load()) / float64(time.Second)
 
 	// Merge results and prune removed orgs under the write lock. This phase is fast and does no I/O.
 	moa.alertmanagersMtx.Lock()
