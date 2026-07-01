@@ -237,11 +237,16 @@ func (moa *MultiOrgAlertmanager) LoadAndSyncAlertmanagersForOrgs(ctx context.Con
 
 	// Then, sync them by creating or deleting Alertmanagers as necessary.
 	moa.metrics.DiscoveredConfigurations.Set(float64(len(orgIDs)))
-	timings := moa.SyncAlertmanagersForOrgs(ctx, orgIDs)
+	timings, err := moa.SyncAlertmanagersForOrgs(ctx, orgIDs)
 
 	// LOGZ.IO GRAFANA CHANGE :: AI-40 - Add observability to alertmanagers load time
 	loadingTime := time.Since(startTime).Seconds()
 	moa.metrics.SyncAlertmanagersTimeSeconds.Set(loadingTime)
+	if err != nil {
+		// Failure already logged in SyncAlertmanagersForOrgs; skip the misleading "Done" line.
+		// Return nil to preserve the existing non-fatal behavior on the init/poll paths.
+		return nil
+	}
 	moa.logger.Info("Done synchronizing Alertmanagers for orgs",
 		"org_count", len(orgIDs),
 		"duration_seconds", loadingTime,
@@ -280,14 +285,14 @@ type syncPhaseTimings struct {
 }
 
 // SyncAlertmanagersForOrgs syncs configuration of the Alertmanager required by each organization.
-func (moa *MultiOrgAlertmanager) SyncAlertmanagersForOrgs(ctx context.Context, orgIDs []int64) syncPhaseTimings {
+func (moa *MultiOrgAlertmanager) SyncAlertmanagersForOrgs(ctx context.Context, orgIDs []int64) (syncPhaseTimings, error) {
 	var timings syncPhaseTimings
 	orgsFound := make(map[int64]struct{}, len(orgIDs))
 	loadConfigsStart := time.Now()
 	dbConfigs, err := moa.getLatestConfigs(ctx)
 	if err != nil {
 		moa.logger.Error("Failed to load Alertmanager configurations", "error", err)
-		return timings
+		return timings, err
 	}
 	timings.loadConfigsSeconds = time.Since(loadConfigsStart).Seconds()
 	// Snapshot the running Alertmanagers under a read lock so the per-org work below can run concurrently
@@ -396,7 +401,7 @@ func (moa *MultiOrgAlertmanager) SyncAlertmanagersForOrgs(ctx context.Context, o
 	moa.cleanupOrphanLocalOrgState(ctx, orgsFound)
 	timings.cleanupSeconds = time.Since(cleanupStart).Seconds()
 
-	return timings
+	return timings, nil
 }
 
 // cleanupOrphanLocalOrgState will check if there is any organization on
