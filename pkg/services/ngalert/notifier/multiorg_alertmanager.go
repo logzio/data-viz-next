@@ -70,6 +70,10 @@ type MultiOrgAlertmanager struct {
 	alertmanagersMtx sync.RWMutex
 	alertmanagers    map[int64]Alertmanager
 
+	// warmedUp is false until the first sync; the first (warm-up) sync skips the per-org
+	// MarkConfigurationAsApplied DB write, which would otherwise be a write storm at startup.
+	warmedUp atomic.Bool
+
 	settings       *setting.Cfg
 	featureManager featuremgmt.FeatureToggles
 	logger         log.Logger
@@ -258,6 +262,7 @@ func (moa *MultiOrgAlertmanager) LoadAndSyncAlertmanagersForOrgs(ctx context.Con
 		"apply_config_seconds_total", timings.applyConfigSeconds,
 		"cleanup_seconds", timings.cleanupSeconds,
 		"concurrency", timings.concurrency,
+		"warmup", timings.warmUp,
 	)
 	// LOGZ.IO GRAFANA CHANGE :: End
 
@@ -287,6 +292,7 @@ type syncPhaseTimings struct {
 	syncLoopSeconds     float64
 	cleanupSeconds      float64
 	concurrency         int
+	warmUp              bool
 	// factorySeconds and applyConfigSeconds are aggregate work-seconds summed across all concurrent
 	// workers (so they exceed wall-clock); their ratio shows which step dominates the sync loop, and
 	// each divided by concurrency approximates its wall-clock contribution.
@@ -316,6 +322,15 @@ func (moa *MultiOrgAlertmanager) SyncAlertmanagersForOrgs(ctx context.Context, o
 		ctx = WithPreloadedFileState(ctx, fileState)
 	}
 	timings.preloadStateSeconds = time.Since(preloadStart).Seconds()
+
+	// On the first (warm-up) sync every org's config is re-applied to a fresh Alertmanager, so it all
+	// looks "changed" and each org would issue a MarkConfigurationAsApplied write — a per-org write storm
+	// on the shared DB for configs that didn't actually change. Skip the marker on that first sync only.
+	timings.warmUp = moa.warmedUp.CompareAndSwap(false, true)
+	if timings.warmUp {
+		ctx = WithSkipMarkConfigApplied(ctx)
+	}
+
 	// Snapshot the running Alertmanagers under a read lock so the per-org work below can run concurrently
 	// without holding the lock. This method is the only writer of moa.alertmanagers and runs serially.
 	moa.alertmanagersMtx.RLock()
