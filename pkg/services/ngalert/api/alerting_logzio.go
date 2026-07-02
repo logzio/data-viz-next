@@ -56,7 +56,7 @@ func (srv *LogzioAlertingService) RouteEvaluateAlert(c *contextmodel.ReqContext,
 			AlertRule:   evalRequest.AlertRule,
 			EvalTime:    evalRequest.EvalTime,
 			FolderTitle: evalRequest.FolderTitle,
-			LogzHeaders: srv.addLogzRequestHeaders(c, requestId),
+			LogzHeaders: srv.addLogzRequestHeaders(c, requestId, evalRequest.AlertRule),
 		}
 
 		var step = evalRequest.AlertRule.ID % 30
@@ -75,10 +75,14 @@ func (srv *LogzioAlertingService) RouteEvaluateAlert(c *contextmodel.ReqContext,
 	return response.JSON(http.StatusOK, apimodels.EvalRunsResponse{RunResults: results})
 }
 
-func (srv *LogzioAlertingService) addLogzRequestHeaders(c *contextmodel.ReqContext, requestId string) http.Header {
+func (srv *LogzioAlertingService) addLogzRequestHeaders(c *contextmodel.ReqContext, requestId string, rule ngmodels.AlertRule) http.Header {
 	requestHeaders := c.Req.Header.Clone()
 	requestHeaders.Set("Query-Source", "METRICS_ALERTS")
 	requestHeaders.Set(models.LogzioRequestIdHeaderName, requestId)
+	// Forwarded to the datasource (see logzioHeadersWhitelist) so the backend can attribute a query to its rule.
+	requestHeaders.Set("x-gf-rule-uid", rule.UID)
+	requestHeaders.Set("x-gf-rule-group", rule.RuleGroup)
+	requestHeaders.Set("x-gf-rule-title", rule.Title)
 	return requestHeaders
 }
 

@@ -21,6 +21,9 @@ var logzioHeadersWhitelist = []string{
 	"X-Logz-Query-Context",
 	"Query-Source",
 	LogzioRequestIdHeaderName,
+	"x-gf-rule-uid",
+	"x-gf-rule-group",
+	"x-gf-rule-title",
 }
 
 func WithLogzHeaders(ctx context.Context, requestHeaders http.Header) context.Context {
