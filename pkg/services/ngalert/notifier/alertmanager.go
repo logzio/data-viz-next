@@ -377,9 +377,7 @@ func (am *alertmanager) applyConfig(cfg *apimodels.PostableUserConfig) (bool, er
 type skipMarkConfigAppliedKey struct{}
 
 // WithSkipMarkConfigApplied returns a context that tells ApplyConfig not to write the
-// MarkConfigurationAsApplied record. Used for the initial warm-up sync, where a fresh Alertmanager
-// re-applies every org's existing config and marking all of them would be a per-org DB write storm
-// on the shared database for configs that did not actually change.
+// MarkConfigurationAsApplied record (used by the warm-up sync; see SyncAlertmanagersForOrgs).
 func WithSkipMarkConfigApplied(ctx context.Context) context.Context {
 	return context.WithValue(ctx, skipMarkConfigAppliedKey{}, true)
 }

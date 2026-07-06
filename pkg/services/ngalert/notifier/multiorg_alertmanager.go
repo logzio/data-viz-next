@@ -70,8 +70,8 @@ type MultiOrgAlertmanager struct {
 	alertmanagersMtx sync.RWMutex
 	alertmanagers    map[int64]Alertmanager
 
-	// warmedUp is false until the first sync; the first (warm-up) sync skips the per-org
-	// MarkConfigurationAsApplied DB write, which would otherwise be a write storm at startup.
+	// warmedUp is false until the first sync completes; the warm-up sync does extra work — see
+	// SyncAlertmanagersForOrgs.
 	warmedUp atomic.Bool
 
 	settings       *setting.Cfg
@@ -312,22 +312,25 @@ func (moa *MultiOrgAlertmanager) SyncAlertmanagersForOrgs(ctx context.Context, o
 	}
 	timings.loadConfigsSeconds = time.Since(loadConfigsStart).Seconds()
 
-	// Bulk-load every org's Alertmanager file state (notification log + silences) in one query so the
-	// per-org factory below hydrates from memory instead of issuing 2 kvstore reads per org, which was
-	// the dominant cost of the sync loop. Falls back to per-org reads if the bulk load fails.
-	preloadStart := time.Now()
-	if fileState, err := moa.kvStore.GetAll(ctx, kvstore.AllOrganizations, KVNamespace); err != nil {
-		moa.logger.Warn("Failed to bulk-load Alertmanager file state; falling back to per-org reads", "error", err)
-	} else {
-		ctx = WithPreloadedFileState(ctx, fileState)
-	}
-	timings.preloadStateSeconds = time.Since(preloadStart).Seconds()
-
-	// On the first (warm-up) sync every org's config is re-applied to a fresh Alertmanager, so it all
-	// looks "changed" and each org would issue a MarkConfigurationAsApplied write — a per-org write storm
-	// on the shared DB for configs that didn't actually change. Skip the marker on that first sync only.
+	// The first (warm-up) sync is the only one that constructs an Alertmanager for every org, and it's
+	// where startup cost concentrates. Two things happen only on that sync:
+	//  1. Bulk-load all orgs' file state in one query so the factory hydrates from memory instead of a
+	//     per-org kvstore read (the factory reads it via FilepathFor). Later polls construct AMs only for
+	//     genuinely new orgs, which fall back to a per-org read, so bulk-loading on every poll would just
+	//     build a map nothing reads. Falls back to per-org reads if the bulk load fails.
+	//  2. Skip MarkConfigurationAsApplied: a fresh Alertmanager makes every config look "changed", so each
+	//     org would issue a DB write for a config that didn't actually change — a per-org write storm.
+	//     Steady-state polls only mark genuine changes, so they're unaffected.
 	timings.warmUp = moa.warmedUp.CompareAndSwap(false, true)
 	if timings.warmUp {
+		preloadStart := time.Now()
+		if fileState, err := moa.kvStore.GetAll(ctx, kvstore.AllOrganizations, KVNamespace); err != nil {
+			moa.logger.Warn("Failed to bulk-load Alertmanager file state; falling back to per-org reads", "error", err)
+		} else {
+			ctx = WithPreloadedFileState(ctx, fileState)
+		}
+		timings.preloadStateSeconds = time.Since(preloadStart).Seconds()
+
 		ctx = WithSkipMarkConfigApplied(ctx)
 	}
 
