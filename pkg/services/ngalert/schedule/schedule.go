@@ -527,7 +527,7 @@ func (sch *schedule) ruleRoutine(grafanaCtx context.Context, key ngmodels.AlertR
 		// what drives both memory and state-processing time, and it was previously recorded nowhere.
 		// The histogram gives the distribution; the offender report names the rules behind the tail.
 		sch.metrics.EvalResults.Observe(float64(len(results)))
-		sch.offenders.observe(offender{
+		sch.offenders.observe(sample{
 			ruleUID:     key.UID,
 			orgID:       key.OrgID,
 			results:     len(results),

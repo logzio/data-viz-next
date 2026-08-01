@@ -30,16 +30,15 @@ const (
 	// the interval were shorter.
 	offenderReportInterval = 15 * time.Minute
 
-	// offenderReportSize is how many rules are reported per ordering. The top 100
+	// offenderReportSize is how many rules are reported per dimension. The top 100
 	// rules account for ~40% of all evaluation cost, against ~20% for the top 12,
 	// so a larger report shows the shape of the distribution and surfaces a new
-	// offender well before it reaches the very top.
+	// offender before it reaches the very top.
 	offenderReportSize = 100
 )
 
-// offender is the single heaviest evaluation observed for one alert rule within
-// the current reporting window.
-type offender struct {
+// sample is the cost of one rule evaluation.
+type sample struct {
 	ruleUID     string
 	orgID       int64
 	results     int
@@ -48,81 +47,135 @@ type offender struct {
 	procDur     time.Duration
 }
 
-// offenderTracker keeps, per alert rule, the worst evaluation seen since the
-// last drain according to a single ordering.
+// offender accumulates every evaluation of one rule within the current window.
 //
-// Keying by rule UID rather than keeping a sorted top-N slice means dedup comes
-// for free (one hot rule cannot occupy every slot), the result is an exact top-N
-// rather than one biased by arrival order, and the only sorting happens once per
-// drain. Memory is bounded by the number of rules that evaluated in the window.
+// Both the max and the sum are kept for each dimension because they answer
+// different questions. The max is the worst single evaluation, so it is the risk
+// of running out of memory. The sum is rate times cost, so it is the rule's share
+// of total capacity. Averages are sum/count and are left to the reader.
+type offender struct {
+	ruleUID string
+	orgID   int64
+	count   int64
+
+	maxResults, sumResults int64
+	maxTransitions         int64
+	maxProcDur, sumProcDur time.Duration
+	maxEvalDur, sumEvalDur time.Duration
+}
+
+func (o *offender) merge(s sample) {
+	o.count++
+
+	if int64(s.results) > o.maxResults {
+		o.maxResults = int64(s.results)
+	}
+	o.sumResults += int64(s.results)
+
+	if int64(s.transitions) > o.maxTransitions {
+		o.maxTransitions = int64(s.transitions)
+	}
+
+	if s.procDur > o.maxProcDur {
+		o.maxProcDur = s.procDur
+	}
+	o.sumProcDur += s.procDur
+
+	if s.evalDur > o.maxEvalDur {
+		o.maxEvalDur = s.evalDur
+	}
+	o.sumEvalDur += s.evalDur
+}
+
+// dimension is one axis a rule can be reported for. A rule is reported if it
+// places on any dimension, so a rule that is extreme in only one way is not
+// hidden by rules that are moderately bad in every way.
+type dimension struct {
+	name  string
+	worse func(a, b *offender) bool
+}
+
+// reportDimensions are the axes rules are ranked on.
+//
+// results uses the max because one huge evaluation is what exhausts memory, even
+// if the rule is usually small. The two durations use the sum because sustained
+// cost is what decides which rule to fix first.
+//
+// Query time is ranked separately from processing time because they are different
+// problems: query time is mostly the datasource's latency and is capped by
+// evaluation_timeout, while processing time has no ceiling and is where both the
+// results and the states built from them are held in memory at once.
+var reportDimensions = []dimension{
+	{"results", func(a, b *offender) bool { return a.maxResults > b.maxResults }},
+	{"process_time", func(a, b *offender) bool { return a.sumProcDur > b.sumProcDur }},
+	{"query_time", func(a, b *offender) bool { return a.sumEvalDur > b.sumEvalDur }},
+}
+
+// offenderTracker accumulates per-rule cost for the current window.
+//
+// Keying by rule UID means a rule appears once no matter how often it evaluates,
+// memory is bounded by the number of rules rather than the number of
+// evaluations, and sorting happens once per drain instead of on every sample.
 type offenderTracker struct {
 	mu    sync.Mutex
-	worse func(a, b offender) bool
-	worst map[string]offender
+	rules map[string]*offender
 	seen  int64
 }
 
-func newOffenderTracker(worse func(a, b offender) bool) *offenderTracker {
-	return &offenderTracker{worse: worse, worst: make(map[string]offender)}
+func newOffenderTracker() *offenderTracker {
+	return &offenderTracker{rules: make(map[string]*offender)}
 }
 
-func (t *offenderTracker) observe(s offender) {
+func (t *offenderTracker) observe(s sample) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	t.seen++
-	if prev, ok := t.worst[s.ruleUID]; ok && !t.worse(s, prev) {
-		return
+	o, ok := t.rules[s.ruleUID]
+	if !ok {
+		o = &offender{ruleUID: s.ruleUID, orgID: s.orgID}
+		t.rules[s.ruleUID] = o
 	}
-	t.worst[s.ruleUID] = s
+	o.merge(s)
 }
 
-// drain returns the n worst samples and the number of evaluations observed,
-// resetting the tracker for the next window.
-func (t *offenderTracker) drain(n int) ([]offender, int64) {
+// drain returns every rule seen and the total evaluation count, then starts a new
+// window.
+func (t *offenderTracker) drain() ([]*offender, int64) {
 	t.mu.Lock()
-	all, seen := t.worst, t.seen
-	t.worst, t.seen = make(map[string]offender, len(all)), 0
+	all, seen := t.rules, t.seen
+	t.rules, t.seen = make(map[string]*offender, len(all)), 0
 	t.mu.Unlock()
 
-	out := make([]offender, 0, len(all))
+	out := make([]*offender, 0, len(all))
 	for _, o := range all {
 		out = append(out, o)
-	}
-	sort.Slice(out, func(i, j int) bool { return t.worse(out[i], out[j]) })
-	if len(out) > n {
-		out = out[:n]
 	}
 	return out, seen
 }
 
-// offenderReporter tracks the heaviest evaluations on two independent axes - the
-// number of results produced, which drives memory, and the time spent turning
-// those results into state, which drives latency - and periodically logs both.
+// offenderReporter periodically logs the heaviest rule evaluations.
 type offenderReporter struct {
-	byResults *offenderTracker
-	byProcDur *offenderTracker
-	size      int
-	interval  time.Duration
-	log       log.Logger
+	tracker  *offenderTracker
+	size     int
+	interval time.Duration
+	log      log.Logger
 }
 
 func newOffenderReporter(logger log.Logger, size int, interval time.Duration) *offenderReporter {
 	return &offenderReporter{
-		byResults: newOffenderTracker(func(a, b offender) bool { return a.results > b.results }),
-		byProcDur: newOffenderTracker(func(a, b offender) bool { return a.procDur > b.procDur }),
-		size:      size,
-		interval:  interval,
-		log:       logger,
+		tracker:  newOffenderTracker(),
+		size:     size,
+		interval: interval,
+		log:      logger,
 	}
 }
 
-func (r *offenderReporter) observe(s offender) {
+func (r *offenderReporter) observe(s sample) {
 	if r == nil {
 		return
 	}
-	r.byResults.observe(s)
-	r.byProcDur.observe(s)
+	r.tracker.observe(s)
 }
 
 func (r *offenderReporter) run(ctx context.Context, c clock.Clock) {
@@ -142,12 +195,28 @@ func (r *offenderReporter) run(ctx context.Context, c clock.Clock) {
 	}
 }
 
-// rankedOffender is one rule's entry in a report, carrying its position on each
-// axis. A rank of 0 means the rule did not place on that axis.
-type rankedOffender struct {
-	offender
-	resultsRank int
-	procRank    int
+// rank returns each reported rule and its position on every dimension it placed
+// on. A missing entry means the rule did not place on that dimension.
+func (r *offenderReporter) rank(all []*offender) map[string]map[string]int {
+	ranks := make(map[string]map[string]int)
+
+	for _, d := range reportDimensions {
+		sort.Slice(all, func(i, j int) bool { return d.worse(all[i], all[j]) })
+
+		n := r.size
+		if len(all) < n {
+			n = len(all)
+		}
+		for i := 0; i < n; i++ {
+			uid := all[i].ruleUID
+			if ranks[uid] == nil {
+				ranks[uid] = make(map[string]int, len(reportDimensions))
+			}
+			ranks[uid][d.name] = i + 1
+		}
+	}
+
+	return ranks
 }
 
 // report logs the current window's heaviest evaluations and starts a new window.
@@ -156,54 +225,62 @@ func (r *offenderReporter) report() {
 		return
 	}
 
-	byResults, seen := r.byResults.drain(r.size)
-	byProcDur, _ := r.byProcDur.drain(r.size)
-	if seen == 0 {
+	all, seen := r.tracker.drain()
+	if seen == 0 || len(all) == 0 {
 		return
 	}
 
-	// A rule that places on both axes is reported once, carrying both ranks, so
-	// the report costs at most 2*size lines and usually far fewer.
-	union := make(map[string]*rankedOffender, len(byResults)+len(byProcDur))
-	for i, o := range byResults {
-		union[o.ruleUID] = &rankedOffender{offender: o, resultsRank: i + 1}
-	}
-	for i, o := range byProcDur {
-		if e, ok := union[o.ruleUID]; ok {
-			e.procRank = i + 1
-			continue
+	ranks := r.rank(all)
+
+	reported := make([]*offender, 0, len(ranks))
+	for _, o := range all {
+		if _, ok := ranks[o.ruleUID]; ok {
+			reported = append(reported, o)
 		}
-		union[o.ruleUID] = &rankedOffender{offender: o, procRank: i + 1}
 	}
 
-	out := make([]*rankedOffender, 0, len(union))
-	for _, e := range union {
-		out = append(out, e)
-	}
-	// Rules ranked by result count first, then those that only placed on duration.
-	rank := func(e *rankedOffender) int {
-		if e.resultsRank > 0 {
-			return e.resultsRank
+	// Order by the rule's best position across dimensions so the worst offenders
+	// appear first, and break ties by UID so output is deterministic.
+	best := func(o *offender) int {
+		b := r.size + 1
+		for _, rank := range ranks[o.ruleUID] {
+			if rank < b {
+				b = rank
+			}
 		}
-		return r.size + 1 + e.procRank
+		return b
 	}
-	sort.Slice(out, func(i, j int) bool { return rank(out[i]) < rank(out[j]) })
+	sort.Slice(reported, func(i, j int) bool {
+		bi, bj := best(reported[i]), best(reported[j])
+		if bi != bj {
+			return bi < bj
+		}
+		return reported[i].ruleUID < reported[j].ruleUID
+	})
 
 	r.log.Info("Alert rule evaluation offenders",
 		"window", r.interval,
 		"evaluations", seen,
-		"reported", len(out))
+		"rules_evaluated", len(all),
+		"rules_reported", len(reported),
+		"top_n", r.size)
 
-	for _, e := range out {
+	for _, o := range reported {
+		rank := ranks[o.ruleUID]
 		r.log.Info("Alert rule offender",
-			"rule_uid", e.ruleUID,
-			"org_id", e.orgID,
-			"results", e.results,
-			"transitions", e.transitions,
-			"eval_ms", e.evalDur.Milliseconds(),
-			"process_ms", e.procDur.Milliseconds(),
-			"results_rank", e.resultsRank,
-			"process_rank", e.procRank,
+			"rule_uid", o.ruleUID,
+			"org_id", o.orgID,
+			"evaluations", o.count,
+			"max_results", o.maxResults,
+			"sum_results", o.sumResults,
+			"max_transitions", o.maxTransitions,
+			"max_process_ms", o.maxProcDur.Milliseconds(),
+			"sum_process_ms", o.sumProcDur.Milliseconds(),
+			"max_query_ms", o.maxEvalDur.Milliseconds(),
+			"sum_query_ms", o.sumEvalDur.Milliseconds(),
+			"rank_results", rank["results"],
+			"rank_process_time", rank["process_time"],
+			"rank_query_time", rank["query_time"],
 			"window_evaluations", seen)
 	}
 }
