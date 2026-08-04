@@ -20,7 +20,6 @@ type Scheduler struct {
 	EvalDuration                        *prometheus.HistogramVec
 	ProcessDuration                     *prometheus.HistogramVec
 	SendDuration                        *prometheus.HistogramVec
-	EvalResults                         prometheus.Histogram // LOGZ.IO GRAFANA CHANGE :: APPZ-3027 Distribution of per-evaluation result counts
 	SimpleNotificationRules             *prometheus.GaugeVec
 	GroupRules                          *prometheus.GaugeVec
 	Groups                              *prometheus.GaugeVec
@@ -95,19 +94,6 @@ func NewSchedulerMetrics(r prometheus.Registerer) *Scheduler {
 			},
 			[]string{"org"},
 		),
-		// LOGZ.IO GRAFANA CHANGE :: APPZ-3027 The number of results per evaluation drives both the
-		// memory held during state processing and the number of alert instances produced. Unlabelled
-		// so cardinality stays fixed; see offenders.go for which rules are behind the tail.
-		EvalResults: promauto.With(r).NewHistogram(
-			prometheus.HistogramOpts{
-				Namespace: Namespace,
-				Subsystem: Subsystem,
-				Name:      "rule_evaluation_results",
-				Help:      "The number of results returned by a single rule evaluation.",
-				Buckets:   []float64{1, 5, 10, 50, 100, 500, 1000, 5000, 10000, 50000, 100000, 500000, 1000000},
-			},
-		),
-		// LOGZ.IO GRAFANA CHANGE :: End
 		SimpleNotificationRules: promauto.With(r).NewGaugeVec(
 			prometheus.GaugeOpts{
 				Namespace: Namespace,

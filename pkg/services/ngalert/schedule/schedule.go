@@ -525,8 +525,6 @@ func (sch *schedule) ruleRoutine(grafanaCtx context.Context, key ngmodels.AlertR
 
 		// LOGZ.IO GRAFANA CHANGE :: APPZ-3027 The number of results a single evaluation produces is
 		// what drives both memory and state-processing time, and it was previously recorded nowhere.
-		// The histogram gives the distribution; the offender report names the rules behind the tail.
-		sch.metrics.EvalResults.Observe(float64(len(results)))
 		sch.offenders.observe(sample{
 			ruleUID:     key.UID,
 			orgID:       key.OrgID,
