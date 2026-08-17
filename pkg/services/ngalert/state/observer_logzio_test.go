@@ -47,7 +47,7 @@ func TestLogzioStateObserver_CompareSnapshotWithCache(t *testing.T) {
 	t.Run("checks nothing when no rule was evaluated on this pod (startup)", func(t *testing.T) {
 		st, mockClock := newManager()
 
-		summary := st.logzioObserver.compareSnapshotWithCache(mkSnapshot(mkState("a", mockClock.Now(), eval.Normal)))
+		summary := st.Logzio.observer.compareSnapshotWithCache(mkSnapshot(mkState("a", mockClock.Now(), eval.Normal)))
 
 		require.Equal(t, 0, summary.activeRules)
 		require.Equal(t, 0, summary.statesChecked)
@@ -57,9 +57,9 @@ func TestLogzioStateObserver_CompareSnapshotWithCache(t *testing.T) {
 		st, mockClock := newManager()
 		now := mockClock.Now()
 		st.cache.set(mkState("a", now, eval.Alerting))
-		st.logzioObserver.onRuleEvaluated(key, now)
+		st.Logzio.observer.onRuleEvaluated(key, now)
 
-		summary := st.logzioObserver.compareSnapshotWithCache(mkSnapshot(mkState("a", now, eval.Alerting)))
+		summary := st.Logzio.observer.compareSnapshotWithCache(mkSnapshot(mkState("a", now, eval.Alerting)))
 
 		require.Equal(t, 1, summary.activeRules)
 		require.Equal(t, 1, summary.statesChecked)
@@ -70,9 +70,9 @@ func TestLogzioStateObserver_CompareSnapshotWithCache(t *testing.T) {
 		st, mockClock := newManager()
 		now := mockClock.Now()
 		st.cache.set(mkState("a", now, eval.Normal))
-		st.logzioObserver.onRuleEvaluated(key, now)
+		st.Logzio.observer.onRuleEvaluated(key, now)
 
-		summary := st.logzioObserver.compareSnapshotWithCache(mkSnapshot(mkState("a", now.Add(time.Minute), eval.Normal)))
+		summary := st.Logzio.observer.compareSnapshotWithCache(mkSnapshot(mkState("a", now.Add(time.Minute), eval.Normal)))
 
 		require.Equal(t, 1, summary.newerInDB)
 	})
@@ -81,9 +81,9 @@ func TestLogzioStateObserver_CompareSnapshotWithCache(t *testing.T) {
 		st, mockClock := newManager()
 		now := mockClock.Now()
 		st.cache.set(mkState("a", now, eval.Normal))
-		st.logzioObserver.onRuleEvaluated(key, now)
+		st.Logzio.observer.onRuleEvaluated(key, now)
 
-		summary := st.logzioObserver.compareSnapshotWithCache(mkSnapshot(mkState("a", now.Add(500*time.Millisecond), eval.Normal)))
+		summary := st.Logzio.observer.compareSnapshotWithCache(mkSnapshot(mkState("a", now.Add(500*time.Millisecond), eval.Normal)))
 
 		require.Equal(t, 0, summary.newerInDB+summary.valueMismatch)
 	})
@@ -92,9 +92,9 @@ func TestLogzioStateObserver_CompareSnapshotWithCache(t *testing.T) {
 		st, mockClock := newManager()
 		now := mockClock.Now()
 		st.cache.set(mkState("a", now, eval.Normal))
-		st.logzioObserver.onRuleEvaluated(key, now)
+		st.Logzio.observer.onRuleEvaluated(key, now)
 
-		summary := st.logzioObserver.compareSnapshotWithCache(mkSnapshot(
+		summary := st.Logzio.observer.compareSnapshotWithCache(mkSnapshot(
 			mkState("a", now, eval.Normal),
 			mkState("b", now, eval.Alerting),
 		))
@@ -106,9 +106,9 @@ func TestLogzioStateObserver_CompareSnapshotWithCache(t *testing.T) {
 		st, mockClock := newManager()
 		now := mockClock.Now()
 		st.cache.set(mkState("a", now, eval.Normal))
-		st.logzioObserver.onRuleEvaluated(key, now)
+		st.Logzio.observer.onRuleEvaluated(key, now)
 
-		summary := st.logzioObserver.compareSnapshotWithCache(mkSnapshot(mkState("a", now, eval.Alerting)))
+		summary := st.Logzio.observer.compareSnapshotWithCache(mkSnapshot(mkState("a", now, eval.Alerting)))
 
 		require.Equal(t, 1, summary.valueMismatch)
 	})
@@ -117,9 +117,9 @@ func TestLogzioStateObserver_CompareSnapshotWithCache(t *testing.T) {
 		st, mockClock := newManager()
 		now := mockClock.Now()
 		st.cache.set(mkState("a", now.Add(time.Minute), eval.Alerting))
-		st.logzioObserver.onRuleEvaluated(key, now.Add(time.Minute))
+		st.Logzio.observer.onRuleEvaluated(key, now.Add(time.Minute))
 
-		summary := st.logzioObserver.compareSnapshotWithCache(mkSnapshot(mkState("a", now, eval.Normal)))
+		summary := st.Logzio.observer.compareSnapshotWithCache(mkSnapshot(mkState("a", now, eval.Normal)))
 
 		require.Equal(t, 0, summary.missingInCache+summary.newerInDB+summary.valueMismatch)
 	})
@@ -127,7 +127,7 @@ func TestLogzioStateObserver_CompareSnapshotWithCache(t *testing.T) {
 	t.Run("ignores rules not evaluated on this pod", func(t *testing.T) {
 		st, mockClock := newManager()
 		// The snapshot diverges from the (empty) cache, but the rule has no local activity.
-		summary := st.logzioObserver.compareSnapshotWithCache(mkSnapshot(mkState("a", mockClock.Now(), eval.Alerting)))
+		summary := st.Logzio.observer.compareSnapshotWithCache(mkSnapshot(mkState("a", mockClock.Now(), eval.Alerting)))
 
 		require.Equal(t, 0, summary.activeRules)
 		require.Equal(t, 0, summary.missingInCache+summary.newerInDB+summary.valueMismatch)
@@ -136,13 +136,13 @@ func TestLogzioStateObserver_CompareSnapshotWithCache(t *testing.T) {
 	t.Run("drops activity older than the active window", func(t *testing.T) {
 		st, mockClock := newManager()
 		st.cache.set(mkState("a", mockClock.Now(), eval.Normal))
-		st.logzioObserver.onRuleEvaluated(key, mockClock.Now())
+		st.Logzio.observer.onRuleEvaluated(key, mockClock.Now())
 		mockClock.Add(compareActiveWindow + time.Minute)
 
-		summary := st.logzioObserver.compareSnapshotWithCache(mkSnapshot(mkState("a", mockClock.Now(), eval.Alerting)))
+		summary := st.Logzio.observer.compareSnapshotWithCache(mkSnapshot(mkState("a", mockClock.Now(), eval.Alerting)))
 
 		require.Equal(t, 0, summary.activeRules)
-		require.Empty(t, st.logzioObserver.ruleActivity.entries())
+		require.Empty(t, st.Logzio.observer.ruleActivity.entries())
 	})
 }
 

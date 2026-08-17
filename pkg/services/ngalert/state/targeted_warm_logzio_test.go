@@ -56,19 +56,18 @@ func (f *fakeWarmInstanceStore) FullSync(_ context.Context, _ []ngModels.AlertIn
 }
 
 func newTargetedWarmManager(store InstanceStore) (*Manager, *clock.Mock) {
-	return newWarmManagerWithFlags(store, true, true)
+	return newWarmManagerWithFlags(store, true)
 }
 
-func newWarmManagerWithFlags(store InstanceStore, targetedWarm, shadowCompare bool) (*Manager, *clock.Mock) {
+func newWarmManagerWithFlags(store InstanceStore, targetedWarm bool) (*Manager, *clock.Mock) {
 	mockClock := clock.NewMock()
 	// Move off the epoch: zero unix-nanoseconds is the never-warmed sentinel of the observer.
 	mockClock.Add(time.Hour)
 	st := NewManager(ManagerCfg{
-		Clock:                     mockClock,
-		Log:                       log.New("ngalert.state.manager.test"),
-		InstanceStore:             store,
-		TargetedWarmEnabled:       targetedWarm,
-		TargetedWarmShadowCompare: shadowCompare,
+		Clock:               mockClock,
+		Log:                 log.New("ngalert.state.manager.test"),
+		InstanceStore:       store,
+		TargetedWarmEnabled: targetedWarm,
 	}, NewNoopPersister())
 	return st, mockClock
 }
@@ -99,7 +98,7 @@ func TestManager_WarmRuleIfNeeded(t *testing.T) {
 		st, mockClock := newTargetedWarmManager(store)
 		mockClock.Add(TargetedWarmReloadAfter + time.Minute)
 
-		st.TargetedWarm.WarmRuleIfNeeded(context.Background(), rule)
+		st.Logzio.WarmRuleIfNeeded(context.Background(), rule)
 
 		require.Len(t, store.queries, 1)
 		require.Equal(t, rule.OrgID, store.queries[0].RuleOrgID)
@@ -126,9 +125,9 @@ func TestManager_WarmRuleIfNeeded(t *testing.T) {
 		store := &fakeWarmInstanceStore{}
 		st, mockClock := newTargetedWarmManager(store)
 		mockClock.Add(TargetedWarmReloadAfter + time.Minute)
-		st.logzioObserver.onRuleEvaluated(rule.GetKey(), mockClock.Now())
+		st.Logzio.observer.onRuleEvaluated(rule.GetKey(), mockClock.Now())
 
-		st.TargetedWarm.WarmRuleIfNeeded(context.Background(), rule)
+		st.Logzio.WarmRuleIfNeeded(context.Background(), rule)
 
 		require.Empty(t, store.queries)
 	})
@@ -137,10 +136,10 @@ func TestManager_WarmRuleIfNeeded(t *testing.T) {
 		rule := newWarmRule()
 		store := &fakeWarmInstanceStore{}
 		st, mockClock := newTargetedWarmManager(store)
-		st.logzioObserver.onWarmSnapshotLoaded(map[int64]map[string]*ruleStates{})
+		st.Logzio.observer.onWarmSnapshotLoaded(map[int64]map[string]*ruleStates{})
 		mockClock.Add(time.Minute)
 
-		st.TargetedWarm.WarmRuleIfNeeded(context.Background(), rule)
+		st.Logzio.WarmRuleIfNeeded(context.Background(), rule)
 
 		require.Empty(t, store.queries)
 	})
@@ -149,10 +148,10 @@ func TestManager_WarmRuleIfNeeded(t *testing.T) {
 		rule := newWarmRule()
 		store := &fakeWarmInstanceStore{}
 		st, mockClock := newTargetedWarmManager(store)
-		st.logzioObserver.onWarmSnapshotLoaded(map[int64]map[string]*ruleStates{})
+		st.Logzio.observer.onWarmSnapshotLoaded(map[int64]map[string]*ruleStates{})
 		mockClock.Add(TargetedWarmReloadAfter + time.Minute)
 
-		st.TargetedWarm.WarmRuleIfNeeded(context.Background(), rule)
+		st.Logzio.WarmRuleIfNeeded(context.Background(), rule)
 
 		require.Len(t, store.queries, 1)
 	})
@@ -164,12 +163,12 @@ func TestManager_WarmRuleIfNeeded(t *testing.T) {
 		}}
 		st, mockClock := newTargetedWarmManager(store)
 		mockClock.Add(TargetedWarmReloadAfter + time.Minute)
-		st.TargetedWarm.WarmRuleIfNeeded(context.Background(), rule)
+		st.Logzio.WarmRuleIfNeeded(context.Background(), rule)
 		require.Len(t, st.GetStatesForRuleUID(rule.OrgID, rule.UID), 1)
 
 		store.err = errors.New("db is down")
 		mockClock.Add(TargetedWarmReloadAfter + time.Minute)
-		st.TargetedWarm.WarmRuleIfNeeded(context.Background(), rule)
+		st.Logzio.WarmRuleIfNeeded(context.Background(), rule)
 
 		states := st.GetStatesForRuleUID(rule.OrgID, rule.UID)
 		require.Len(t, states, 1)
@@ -181,7 +180,7 @@ func TestManager_WarmRuleIfNeeded(t *testing.T) {
 		st, mockClock := newTargetedWarmManager(nil)
 		mockClock.Add(TargetedWarmReloadAfter + time.Minute)
 
-		st.TargetedWarm.WarmRuleIfNeeded(context.Background(), rule)
+		st.Logzio.WarmRuleIfNeeded(context.Background(), rule)
 
 		require.Empty(t, st.GetStatesForRuleUID(rule.OrgID, rule.UID))
 	})
@@ -193,7 +192,7 @@ func TestManager_WarmRuleIfNeeded(t *testing.T) {
 		st, mockClock := newTargetedWarmManager(store)
 		mockClock.Add(TargetedWarmReloadAfter + time.Minute)
 
-		st.TargetedWarm.WarmRuleIfNeeded(context.Background(), rule)
+		st.Logzio.WarmRuleIfNeeded(context.Background(), rule)
 
 		require.Empty(t, store.queries)
 	})
@@ -201,10 +200,10 @@ func TestManager_WarmRuleIfNeeded(t *testing.T) {
 	t.Run("does nothing when targeted warm is disabled", func(t *testing.T) {
 		rule := newWarmRule()
 		store := &fakeWarmInstanceStore{}
-		st, mockClock := newWarmManagerWithFlags(store, false, true)
+		st, mockClock := newWarmManagerWithFlags(store, false)
 		mockClock.Add(TargetedWarmReloadAfter + time.Minute)
 
-		st.TargetedWarm.WarmRuleIfNeeded(context.Background(), rule)
+		st.Logzio.WarmRuleIfNeeded(context.Background(), rule)
 
 		require.Empty(t, store.queries)
 	})
@@ -212,35 +211,25 @@ func TestManager_WarmRuleIfNeeded(t *testing.T) {
 
 func TestManager_MaintainCache(t *testing.T) {
 	t.Run("runs the full reload outside targeted-warm mode", func(t *testing.T) {
-		st, _ := newWarmManagerWithFlags(&fakeWarmInstanceStore{}, false, true)
+		st, _ := newWarmManagerWithFlags(&fakeWarmInstanceStore{}, false)
 
-		st.TargetedWarm.MaintainCache(context.Background(), &FakeRuleReader{})
+		st.Logzio.MaintainCache(context.Background(), &FakeRuleReader{})
 
-		require.False(t, st.logzioObserver.lastWarmSnapshotAt().IsZero(), "the full warm must run and record the snapshot baseline")
+		require.False(t, st.Logzio.observer.lastWarmSnapshotAt().IsZero(), "the full warm must run and record the snapshot baseline")
 	})
 
-	t.Run("sweeps instead of reloading in targeted-warm mode", func(t *testing.T) {
+	t.Run("sweeps and shadow-compares instead of reloading in targeted-warm mode", func(t *testing.T) {
 		ruleA := newWarmRule()
-		store := &fakeWarmInstanceStore{}
-		st, mockClock := newWarmManagerWithFlags(store, true, false)
+		store := &fakeWarmInstanceStore{orgIds: []int64{1}}
+		st, mockClock := newWarmManagerWithFlags(store, true)
 		st.cache.set(&State{OrgID: ruleA.OrgID, AlertRuleUID: ruleA.UID, CacheID: "a"})
 		mockClock.Add(TargetedWarmEvictAfter + time.Minute)
 
-		st.TargetedWarm.MaintainCache(context.Background(), &FakeRuleReader{})
+		st.Logzio.MaintainCache(context.Background(), &FakeRuleReader{})
 
-		require.True(t, st.logzioObserver.lastWarmSnapshotAt().IsZero(), "the full warm must not run")
-		require.Empty(t, store.queries, "with the shadow compare off there must be no database reads")
+		require.NotEmpty(t, store.queries, "the shadow compare must load the snapshot")
+		require.True(t, st.Logzio.observer.lastWarmSnapshotAt().IsZero(), "the full warm must not run and the shadow load must not advance the snapshot baseline")
 		require.Empty(t, st.GetStatesForRuleUID(ruleA.OrgID, ruleA.UID), "the idle sweep must run")
-	})
-
-	t.Run("keeps the shadow compare cycle while it is enabled", func(t *testing.T) {
-		store := &fakeWarmInstanceStore{orgIds: []int64{1}}
-		st, _ := newWarmManagerWithFlags(store, true, true)
-
-		st.TargetedWarm.MaintainCache(context.Background(), &FakeRuleReader{})
-
-		require.NotEmpty(t, store.queries, "the shadow compare must keep loading the snapshot")
-		require.True(t, st.logzioObserver.lastWarmSnapshotAt().IsZero(), "the shadow load must not advance the snapshot baseline")
 	})
 }
 
@@ -258,9 +247,9 @@ func TestManager_SweepIdleRuleStates(t *testing.T) {
 		st.cache.set(mkCachedState(ruleB, "b"))
 
 		mockClock.Add(TargetedWarmEvictAfter + time.Minute)
-		st.logzioObserver.onRuleEvaluated(ruleA.GetKey(), mockClock.Now())
+		st.Logzio.observer.onRuleEvaluated(ruleA.GetKey(), mockClock.Now())
 
-		st.TargetedWarm.sweepIdleRuleStates()
+		st.Logzio.targetedWarm.sweepIdleRuleStates()
 
 		require.Len(t, st.GetStatesForRuleUID(ruleA.OrgID, ruleA.UID), 1, "recently evaluated rule must keep its states")
 		require.Empty(t, st.GetStatesForRuleUID(ruleB.OrgID, ruleB.UID), "idle rule states must be freed")
@@ -271,10 +260,10 @@ func TestManager_SweepIdleRuleStates(t *testing.T) {
 		ruleA := newWarmRule()
 		st, mockClock := newTargetedWarmManager(&fakeWarmInstanceStore{})
 		st.cache.set(mkCachedState(ruleA, "a"))
-		st.logzioObserver.onWarmSnapshotLoaded(map[int64]map[string]*ruleStates{})
+		st.Logzio.observer.onWarmSnapshotLoaded(map[int64]map[string]*ruleStates{})
 
 		mockClock.Add(time.Minute)
-		st.TargetedWarm.sweepIdleRuleStates()
+		st.Logzio.targetedWarm.sweepIdleRuleStates()
 
 		require.Len(t, st.GetStatesForRuleUID(ruleA.OrgID, ruleA.UID), 1)
 	})
@@ -282,12 +271,12 @@ func TestManager_SweepIdleRuleStates(t *testing.T) {
 	t.Run("prunes stale activity entries", func(t *testing.T) {
 		ruleA := newWarmRule()
 		st, mockClock := newTargetedWarmManager(&fakeWarmInstanceStore{})
-		st.logzioObserver.onRuleEvaluated(ruleA.GetKey(), mockClock.Now())
+		st.Logzio.observer.onRuleEvaluated(ruleA.GetKey(), mockClock.Now())
 
 		mockClock.Add(TargetedWarmEvictAfter + time.Minute)
-		st.TargetedWarm.sweepIdleRuleStates()
+		st.Logzio.targetedWarm.sweepIdleRuleStates()
 
-		require.Empty(t, st.logzioObserver.ruleActivity.entries())
+		require.Empty(t, st.Logzio.observer.ruleActivity.entries())
 	})
 }
 
@@ -313,9 +302,9 @@ func TestManager_ShadowWarmCompare(t *testing.T) {
 		require.NoError(t, err)
 		cached.CacheID = cacheID
 		st.cache.set(cached)
-		st.logzioObserver.onRuleEvaluated(rule.GetKey(), now)
+		st.Logzio.observer.onRuleEvaluated(rule.GetKey(), now)
 
-		summary := st.TargetedWarm.shadowWarmCompare(context.Background())
+		summary := st.Logzio.targetedWarm.shadowWarmCompare(context.Background())
 
 		require.NotNil(t, summary)
 		require.Equal(t, 1, summary.activeRules)
@@ -325,12 +314,12 @@ func TestManager_ShadowWarmCompare(t *testing.T) {
 		require.Len(t, states, 1)
 		require.Equal(t, eval.Normal, states[0].State, "the cache must stay untouched")
 		require.Equal(t, now, states[0].LastEvaluationTime, "the cache must stay untouched")
-		require.True(t, st.logzioObserver.lastWarmSnapshotAt().IsZero(), "shadow compare must not advance the warm freshness baseline")
+		require.True(t, st.Logzio.observer.lastWarmSnapshotAt().IsZero(), "shadow compare must not advance the warm freshness baseline")
 	})
 
 	t.Run("returns nil when the instance store is not configured", func(t *testing.T) {
 		st, _ := newTargetedWarmManager(nil)
-		require.Nil(t, st.TargetedWarm.shadowWarmCompare(context.Background()))
+		require.Nil(t, st.Logzio.targetedWarm.shadowWarmCompare(context.Background()))
 	})
 }
 

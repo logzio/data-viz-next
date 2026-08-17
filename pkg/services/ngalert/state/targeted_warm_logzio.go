@@ -3,32 +3,12 @@ package state
 // LOGZ.IO GRAFANA CHANGE :: APPZ-3028 Targeted state cache warm
 //
 // Replaces the per-tick full state cache reload when [unified_alerting] targeted_warm_enabled is
-// on. All logic and configuration live on LogzioTargetedWarm, a fork-owned component held by the
-// Manager in a single field. This changes behavior, so it is deliberately NOT part of the
-// observer. The scheduler calls two entry points as bare one-liners, and every decision (mode,
-// pause, staleness) is made here: MaintainCache at the end of every tick, and WarmRuleIfNeeded
-// right before an evaluation. Three cooperating pieces:
-//
-//  1. The startup warm-up (unchanged, in Warm) loads all persisted states once, in bulk, so a
-//     fresh pod starts with a complete cache and no burst of per-rule queries.
-//  2. WarmRuleIfNeeded reloads one rule from the database right before its evaluation when the
-//     rule had no local evaluation for TargetedWarmReloadAfter. While a rule keeps evaluating on
-//     this pod, its cache is fresher than the database and there is nothing to reload. A gap
-//     means the rule may have been evaluated on another pod (which persisted newer states), or
-//     that its states were freed by the sweep.
-//  3. sweepIdleRuleStates frees the cached states of rules with no local evaluation for
-//     TargetedWarmEvictAfter, so per-pod memory converges to the share this pod evaluates. It
-//     only touches the cache map, never the database: the rows of a swept rule belong to
-//     whichever pod evaluates it.
-//
-// shadowWarmCompare supports the rollout: it keeps loading the database snapshot every tick like
-// the old full reload did, but only feeds it to the state cache compare and discards it. It lets
-// us observe zero discrepancies while targeted warm is already active, and is turned off
-// afterwards via [unified_alerting] targeted_warm_shadow_compare_enabled.
-//
-// Freshness bookkeeping comes from the observer: rule activity is recorded on every
-// ProcessEvalResults, and rules never evaluated here fall back to the last applied full-warm
-// snapshot time.
+// on: the startup warm-up still loads everything once, a rule is re-warmed right before its
+// evaluation after a gap in local evaluations, and an idle sweep frees the cached states of rules
+// this pod does not evaluate (cache only, never the database). The full snapshot is still loaded
+// every tick and fed to the state cache compare only, as the rollout observation window; that
+// load (shadowWarmCompare) gets deleted once observation shows zero discrepancies. Behavioral by
+// design, so not part of the observer. Reached through the Manager's Logzio delegate.
 
 import (
 	"context"
@@ -41,65 +21,50 @@ import (
 )
 
 const (
-	// TargetedWarmReloadAfter is how long a rule may go unevaluated on this pod before its cached
-	// states are considered stale and are reloaded from the database prior to the next evaluation.
+	// TargetedWarmReloadAfter is the local-evaluation gap after which a rule re-warms before evaluating.
 	TargetedWarmReloadAfter = 5 * time.Minute
-
-	// TargetedWarmEvictAfter is how long a rule may go unevaluated on this pod before the idle
-	// sweep frees its cached states. It MUST be greater than TargetedWarmReloadAfter: any rule
-	// evaluated after eviction is then guaranteed to re-warm first, instead of silently starting
-	// from empty state.
+	// TargetedWarmEvictAfter is the idle threshold of the sweep. MUST exceed TargetedWarmReloadAfter,
+	// so an evicted rule always re-warms before its next evaluation.
 	TargetedWarmEvictAfter = 15 * time.Minute
 )
 
-// LogzioTargetedWarm owns the targeted-warm behavior and its configuration. The Manager holds it
-// in one field, keeping the upstream struct untouched beyond that.
-type LogzioTargetedWarm struct {
-	enabled       bool
-	shadowCompare bool
-	manager       *Manager
+type logzioTargetedWarm struct {
+	enabled  bool
+	manager  *Manager
+	observer *logzioStateObserver
 }
 
-func newLogzioTargetedWarm(cfg ManagerCfg, manager *Manager) *LogzioTargetedWarm {
-	return &LogzioTargetedWarm{
-		enabled:       cfg.TargetedWarmEnabled,
-		shadowCompare: cfg.TargetedWarmShadowCompare,
-		manager:       manager,
+func newLogzioTargetedWarm(cfg ManagerCfg, manager *Manager, observer *logzioStateObserver) *logzioTargetedWarm {
+	return &logzioTargetedWarm{
+		enabled:  cfg.TargetedWarmEnabled,
+		manager:  manager,
+		observer: observer,
 	}
 }
 
-// MaintainCache runs the per-tick state cache maintenance, called by the scheduler at the end of
-// every tick. Outside targeted-warm mode it is the original DEV-47243 behavior: a full reload of
-// the cache from the database, repairing any staleness. In targeted-warm mode the full reload is
-// replaced by the idle sweep, plus a load-and-compare-only cycle while the rollout observation
-// window is open.
-func (w *LogzioTargetedWarm) MaintainCache(ctx context.Context, rulesReader RuleReader) {
+// maintainCache is the per-tick maintenance: the original full reload, or sweep plus shadow compare.
+func (w *logzioTargetedWarm) maintainCache(ctx context.Context, rulesReader RuleReader) {
 	if !w.enabled {
 		w.manager.Warm(ctx, rulesReader)
 		return
 	}
-	if w.shadowCompare {
-		w.shadowWarmCompare(ctx)
-	}
+	w.shadowWarmCompare(ctx)
 	w.sweepIdleRuleStates()
 }
 
-// WarmRuleIfNeeded reloads the rule's states from the database right before its evaluation, when
-// targeted-warm mode is on, the rule is not paused, and the rule had no recent local evaluation.
-// No-op otherwise.
-func (w *LogzioTargetedWarm) WarmRuleIfNeeded(ctx context.Context, rule *ngModels.AlertRule) {
+// warmRuleIfNeeded re-warms the rule when the mode is on, it is not paused, and it had no recent local evaluation.
+func (w *logzioTargetedWarm) warmRuleIfNeeded(ctx context.Context, rule *ngModels.AlertRule) {
 	if !w.enabled || rule.IsPaused {
 		return
 	}
-	if w.manager.clock.Now().Sub(w.manager.logzioObserver.lastRuleActivity(rule.GetKey())) <= TargetedWarmReloadAfter {
+	if w.manager.clock.Now().Sub(w.observer.lastRuleActivity(rule.GetKey())) <= TargetedWarmReloadAfter {
 		return
 	}
 	w.warmRule(ctx, rule)
 }
 
-// warmRule replaces the cached states of one rule with what is persisted in the database. It is
-// the per-rule counterpart of Warm. On a database error the cache is left untouched.
-func (w *LogzioTargetedWarm) warmRule(ctx context.Context, rule *ngModels.AlertRule) {
+// warmRule replaces the rule's cached states with the persisted ones; on a database error the cache is kept.
+func (w *logzioTargetedWarm) warmRule(ctx context.Context, rule *ngModels.AlertRule) {
 	if w.manager.instanceStore == nil {
 		w.manager.log.Info("Skip warming the rule state because instance store is not configured")
 		return
@@ -125,32 +90,29 @@ func (w *LogzioTargetedWarm) warmRule(ctx context.Context, rule *ngModels.AlertR
 	logger.Debug("Rule state cache has been warmed", "rule_uid", rule.UID, "org_id", rule.OrgID, "states", len(alertInstances), "duration", time.Since(startTime))
 }
 
-// sweepIdleRuleStates frees the in-memory states of rules that were not evaluated on this pod for
-// TargetedWarmEvictAfter. Runs once per tick instead of the old full reload.
-func (w *LogzioTargetedWarm) sweepIdleRuleStates() {
+// sweepIdleRuleStates frees the cached states of rules with no local evaluation for TargetedWarmEvictAfter.
+func (w *logzioTargetedWarm) sweepIdleRuleStates() {
 	cutoff := w.manager.clock.Now().Add(-TargetedWarmEvictAfter)
 
 	evictedRules := 0
 	evictedStates := 0
 	for _, key := range w.manager.cache.ruleKeys() {
-		if w.manager.logzioObserver.lastRuleActivity(key).After(cutoff) {
+		if w.observer.lastRuleActivity(key).After(cutoff) {
 			continue
 		}
 		evictedStates += len(w.manager.cache.removeByRuleUID(key.OrgID, key.UID))
 		evictedRules++
 	}
-	w.manager.logzioObserver.ruleActivity.prune(cutoff)
+	w.observer.ruleActivity.prune(cutoff)
 
 	if evictedRules > 0 {
 		w.manager.log.Info("Freed cached states of rules not evaluated on this pod", "rules", evictedRules, "states", evictedStates, "idle_threshold", TargetedWarmEvictAfter)
 	}
 }
 
-// shadowWarmCompare loads the full state snapshot from the database, feeds it to the state cache
-// compare, and discards it. It deliberately does not apply anything and does not advance the
-// warm-snapshot freshness baseline. Compared to the old full reload it skips the per-org rules
-// queries: the compare only looks at locally evaluated rules, so orphaned rows do not matter.
-func (w *LogzioTargetedWarm) shadowWarmCompare(ctx context.Context) *stateCacheCompareSummary {
+// shadowWarmCompare loads the full snapshot, feeds it to the compare, and discards it without applying.
+// Rollout scaffolding: delete this and its call once observation shows zero discrepancies.
+func (w *logzioTargetedWarm) shadowWarmCompare(ctx context.Context) *stateCacheCompareSummary {
 	if w.manager.instanceStore == nil {
 		return nil
 	}
@@ -184,7 +146,7 @@ func (w *LogzioTargetedWarm) shadowWarmCompare(ctx context.Context) *stateCacheC
 		}
 	}
 
-	summary := w.manager.logzioObserver.compareSnapshotWithCache(snapshot)
+	summary := w.observer.compareSnapshotWithCache(snapshot)
 	w.manager.log.Debug("Shadow warm compare finished", "duration", time.Since(startTime))
 	return summary
 }

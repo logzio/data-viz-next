@@ -365,7 +365,7 @@ func (sch *schedule) processTick(ctx context.Context, dispatcherGroup *errgroup.
 		toDelete = append(toDelete, key)
 	}
 	sch.deleteAlertRule(toDelete...)
-	sch.stateManager.TargetedWarm.MaintainCache(ctx, sch.store) // LOGZ.IO GRAFANA CHANGE :: DEV-47243, APPZ-3028 Per-tick state cache maintenance, see state/targeted_warm_logzio.go
+	sch.stateManager.Logzio.MaintainCache(ctx, sch.store) // LOGZ.IO GRAFANA CHANGE :: DEV-47243, APPZ-3028 Per-tick state cache maintenance, see state/targeted_warm_logzio.go
 	return readyToRun, registeredDefinitions, updatedRules
 }
 
@@ -583,7 +583,7 @@ func (sch *schedule) ruleRoutine(grafanaCtx context.Context, key ngmodels.AlertR
 					sch.evalApplied(key, ctx.scheduledAt)
 				}()
 
-				sch.stateManager.TargetedWarm.WarmRuleIfNeeded(grafanaCtx, ctx.rule) // LOGZ.IO GRAFANA CHANGE :: APPZ-3028 Targeted state cache warm, see state/targeted_warm_logzio.go
+				sch.stateManager.Logzio.WarmRuleIfNeeded(grafanaCtx, ctx.rule) // LOGZ.IO GRAFANA CHANGE :: APPZ-3028 Targeted state cache warm, see state/targeted_warm_logzio.go
 
 				for attempt := int64(1); attempt <= sch.maxAttempts; attempt++ {
 					isPaused := ctx.rule.IsPaused
