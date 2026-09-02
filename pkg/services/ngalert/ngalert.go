@@ -325,6 +325,7 @@ func (ng *AlertNG) init() error {
 		ApplyNoDataAndErrorToAllStates: ng.FeatureToggles.IsEnabledGlobally(featuremgmt.FlagAlertingNoDataErrorExecution),
 		MaxStateSaveConcurrency:        ng.Cfg.UnifiedAlerting.MaxStateSaveConcurrency,
 		RulesPerRuleGroupLimit:         ng.Cfg.UnifiedAlerting.RulesPerRuleGroupLimit,
+		TargetedWarmEnabled:            ng.Cfg.UnifiedAlerting.TargetedWarmEnabled, // LOGZ.IO GRAFANA CHANGE :: APPZ-3028 Warm rule state on demand instead of reloading the whole cache
 		Tracer:                         ng.tracer,
 		Log:                            log.New("ngalert.state.manager"),
 	}
