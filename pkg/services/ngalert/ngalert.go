@@ -29,6 +29,7 @@ import (
 	"github.com/grafana/grafana/pkg/services/ngalert/api"
 	"github.com/grafana/grafana/pkg/services/ngalert/eval"
 	"github.com/grafana/grafana/pkg/services/ngalert/image"
+	kafkaeval "github.com/grafana/grafana/pkg/services/ngalert/kafkaeval_logzio" // LOGZ.IO GRAFANA CHANGE :: APPZ-3298 Kafka-direct alert evaluation
 	"github.com/grafana/grafana/pkg/services/ngalert/metrics"
 	"github.com/grafana/grafana/pkg/services/ngalert/migration"
 	"github.com/grafana/grafana/pkg/services/ngalert/models"
@@ -143,6 +144,7 @@ type AlertNG struct {
 	ImageService        image.ImageService
 	schedule            schedule.ScheduleService
 	stateManager        *state.Manager
+	kafkaEvalConsumer   *kafkaeval.Consumer // LOGZ.IO GRAFANA CHANGE :: APPZ-3298 Kafka-direct alert evaluation
 	folderService       folder.Service
 	dashboardService    dashboards.DashboardService
 	api                 *api.API
@@ -346,6 +348,16 @@ func (ng *AlertNG) init() error {
 	ng.stateManager = stateManager
 	ng.schedule = scheduler
 
+	// LOGZ.IO GRAFANA CHANGE :: APPZ-3298 Kafka-direct alert evaluation consumer, see kafkaeval_logzio.
+	if ng.Cfg.UnifiedAlerting.EvaluationKafkaEnabled {
+		kafkaEvalConsumer, err := kafkaeval.NewConsumer(ng.Cfg, scheduler, ng.Metrics.Registerer, log.New("ngalert.kafkaeval.logzio"))
+		if err != nil {
+			return err
+		}
+		ng.kafkaEvalConsumer = kafkaEvalConsumer
+	}
+	// LOGZ.IO GRAFANA CHANGE :: End
+
 	receiverService := notifier.NewReceiverService(ng.accesscontrol, ng.store, ng.store, ng.SecretsService, ng.store, ng.Log)
 
 	// Provisioning
@@ -473,6 +485,14 @@ func (ng *AlertNG) Run(ctx context.Context) error {
 		children.Go(func() error {
 			return ng.stateManager.Run(subCtx)
 		})
+
+		// LOGZ.IO GRAFANA CHANGE :: APPZ-3298 Consume alert rule evaluations from Kafka.
+		if ng.kafkaEvalConsumer != nil {
+			children.Go(func() error {
+				return ng.kafkaEvalConsumer.Run(subCtx)
+			})
+		}
+		// LOGZ.IO GRAFANA CHANGE :: End
 	}
 	return children.Wait()
 }
