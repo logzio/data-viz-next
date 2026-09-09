@@ -67,6 +67,11 @@ const (
 	logzioDefaultAlertsRouterUrl     = ""    // LOGZ.IO GRAFANA CHANGE :: DEV-43744 Add logzio notification route
 	logzioDefaultAlertmanagerEnabled = true  // LOGZ.IO GRAFANA CHANGE :: APPZ-3027 Gate in-process Alertmanagers on alert_manager_enabled
 	logzioDefaultTargetedWarmEnabled = false // LOGZ.IO GRAFANA CHANGE :: APPZ-3028 Warm rule state on demand instead of reloading the whole cache
+	// LOGZ.IO GRAFANA CHANGE :: APPZ-3298 Consume alert rule evaluations from Kafka
+	logzioDefaultEvaluationKafkaTopic          = "grafanaXAlertRuleEvaluation"
+	logzioDefaultEvaluationKafkaGroupID        = "grafana-x-alerts-evaluator"
+	logzioDefaultEvaluationKafkaStalenessHours = 3
+	// LOGZ.IO GRAFANA CHANGE :: End
 )
 
 type UnifiedAlertingSettings struct {
@@ -96,9 +101,17 @@ type UnifiedAlertingSettings struct {
 	ScheduledEvalEnabled           bool // LOGZ.IO GRAFANA CHANGE :: DEV-43744 Add scheduled evaluation enabled config
 	AlertmanagerEnabled            bool // LOGZ.IO GRAFANA CHANGE :: APPZ-3027 Gate the in-process Alertmanagers on alert_manager_enabled
 	TargetedWarmEnabled            bool // LOGZ.IO GRAFANA CHANGE :: APPZ-3028 Warm rule state on demand instead of reloading the whole cache
-	DefaultConfiguration           string
-	Enabled                        *bool // determines whether unified alerting is enabled. If it is nil then user did not define it and therefore its value will be determined during migration. Services should not use it directly.
-	DisabledOrgs                   map[int64]struct{}
+	// LOGZ.IO GRAFANA CHANGE :: APPZ-3298 Consume alert rule evaluations from Kafka
+	EvaluationKafkaEnabled        bool
+	EvaluationKafkaBrokers        string
+	EvaluationKafkaTopic          string
+	EvaluationKafkaGroupID        string
+	EvaluationKafkaInstanceID     string
+	EvaluationKafkaStalenessHours int
+	// LOGZ.IO GRAFANA CHANGE :: End
+	DefaultConfiguration string
+	Enabled              *bool // determines whether unified alerting is enabled. If it is nil then user did not define it and therefore its value will be determined during migration. Services should not use it directly.
+	DisabledOrgs         map[int64]struct{}
 	// BaseInterval interval of time the scheduler updates the rules and evaluates rules.
 	// Only for internal use and not user configuration.
 	BaseInterval time.Duration
@@ -329,6 +342,26 @@ func (cfg *Cfg) ReadUnifiedAlertingSettings(iniFile *ini.File) error {
 	// still loaded and fed to the state cache compare only, as the rollout observation window; that
 	// load gets deleted once observation shows zero discrepancies.
 	uaCfg.TargetedWarmEnabled = ua.Key("targeted_warm_enabled").MustBool(logzioDefaultTargetedWarmEnabled)
+	// LOGZ.IO GRAFANA CHANGE :: End
+
+	// LOGZ.IO GRAFANA CHANGE :: APPZ-3298 Consume alert rule evaluations from Kafka instead of the
+	// eval HTTP endpoint, see ngalert/kafkaeval_logzio. Transport only: rule registry and evaluation
+	// pipeline are unchanged. The consumer replaces externally driven evaluation, so it cannot run
+	// together with the internal scheduler, and it needs brokers to connect to.
+	uaCfg.EvaluationKafkaEnabled = ua.Key("evaluation_kafka_enabled").MustBool(false)
+	uaCfg.EvaluationKafkaBrokers = ua.Key("evaluation_kafka_brokers").MustString("")
+	uaCfg.EvaluationKafkaTopic = ua.Key("evaluation_kafka_topic").MustString(logzioDefaultEvaluationKafkaTopic)
+	uaCfg.EvaluationKafkaGroupID = ua.Key("evaluation_kafka_group_id").MustString(logzioDefaultEvaluationKafkaGroupID)
+	uaCfg.EvaluationKafkaInstanceID = ua.Key("evaluation_kafka_instance_id").MustString("")
+	uaCfg.EvaluationKafkaStalenessHours = ua.Key("evaluation_kafka_staleness_hours").MustInt(logzioDefaultEvaluationKafkaStalenessHours)
+	if uaCfg.EvaluationKafkaEnabled {
+		if uaCfg.ScheduledEvalEnabled {
+			return fmt.Errorf("invalid configuration: [unified_alerting] evaluation_kafka_enabled=true requires scheduled_evaluation_enabled=false")
+		}
+		if uaCfg.EvaluationKafkaBrokers == "" {
+			return fmt.Errorf("invalid configuration: [unified_alerting] evaluation_kafka_enabled=true requires evaluation_kafka_brokers")
+		}
+	}
 	// LOGZ.IO GRAFANA CHANGE :: End
 
 	uaCfg.LogzioAlertsRouterUrl = ua.Key("logzio_alerts_route_url").MustString(logzioDefaultAlertsRouterUrl) // LOGZ.IO GRAFANA CHANGE :: DEV-43744 Add logzio notification route
